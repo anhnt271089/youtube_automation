@@ -120,10 +120,10 @@ class GoogleDriveService {
         await this.testSheetsAPI();
       } catch (apiError) {
         if (apiError.message.includes('has not been used') || apiError.message.includes('disabled')) {
-          const detailedError = new Error(`Google Sheets API is not enabled. Please enable it in Google Cloud Console:\n` +
-            `1. Go to: https://console.cloud.google.com/apis/library\n` +
-            `2. Search for "Google Sheets API"\n` +
-            `3. Click "ENABLE"\n` +
+          const detailedError = new Error('Google Sheets API is not enabled. Please enable it in Google Cloud Console:\n' +
+            '1. Go to: https://console.cloud.google.com/apis/library\n' +
+            '2. Search for "Google Sheets API"\n' +
+            '3. Click "ENABLE"\n' +
             `Original error: ${apiError.message}`);
           detailedError.code = 'SHEETS_API_DISABLED';
           throw detailedError;
@@ -148,15 +148,24 @@ class GoogleDriveService {
         ]
       };
 
+      // Create spreadsheet directly in the target folder
       const spreadsheet = await this.sheets.spreadsheets.create({
         resource,
         fields: 'spreadsheetId,properties.title,sheets.properties'
       });
 
-      // Move spreadsheet to the target folder
+      // Move spreadsheet to the target folder and remove from root
+      const file = await this.drive.files.get({
+        fileId: spreadsheet.data.spreadsheetId,
+        fields: 'parents'
+      });
+
+      const previousParents = file.data.parents.join(',');
+      
       await this.drive.files.update({
         fileId: spreadsheet.data.spreadsheetId,
         addParents: parentFolderId,
+        removeParents: previousParents,
         fields: 'id, parents'
       });
 

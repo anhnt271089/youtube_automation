@@ -160,31 +160,28 @@ class WorkflowService {
         enhancedContent.keywords
       );
 
-      let spreadsheet = null;
+      // Create script breakdown in Notion instead of Google Sheets
+      let notionBreakdown = null;
       try {
-        spreadsheet = await this.driveService.createScriptBreakdownSheet(
-          videoData.title,
-          videoData.videoId,
-          driveFolder.folderId
-        );
-
-        await this.driveService.updateScriptBreakdown(
-          spreadsheet.spreadsheetId,
+        notionBreakdown = await this.notionService.createScriptBreakdown(
+          notionPageId,
           enhancedContent.scriptSentences,
           enhancedContent.imagePrompts
         );
         
-        logger.info('Script breakdown sheet created successfully');
-        logger.info(`View spreadsheet: ${spreadsheet.spreadsheetUrl}`);
+        logger.info('Script breakdown created in Notion successfully');
+        logger.info(`Script sentences: ${enhancedContent.scriptSentences.length}`);
+        logger.info(`Image prompts: ${enhancedContent.imagePrompts.length}`);
         
-        // Send Telegram notification about successful sheet creation
+        // Send Telegram notification about successful breakdown creation
         if (this.telegramService) {
           try {
             await this.telegramService.sendMessage(
-              `✅ Script breakdown sheet created successfully!\n\n` +
+              '✅ Script breakdown created in Notion!\n\n' +
               `📋 Video: ${videoData.title}\n` +
               `📊 Sentences: ${enhancedContent.scriptSentences.length}\n` +
-              `🔗 Spreadsheet: ${spreadsheet.spreadsheetUrl}`
+              `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n` +
+              `📝 View in Notion: https://notion.so/${notionPageId.replace(/-/g, '')}`
             );
           } catch (telegramError) {
             logger.warn('Failed to send Telegram notification:', telegramError.message);
@@ -192,38 +189,58 @@ class WorkflowService {
         }
         
       } catch (error) {
-        if (error.code === 'SHEETS_API_DISABLED') {
-          logger.error('🚨 GOOGLE SHEETS API NOT ENABLED 🚨');
-          logger.error('Script breakdown sheets cannot be created until you enable the Google Sheets API.');
-          logger.error('📋 SOLUTION: See GOOGLE_SHEETS_SETUP.md file for step-by-step instructions.');
-          
-          // Send Telegram alert about missing API
-          if (this.telegramService) {
-            try {
-              await this.telegramService.sendMessage(
-                `🚨 GOOGLE SHEETS API REQUIRED 🚨\n\n` +
-                `Script breakdown sheets are not being created because the Google Sheets API is not enabled.\n\n` +
-                `📋 TO FIX:\n` +
-                `1. Go to: https://console.cloud.google.com/apis/library\n` +
-                `2. Search for "Google Sheets API"\n` +
-                `3. Click "ENABLE"\n\n` +
-                `📄 See GOOGLE_SHEETS_SETUP.md for detailed instructions.\n\n` +
-                `Video processing will continue without spreadsheets.`
-              );
-            } catch (telegramError) {
-              logger.warn('Failed to send Telegram alert:', telegramError.message);
-            }
+        logger.warn('Failed to create script breakdown in Notion:', error.message);
+        
+        // Send Telegram alert about breakdown failure
+        if (this.telegramService) {
+          try {
+            await this.telegramService.sendMessage(
+              '⚠️ Script breakdown creation failed\n\n' +
+              `📋 Video: ${videoData.title}\n` +
+              `❌ Error: ${error.message}\n` +
+              '🔄 Continuing with manual breakdown...'
+            );
+          } catch (telegramError) {
+            logger.warn('Failed to send Telegram alert:', telegramError.message);
           }
-          
-        } else {
-          logger.warn('Failed to create script breakdown sheet:', error.message);
         }
         
-        // Continue without spreadsheet - it's not critical for the workflow
-        spreadsheet = { 
+        // Continue without breakdown - it's not critical for the workflow
+        notionBreakdown = { 
           error: error.message,
-          apiDisabled: error.code === 'SHEETS_API_DISABLED',
           fallbackMessage: 'Script breakdown will be handled manually'
+        };
+      }
+
+      // Legacy Google Sheets fallback (optional - only if needed)
+      let spreadsheet = null;
+      if (process.env.ENABLE_SHEETS_FALLBACK === 'true') {
+        try {
+          spreadsheet = await this.driveService.createScriptBreakdownSheet(
+            videoData.title,
+            videoData.videoId,
+            driveFolder.folderId
+          );
+
+          await this.driveService.updateScriptBreakdown(
+            spreadsheet.spreadsheetId,
+            enhancedContent.scriptSentences,
+            enhancedContent.imagePrompts
+          );
+          
+          logger.info('Fallback: Script breakdown sheet created successfully');
+          
+        } catch (error) {
+          logger.info('Sheets fallback failed (expected):', error.message);
+          spreadsheet = { 
+            error: error.message,
+            fallbackMessage: 'Using Notion breakdown instead'
+          };
+        }
+      } else {
+        spreadsheet = {
+          disabled: true,
+          message: 'Google Sheets disabled - using Notion breakdown'
         };
       }
 
@@ -246,6 +263,7 @@ class WorkflowService {
         videoData,
         enhancedContent,
         driveFolder,
+        notionBreakdown,
         spreadsheet,
         notionPageId
       };

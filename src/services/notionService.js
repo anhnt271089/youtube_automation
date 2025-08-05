@@ -144,6 +144,24 @@ class NotionService {
         };
       }
 
+      if (additionalData.scriptBreakdown) {
+        properties['Script Breakdown'] = {
+          rich_text: [
+            {
+              text: {
+                content: additionalData.scriptBreakdown.substring(0, 2000)
+              }
+            }
+          ]
+        };
+      }
+
+      if (additionalData.sentenceStatus) {
+        properties['Sentence Status'] = {
+          multi_select: additionalData.sentenceStatus.map(status => ({ name: status }))
+        };
+      }
+
       const response = await this.notion.pages.update({
         page_id: pageId,
         properties
@@ -387,6 +405,116 @@ class NotionService {
       return response;
     } catch (error) {
       logger.error('Error auto-populating video data:', error);
+      throw error;
+    }
+  }
+
+  async createScriptBreakdown(pageId, scriptSentences, imagePrompts) {
+    try {
+      logger.info(`Creating script breakdown in Notion for page: ${pageId}`);
+      
+      // Format the script breakdown as rich text
+      let breakdownText = '📋 SCRIPT BREAKDOWN\n\n';
+      
+      const totalSentences = scriptSentences.length;
+      const totalPrompts = imagePrompts.length;
+      
+      breakdownText += `📊 Overview: ${totalSentences} sentences, ${totalPrompts} image prompts\n\n`;
+      
+      // Add each sentence with its corresponding image prompt
+      for (let i = 0; i < Math.max(scriptSentences.length, imagePrompts.length); i++) {
+        const sentenceNum = i + 1;
+        const sentence = scriptSentences[i] || 'N/A';
+        const imagePrompt = imagePrompts[i] || 'N/A';
+        
+        breakdownText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        breakdownText += `🎬 SENTENCE ${sentenceNum}\n`;
+        breakdownText += `📝 Text: ${sentence}\n`;
+        breakdownText += `🎨 Image Prompt: ${imagePrompt}\n`;
+        breakdownText += '✅ Status: Pending\n\n';
+      }
+      
+      breakdownText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+      breakdownText += '📈 Processing Status: Script breakdown completed\n';
+      breakdownText += `🕒 Created: ${new Date().toISOString().split('T')[0]} ${new Date().toTimeString().split(' ')[0]}\n`;
+      
+      // Truncate if too long (Notion rich text has limits)
+      if (breakdownText.length > 2000) {
+        breakdownText = breakdownText.substring(0, 1950) + '\n\n... (truncated)';
+      }
+      
+      // Create initial sentence status array
+      const sentenceStatuses = [];
+      for (let i = 0; i < totalSentences; i++) {
+        sentenceStatuses.push(`S${i + 1}: Pending`);
+      }
+      
+      // Update the Notion page with script breakdown
+      await this.updateVideoStatus(pageId, null, {
+        scriptBreakdown: breakdownText,
+        sentenceStatus: sentenceStatuses.slice(0, 10) // Notion multi-select limit
+      });
+      
+      logger.info(`Script breakdown created successfully with ${totalSentences} sentences and ${totalPrompts} image prompts`);
+      
+      return {
+        success: true,
+        sentenceCount: totalSentences,
+        imagePromptCount: totalPrompts,
+        breakdownText,
+        message: 'Script breakdown stored in Notion successfully'
+      };
+      
+    } catch (error) {
+      logger.error('Error creating script breakdown in Notion:', error);
+      throw error;
+    }
+  }
+
+  async updateSentenceStatus(pageId, sentenceIndex, status) {
+    try {
+      logger.info(`Updating sentence ${sentenceIndex + 1} status to: ${status} for page: ${pageId}`);
+      
+      // Get current page to read existing sentence status
+      const page = await this.notion.pages.retrieve({ page_id: pageId });
+      const currentStatuses = page.properties['Sentence Status']?.multi_select?.map(item => item.name) || [];
+      
+      // Update the specific sentence status
+      const sentenceLabel = `S${sentenceIndex + 1}`;
+      const newStatus = `${sentenceLabel}: ${status}`;
+      
+      // Replace existing status for this sentence or add new one
+      const updatedStatuses = currentStatuses.filter(s => !s.startsWith(`${sentenceLabel}:`));
+      updatedStatuses.push(newStatus);
+      
+      await this.updateVideoStatus(pageId, null, {
+        sentenceStatus: updatedStatuses.slice(0, 10) // Notion multi-select limit
+      });
+      
+      logger.info('Sentence status updated successfully');
+      return true;
+      
+    } catch (error) {
+      logger.error('Error updating sentence status:', error);
+      throw error;
+    }
+  }
+
+  async getScriptBreakdown(pageId) {
+    try {
+      const page = await this.notion.pages.retrieve({ page_id: pageId });
+      
+      const scriptBreakdown = page.properties['Script Breakdown']?.rich_text[0]?.text?.content || '';
+      const sentenceStatuses = page.properties['Sentence Status']?.multi_select?.map(item => item.name) || [];
+      
+      return {
+        breakdown: scriptBreakdown,
+        statuses: sentenceStatuses,
+        hasBreakdown: scriptBreakdown.length > 0
+      };
+      
+    } catch (error) {
+      logger.error('Error retrieving script breakdown:', error);
       throw error;
     }
   }
