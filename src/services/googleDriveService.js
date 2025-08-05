@@ -115,46 +115,48 @@ class GoogleDriveService {
     try {
       const sheetTitle = `${this.sanitizeFolderName(videoTitle)} - Script Breakdown`;
       
-      // First check if Google Sheets API is available
+      // Try Google Sheets API first
       try {
         await this.testSheetsAPI();
-      } catch (apiError) {
-        if (apiError.message.includes('has not been used') || apiError.message.includes('disabled')) {
-          const detailedError = new Error('Google Sheets API is not enabled. Please enable it in Google Cloud Console:\n' +
-            '1. Go to: https://console.cloud.google.com/apis/library\n' +
-            '2. Search for "Google Sheets API"\n' +
-            '3. Click "ENABLE"\n' +
-            `Original error: ${apiError.message}`);
-          detailedError.code = 'SHEETS_API_DISABLED';
-          throw detailedError;
-        }
-        throw apiError;
+        return await this.createNativeGoogleSheet(sheetTitle, parentFolderId);
+      } catch (sheetsError) {
+        logger.warn('Google Sheets API not available, falling back to CSV upload method:', sheetsError.message);
+        
+        // Fallback: Create as CSV and upload to Google Drive (will auto-convert to Sheet)
+        return await this.createSheetViaCSVUpload(sheetTitle, parentFolderId);
       }
-      
-      const resource = {
-        properties: {
-          title: sheetTitle
-        },
-        sheets: [
-          {
-            properties: {
-              title: 'Script Breakdown',
-              gridProperties: {
-                rowCount: 1000,
-                columnCount: 5
-              }
+    } catch (error) {
+      logger.error('Error creating script breakdown sheet:', error);
+      throw error;
+    }
+  }
+
+  async createNativeGoogleSheet(sheetTitle, parentFolderId) {
+    const resource = {
+      properties: {
+        title: sheetTitle
+      },
+      sheets: [
+        {
+          properties: {
+            title: 'Script Breakdown',
+            gridProperties: {
+              rowCount: 1000,
+              columnCount: 5
             }
           }
-        ]
-      };
+        }
+      ]
+    };
 
-      // Create spreadsheet directly in the target folder
-      const spreadsheet = await this.sheets.spreadsheets.create({
-        resource,
-        fields: 'spreadsheetId,properties.title,sheets.properties'
-      });
+    // Create spreadsheet first
+    const spreadsheet = await this.sheets.spreadsheets.create({
+      resource,
+      fields: 'spreadsheetId,properties.title,sheets.properties'
+    });
 
-      // Move spreadsheet to the target folder and remove from root
+    // Try to move to target folder
+    try {
       const file = await this.drive.files.get({
         fileId: spreadsheet.data.spreadsheetId,
         fields: 'parents'
@@ -168,64 +170,120 @@ class GoogleDriveService {
         removeParents: previousParents,
         fields: 'id, parents'
       });
-
-      // Add headers to the spreadsheet
-      const headers = [
-        ['Sentence #', 'Script Text', 'Image Prompt', 'Generated Image URL', 'Status']
-      ];
-
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId: spreadsheet.data.spreadsheetId,
-        range: 'Script Breakdown!A1:E1',
-        valueInputOption: 'RAW',
-        resource: {
-          values: headers
-        }
-      });
-
-      logger.info(`Created script breakdown sheet: ${sheetTitle}`);
       
-      return {
-        spreadsheetId: spreadsheet.data.spreadsheetId,
-        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheet.data.spreadsheetId}`,
-        title: sheetTitle
-      };
-    } catch (error) {
-      if (error.code === 'SHEETS_API_DISABLED') {
-        logger.error('Google Sheets API is not enabled. See GOOGLE_SHEETS_SETUP.md for instructions.');
-        logger.error(error.message);
-      } else {
-        logger.error('Error creating script breakdown sheet:', error);
-      }
-      throw error;
+      logger.info('Successfully moved spreadsheet to target folder');
+    } catch (moveError) {
+      logger.warn('Could not move spreadsheet to target folder:', moveError.message);
     }
+
+    // Add headers
+    const headers = [
+      ['Sentence #', 'Script Text', 'Image Prompt', 'Generated Image URL', 'Status']
+    ];
+
+    await this.sheets.spreadsheets.values.update({
+      spreadsheetId: spreadsheet.data.spreadsheetId,
+      range: 'Script Breakdown!A1:E1',
+      valueInputOption: 'RAW',
+      resource: {
+        values: headers
+      }
+    });
+
+    logger.info(`Created native Google Sheet: ${sheetTitle}`);
+    
+    return {
+      spreadsheetId: spreadsheet.data.spreadsheetId,
+      spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheet.data.spreadsheetId}`,
+      title: sheetTitle,
+      method: 'native'
+    };
   }
 
-  async updateScriptBreakdown(spreadsheetId, scriptSentences, imagePrompts = []) {
+  async createSheetViaCSVUpload(sheetTitle, parentFolderId) {
+    // Create CSV content with headers
+    const csvContent = 'Sentence #,Script Text,Image Prompt,Generated Image URL,Status\n';
+    
+    // Create the file metadata
+    const fileMetadata = {
+      name: `${sheetTitle}.csv`,
+      parents: [parentFolderId],
+      mimeType: 'application/vnd.google-apps.spreadsheet' // This will convert CSV to Google Sheets
+    };
+
+    // Upload the CSV as a Google Sheet
+    const file = await this.drive.files.create({
+      resource: fileMetadata,
+      media: {
+        mimeType: 'text/csv',
+        body: csvContent
+      },
+      fields: 'id, name, webViewLink'
+    });
+
+    logger.info(`Created Google Sheet via CSV upload: ${sheetTitle}`);
+    
+    return {
+      spreadsheetId: file.data.id,
+      spreadsheetUrl: file.data.webViewLink,
+      title: sheetTitle,
+      method: 'csv_upload'
+    };
+  }
+
+  async updateScriptBreakdown(spreadsheetId, scriptSentences, imagePrompts = [], method = 'native') {
     try {
-      const values = scriptSentences.map((sentence, index) => [
-        index + 1,
-        sentence,
-        imagePrompts[index] || '',
-        '',
-        'Pending'
-      ]);
+      if (method === 'native') {
+        // Use Sheets API for native Google Sheets
+        const values = scriptSentences.map((sentence, index) => [
+          index + 1,
+          sentence,
+          imagePrompts[index] || '',
+          '',
+          'Pending'
+        ]);
 
-      await this.sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `Script Breakdown!A2:E${values.length + 1}`,
-        valueInputOption: 'RAW',
-        resource: {
-          values
-        }
-      });
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `Script Breakdown!A2:E${values.length + 1}`,
+          valueInputOption: 'RAW',
+          resource: {
+            values
+          }
+        });
 
-      logger.info(`Updated script breakdown with ${scriptSentences.length} sentences`);
+        logger.info(`Updated native Google Sheet with ${scriptSentences.length} sentences`);
+      } else {
+        // For CSV-uploaded sheets, recreate the content and update the file
+        await this.updateCSVSheet(spreadsheetId, scriptSentences, imagePrompts);
+        logger.info(`Updated CSV-based Google Sheet with ${scriptSentences.length} sentences`);
+      }
+      
       return true;
     } catch (error) {
       logger.error('Error updating script breakdown:', error);
       throw error;
     }
+  }
+
+  async updateCSVSheet(fileId, scriptSentences, imagePrompts = []) {
+    // Create CSV content with headers and data
+    let csvContent = 'Sentence #,Script Text,Image Prompt,Generated Image URL,Status\n';
+    
+    scriptSentences.forEach((sentence, index) => {
+      const escapedSentence = `"${sentence.replace(/"/g, '""')}"`;
+      const escapedPrompt = `"${(imagePrompts[index] || '').replace(/"/g, '""')}"`;
+      csvContent += `${index + 1},${escapedSentence},${escapedPrompt},"","Pending"\n`;
+    });
+
+    // Update the file content
+    await this.drive.files.update({
+      fileId: fileId,
+      media: {
+        mimeType: 'text/csv',
+        body: csvContent
+      }
+    });
   }
 
   async updateImageUrl(spreadsheetId, rowIndex, imageUrl) {
@@ -243,6 +301,69 @@ class GoogleDriveService {
       return true;
     } catch (error) {
       logger.error('Error updating image URL:', error);
+      throw error;
+    }
+  }
+
+  async updateMultipleImageUrls(spreadsheetId, imageUrls) {
+    try {
+      if (!imageUrls || imageUrls.length === 0) {
+        logger.warn('No image URLs to update');
+        return false;
+      }
+
+      // Create batch update data
+      const updates = imageUrls.map((imageUrl, index) => ({
+        range: `Script Breakdown!D${index + 2}:E${index + 2}`,
+        values: [[imageUrl || '', imageUrl ? 'Generated' : 'Pending']]
+      }));
+
+      // Batch update all image URLs at once
+      await this.sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        resource: {
+          valueInputOption: 'RAW',
+          data: updates
+        }
+      });
+
+      logger.info(`Updated ${imageUrls.length} image URLs in batch`);
+      return true;
+    } catch (error) {
+      logger.error('Error updating multiple image URLs:', error);
+      throw error;
+    }
+  }
+
+  async getSpreadsheetData(spreadsheetId, range = 'Script Breakdown!A:E') {
+    try {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range
+      });
+
+      return response.data.values || [];
+    } catch (error) {
+      logger.error('Error getting spreadsheet data:', error);
+      throw error;
+    }
+  }
+
+  async updateScriptStatus(spreadsheetId, rowIndex, status) {
+    try {
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `Script Breakdown!E${rowIndex + 2}`,
+        valueInputOption: 'RAW',
+        resource: {
+          values: [[status]]
+        }
+      });
+
+      logger.info(`Updated status for row ${rowIndex + 2} to: ${status}`);
+      return true;
+    } catch (error) {
+      logger.error('Error updating script status:', error);
       throw error;
     }
   }

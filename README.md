@@ -10,7 +10,7 @@ A comprehensive Node.js automation system that transforms YouTube videos into op
 - **AI Content Enhancement**: Generate attractive scripts, optimized descriptions, and SEO titles
 - **Keyword Research**: Automated SEO keyword analysis and application
 - **Google Drive Organization**: Automatic folder creation and file management
-- **Script Breakdown**: Convert scripts into sentence-level segments in Google Sheets
+- **Script Breakdown**: Convert scripts into sentence-level segments (Notion primary, Google Sheets optional)
 - **AI Image Generation**: Create custom images for each script segment using DALL-E
 - **Thumbnail Generation**: AI-generated custom thumbnails optimized for engagement
 - **Video Assembly**: Combine images and text overlays into 2-3 minute videos
@@ -19,7 +19,7 @@ A comprehensive Node.js automation system that transforms YouTube videos into op
 ### Workflow Stages
 1. **Simplified Input**: Just paste YouTube URL in Notion - all metadata auto-populated
 2. **AI Enhancement**: Generate optimized scripts, descriptions, and titles
-3. **Drive Setup**: Create organized folder structure for each video
+3. **Drive Setup**: Create organized folder structure and optional Google Sheets
 4. **Script Approval**: Manual review step with Telegram notifications
 5. **Image Generation**: AI-generated visuals for each script segment
 6. **Video Assembly**: Create final 2-3 minute video with overlays
@@ -310,8 +310,17 @@ LOG_LEVEL=debug npm start
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔗 Related Documentation
+## 📚 Documentation
 
+### Project Documentation
+- [Setup Guide](docs/SETUP.md) - Complete installation and configuration
+- [Script Breakdown System](docs/SCRIPT_BREAKDOWN.md) - Notion vs Google Sheets implementation
+- [Google Sheets Setup](docs/GOOGLE_SHEETS_SETUP.md) - Optional Google Sheets configuration
+- [API Documentation](docs/API.md) - Service interfaces and methods
+- [Testing Guide](docs/TESTING.md) - Testing procedures and tools
+- [Project Structure](docs/PROJECT_STRUCTURE.md) - Codebase organization
+
+### External API Documentation
 - [YouTube Data API](https://developers.google.com/youtube/v3)
 - [Notion API](https://developers.notion.com)
 - [Google Drive API](https://developers.google.com/drive)

@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 # Important
-- Always use best fit agent to do the task
+- Always use best fit sub agent to do the task
 - Task need pass QA. QC before mark done
 - Update all related document if needed when requirement change 
 
@@ -105,11 +105,13 @@ npm test               # Run Jest test suite - MUST pass before commits
 
 ### System Operations
 ```bash
-# Test system without starting cron jobs (for development)
-node src/index.js --no-cron
-
-# Check system health and configuration
-node -e "import('./src/index.js').then(m => console.log(m.default.prototype.getSystemStatus()))"
+# Test system functionality with unified test script
+node test-single-run.js health                    # Health check only
+node test-single-run.js all                       # Run all services once
+node test-single-run.js single-video <url>        # Process specific video
+node test-single-run.js new-videos               # Process new videos
+node test-single-run.js approved-scripts         # Process approved scripts
+node test-single-run.js video-generation         # Run video generation
 
 # Manual workflow testing
 node -e "
@@ -117,16 +119,6 @@ import('./src/index.js').then(async (m) => {
   const automation = new m.default();
   await automation.initialize();
   console.log('System initialized successfully');
-  await automation.stop();
-});"
-
-# Process single URL for testing
-node -e "
-import('./src/index.js').then(async (m) => {
-  const automation = new m.default();
-  await automation.initialize();
-  const result = await automation.processUrl('YOUR_YOUTUBE_URL');
-  console.log(result);
   await automation.stop();
 });"
 ```

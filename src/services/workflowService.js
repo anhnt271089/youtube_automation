@@ -1,6 +1,5 @@
 import YouTubeService from './youtubeService.js';
 import NotionService from './notionService.js';
-import GoogleDriveService from './googleDriveService.js';
 import AIService from './aiService.js';
 import TelegramService from './telegramService.js';
 import VideoService from './videoService.js';
@@ -10,7 +9,6 @@ class WorkflowService {
   constructor() {
     this.youtubeService = new YouTubeService();
     this.notionService = new NotionService();
-    this.driveService = new GoogleDriveService();
     this.aiService = new AIService();
     this.telegramService = new TelegramService();
     this.videoService = new VideoService();
@@ -143,11 +141,6 @@ class WorkflowService {
     try {
       await this.telegramService.sendVideoProcessingStarted(videoData);
 
-      const driveFolder = await this.driveService.createVideoFolder(
-        videoData.title, 
-        videoData.videoId
-      );
-
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
 
       await this.telegramService.sendScriptGenerated(
@@ -160,96 +153,41 @@ class WorkflowService {
         enhancedContent.keywords
       );
 
-      // Create script breakdown in Notion instead of Google Sheets
-      let notionBreakdown = null;
-      try {
-        notionBreakdown = await this.notionService.createScriptBreakdown(
-          notionPageId,
-          enhancedContent.scriptSentences,
-          enhancedContent.imagePrompts
-        );
-        
-        logger.info('Script breakdown created in Notion successfully');
-        logger.info(`Script sentences: ${enhancedContent.scriptSentences.length}`);
-        logger.info(`Image prompts: ${enhancedContent.imagePrompts.length}`);
-        
-        // Send Telegram notification about successful breakdown creation
-        if (this.telegramService) {
-          try {
-            await this.telegramService.sendMessage(
-              '✅ Script breakdown created in Notion!\n\n' +
-              `📋 Video: ${videoData.title}\n` +
-              `📊 Sentences: ${enhancedContent.scriptSentences.length}\n` +
-              `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n` +
-              `📝 View in Notion: https://notion.so/${notionPageId.replace(/-/g, '')}`
-            );
-          } catch (telegramError) {
-            logger.warn('Failed to send Telegram notification:', telegramError.message);
-          }
-        }
-        
-      } catch (error) {
-        logger.warn('Failed to create script breakdown in Notion:', error.message);
-        
-        // Send Telegram alert about breakdown failure
-        if (this.telegramService) {
-          try {
-            await this.telegramService.sendMessage(
-              '⚠️ Script breakdown creation failed\n\n' +
-              `📋 Video: ${videoData.title}\n` +
-              `❌ Error: ${error.message}\n` +
-              '🔄 Continuing with manual breakdown...'
-            );
-          } catch (telegramError) {
-            logger.warn('Failed to send Telegram alert:', telegramError.message);
-          }
-        }
-        
-        // Continue without breakdown - it's not critical for the workflow
-        notionBreakdown = { 
-          error: error.message,
-          fallbackMessage: 'Script breakdown will be handled manually'
-        };
-      }
-
-      // Legacy Google Sheets fallback (optional - only if needed)
-      let spreadsheet = null;
-      if (process.env.ENABLE_SHEETS_FALLBACK === 'true') {
+      // Create script breakdown in dedicated per-video database
+      const breakdown = await this.notionService.createScriptBreakdown(
+        notionPageId,
+        enhancedContent.scriptSentences,
+        enhancedContent.imagePrompts
+      );
+      
+      logger.info(`Script breakdown created successfully in dedicated database: ${breakdown.scriptDatabase.title}`);
+      logger.info(`Script sentences: ${enhancedContent.scriptSentences.length}`);
+      logger.info(`Image prompts: ${enhancedContent.imagePrompts.length}`);
+      
+      // Send Telegram notification about successful breakdown creation
+      if (this.telegramService) {
         try {
-          spreadsheet = await this.driveService.createScriptBreakdownSheet(
-            videoData.title,
-            videoData.videoId,
-            driveFolder.folderId
+          await this.telegramService.sendMessage(
+            '✅ Script breakdown created in dedicated Notion database!\n\n' +
+            `📋 Video: ${videoData.title}\n` +
+            `📊 Sentences: ${enhancedContent.scriptSentences.length}\n` +
+            `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n` +
+            `📝 Script Details: ${breakdown.scriptDatabase.databaseUrl}\n` +
+            `📋 Main Video: https://notion.so/${notionPageId.replace(/-/g, '')}`
           );
-
-          await this.driveService.updateScriptBreakdown(
-            spreadsheet.spreadsheetId,
-            enhancedContent.scriptSentences,
-            enhancedContent.imagePrompts
-          );
-          
-          logger.info('Fallback: Script breakdown sheet created successfully');
-          
-        } catch (error) {
-          logger.info('Sheets fallback failed (expected):', error.message);
-          spreadsheet = { 
-            error: error.message,
-            fallbackMessage: 'Using Notion breakdown instead'
-          };
+        } catch (telegramError) {
+          logger.warn('Failed to send Telegram notification:', telegramError.message);
         }
-      } else {
-        spreadsheet = {
-          disabled: true,
-          message: 'Google Sheets disabled - using Notion breakdown'
-        };
       }
 
-      await this.notionService.updateVideoStatus(notionPageId, 'Script Generated', {
+      // Update main video record with enhanced content
+      const notionUpdateData = {
         optimizedTitle: enhancedContent.optimizedTitles.recommended,
         optimizedDescription: enhancedContent.optimizedDescription,
-        keywords: enhancedContent.keywords.primaryKeywords,
-        driveFolder: driveFolder.folderUrl
-      });
+        keywords: enhancedContent.keywords.primaryKeywords
+      };
+
+      await this.notionService.updateVideoStatus(notionPageId, 'Script Generated', notionUpdateData);
 
       await this.telegramService.sendScriptApprovalRequest(
         videoData.title,
@@ -262,9 +200,7 @@ class WorkflowService {
       return {
         videoData,
         enhancedContent,
-        driveFolder,
-        notionBreakdown,
-        spreadsheet,
+        breakdown,
         notionPageId
       };
     } catch (error) {
@@ -286,6 +222,34 @@ class WorkflowService {
         enhancedContent.imagePrompts,
         this.aiService
       );
+
+      // Update Video Details database with generated image URLs
+      if (imageUrls && imageUrls.length > 0) {
+        try {
+          await this.notionService.updateMultipleImageUrls(videoInfo.id, imageUrls);
+          
+          logger.info(`Updated Video Details database with ${imageUrls.length} image URLs`);
+          
+          // Send Telegram notification about database update
+          await this.telegramService.sendMessage(
+            '✅ Video Details updated!\n\n' +
+            `📋 Video: ${videoInfo.title}\n` +
+            `🖼️ Updated ${imageUrls.length} image URLs\n` +
+            '📝 View Details: https://notion.so/86c154fe87ed4c648c92907f2a70c865\n' +
+            `📋 Main Video: https://notion.so/${videoInfo.id.replace(/-/g, '')}`
+          );
+        } catch (error) {
+          logger.warn('Failed to update Video Details with image URLs:', error.message);
+          
+          // Notify about the failure but don't stop the workflow
+          await this.telegramService.sendMessage(
+            '⚠️ Failed to update Video Details with image URLs\n\n' +
+            `📋 Video: ${videoInfo.title}\n` +
+            `❌ Error: ${error.message}\n` +
+            '🔄 Images generated successfully, manual update required'
+          );
+        }
+      }
 
       await this.telegramService.sendImageGenerationUpdate(
         videoInfo.title,
@@ -319,7 +283,7 @@ class WorkflowService {
     try {
       logger.info(`Generating final video for: ${videoInfo.title}`);
 
-      await this.notionService.updateVideoStatus(videoInfo.id, 'Video Generated');
+      await this.notionService.updateVideoStatus(videoInfo.id, 'Generating Final Video');
 
       const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
@@ -330,28 +294,22 @@ class WorkflowService {
         this.aiService
       );
 
-      const driveVideoFile = await this.driveService.uploadFile(
-        videoResult.videoPath,
-        videoResult.filename,
-        videoInfo.driveFolder,
-        'video/mp4'
-      );
-
+      // Mark as completed (final video is stored locally in output/ directory)
       await this.notionService.updateVideoStatus(videoInfo.id, 'Completed', {
-        finalVideoUrl: driveVideoFile.webViewLink,
+        finalVideoPath: videoResult.videoPath,
         processingCompleted: new Date().toISOString()
       });
 
       await this.telegramService.sendVideoCompleted(
         { ...videoData, optimizedTitle: enhancedContent.optimizedTitles.recommended },
-        videoInfo.driveFolder,
-        driveVideoFile.webViewLink
+        'Local Output Directory',
+        videoResult.videoPath
       );
 
       this.stats.successful++;
       logger.info(`Video generation completed for: ${videoInfo.title}`);
       
-      return { videoResult, driveVideoFile };
+      return { videoResult };
     } catch (error) {
       logger.error('Error in generateFinalVideo:', error);
       throw error;
@@ -440,7 +398,6 @@ class WorkflowService {
       const checks = {
         youtube: false,
         notion: false,
-        drive: false,
         ai: false,
         telegram: false
       };
@@ -453,20 +410,12 @@ class WorkflowService {
         logger.error('YouTube service health check failed:', error);
       }
 
-      // Test Notion API
+      // Test Notion API (both databases)
       try {
-        await this.notionService.getVideosByStatus('New');
+        await this.notionService.healthCheck();
         checks.notion = true;
       } catch (error) {
         logger.error('Notion service health check failed:', error);
-      }
-
-      // Test Google Drive API
-      try {
-        await this.driveService.healthCheck();
-        checks.drive = true;
-      } catch (error) {
-        logger.error('Google Drive service health check failed:', error);
       }
 
       // Test AI Service

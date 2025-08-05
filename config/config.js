@@ -14,6 +14,7 @@ export const config = {
   notion: {
     token: process.env.NOTION_TOKEN,
     databaseId: process.env.NOTION_DATABASE_ID,
+    // Note: videoDetailsDatabaseId removed - we now create per-video databases dynamically
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
@@ -35,10 +36,9 @@ export const config = {
 export const validateConfig = () => {
   const required = [
     'YOUTUBE_API_KEY',
-    'GOOGLE_CLIENT_EMAIL',
-    'GOOGLE_PRIVATE_KEY',
     'NOTION_TOKEN',
     'NOTION_DATABASE_ID',
+    // Note: NOTION_VIDEO_DETAILS_DATABASE_ID removed - we create per-video databases dynamically
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID'
   ];

@@ -1,4 +1,4 @@
-# Setup Guide
+# Complete Setup Guide
 
 ## Quick Setup Checklist
 
@@ -62,16 +62,29 @@ cp .env.example .env
 5. Add both to `.env`
 
 ### 5. Database Setup
-1. Create Notion database with schema from README.md
+1. Create Notion database with required properties:
+   - **YouTube URL** (URL) - Manual input field
+   - **VideoID** (Formula) - Auto-generated using `id()` formula  
+   - **Title** (Title) - Auto-populated from YouTube
+   - **Status** (Select) - Processing status tracking
+   - **Script Breakdown** (Rich Text) - Script breakdown storage
+   - **Sentence Status** (Multi-select) - Individual sentence tracking
+   - Additional properties as listed in README.md
 2. Share database with your integration
 3. Copy database ID from URL to `.env`
 
 ### 6. Testing
 ```bash
-npm run lint      # Check code quality
-npm run typecheck # Verify TypeScript
-npm test          # Run test suite
-npm start         # Start production system
+npm run lint              # Check code quality
+npm run typecheck         # Verify TypeScript
+npm test                  # Run test suite
+
+# Test system functionality
+node test-single-run.js health    # Health check
+node test-single-run.js all       # Run all services once
+
+# Start production system
+npm start
 ```
 
 ### 7. Verification

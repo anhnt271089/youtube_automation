@@ -8,11 +8,13 @@ class NotionService {
       auth: config.notion.token,
     });
     this.databaseId = config.notion.databaseId;
+    // Note: No longer using a shared details database - each video gets its own
   }
+
+  // === MAIN VIDEOS DATABASE OPERATIONS ===
 
   async createVideoEntry(videoData) {
     try {
-      // Generate next sequential VideoID
       const nextVideoId = await this.getNextVideoId();
       
       const properties = {
@@ -141,27 +143,33 @@ class NotionService {
         };
       }
 
-      if (additionalData.driveFolder) {
-        properties['Drive Folder'] = {
-          url: additionalData.driveFolder
+      if (additionalData.totalSentences !== undefined) {
+        properties['Total Sentences'] = {
+          number: additionalData.totalSentences
         };
       }
 
-      if (additionalData.scriptBreakdown) {
-        properties['Script Breakdown'] = {
+      if (additionalData.completedSentences !== undefined) {
+        properties['Completed Sentences'] = {
+          number: additionalData.completedSentences
+        };
+      }
+
+      if (additionalData.scriptDetailsDatabaseUrl) {
+        properties['Script Details Database URL'] = {
+          url: additionalData.scriptDetailsDatabaseUrl
+        };
+      }
+
+      if (additionalData.scriptDetailsDatabaseId) {
+        properties['Script Details Database ID'] = {
           rich_text: [
             {
               text: {
-                content: additionalData.scriptBreakdown.substring(0, 2000)
+                content: additionalData.scriptDetailsDatabaseId
               }
             }
           ]
-        };
-      }
-
-      if (additionalData.sentenceStatus) {
-        properties['Sentence Status'] = {
-          multi_select: additionalData.sentenceStatus.map(status => ({ name: status }))
         };
       }
 
@@ -182,40 +190,6 @@ class NotionService {
     }
   }
 
-  async getPendingVideos() {
-    try {
-      const response = await this.notion.databases.query({
-        database_id: this.databaseId,
-        filter: {
-          property: 'Status',
-          select: {
-            equals: 'Pending'
-          }
-        },
-        sorts: [
-          {
-            property: 'Created Time',
-            direction: 'ascending'
-          }
-        ]
-      });
-
-      return response.results.map(page => ({
-        id: page.id,
-        videoId: page.properties.VideoID?.rich_text[0]?.text?.content || page.id,
-        internalVideoId: page.id, // Use Notion page ID as internal VideoID
-        title: page.properties.Title?.title[0]?.text?.content || '',
-        youtubeUrl: page.properties['YouTube URL']?.url || '',
-        youtubeVideoId: page.properties['YouTube Video ID']?.rich_text[0]?.text?.content || '',
-        status: page.properties.Status?.select?.name || '',
-        createdTime: page.created_time
-      }));
-    } catch (error) {
-      logger.error('Error fetching pending videos:', error);
-      throw error;
-    }
-  }
-
   async getVideosByStatus(status) {
     try {
       const response = await this.notion.databases.query({
@@ -231,14 +205,16 @@ class NotionService {
       return response.results.map(page => ({
         id: page.id,
         videoId: page.properties.VideoID?.rich_text[0]?.text?.content || page.id,
-        internalVideoId: page.id, // Use Notion page ID as internal VideoID
         title: page.properties.Title?.title[0]?.text?.content || '',
         youtubeUrl: page.properties['YouTube URL']?.url || '',
         youtubeVideoId: page.properties['YouTube Video ID']?.rich_text[0]?.text?.content || '',
         status: page.properties.Status?.select?.name || '',
         scriptApproved: page.properties['Script Approved']?.checkbox || false,
-        driveFolder: page.properties['Drive Folder']?.url || '',
         optimizedTitle: page.properties['Optimized Title']?.rich_text[0]?.text?.content || '',
+        totalSentences: page.properties['Total Sentences']?.number || 0,
+        completedSentences: page.properties['Completed Sentences']?.number || 0,
+        scriptDetailsDatabaseUrl: page.properties['Script Details Database URL']?.url || '',
+        scriptDetailsDatabaseId: page.properties['Script Details Database ID']?.rich_text[0]?.text?.content || '',
         createdTime: page.created_time
       }));
     } catch (error) {
@@ -249,7 +225,6 @@ class NotionService {
 
   async getNextVideoId() {
     try {
-      // Query all existing VideoIDs to find the highest number
       const response = await this.notion.databases.query({
         database_id: this.databaseId,
         filter: {
@@ -262,7 +237,6 @@ class NotionService {
 
       let maxId = 0;
       
-      // Parse existing VideoIDs to find the highest number
       response.results.forEach(page => {
         const videoId = page.properties.VideoID?.rich_text[0]?.text?.content || '';
         if (videoId.startsWith('VID_')) {
@@ -273,7 +247,6 @@ class NotionService {
         }
       });
 
-      // Generate next sequential ID
       const nextId = maxId + 1;
       const formattedId = `VID_${nextId.toString().padStart(4, '0')}`;
       
@@ -281,7 +254,6 @@ class NotionService {
       return formattedId;
     } catch (error) {
       logger.error('Error generating next VideoID:', error);
-      // Fallback to timestamp-based ID if something goes wrong
       const timestamp = Date.now().toString().slice(-4);
       return `VID_${timestamp}`;
     }
@@ -289,10 +261,8 @@ class NotionService {
 
   async addVideoUrl(url) {
     try {
-      // Generate next sequential VideoID
       const nextVideoId = await this.getNextVideoId();
       
-      // Create initial entry with just the URL
       const properties = {
         'Title': {
           title: [
@@ -331,20 +301,6 @@ class NotionService {
       return response;
     } catch (error) {
       logger.error('Error adding video URL to Notion:', error);
-      throw error;
-    }
-  }
-
-  async approveScript(pageId) {
-    try {
-      await this.updateVideoStatus(pageId, 'Approved', {
-        scriptApproved: true
-      });
-      
-      logger.info(`Script approved for page: ${pageId}`);
-      return true;
-    } catch (error) {
-      logger.error('Error approving script:', error);
       throw error;
     }
   }
@@ -416,87 +372,242 @@ class NotionService {
     }
   }
 
-  async createScriptBreakdown(pageId, scriptSentences, imagePrompts) {
+  async approveScript(pageId) {
     try {
-      logger.info(`Creating script breakdown in Notion for page: ${pageId}`);
-      
-      // Format the script breakdown as rich text
-      let breakdownText = '📋 SCRIPT BREAKDOWN\n\n';
-      
-      const totalSentences = scriptSentences.length;
-      const totalPrompts = imagePrompts.length;
-      
-      breakdownText += `📊 Overview: ${totalSentences} sentences, ${totalPrompts} image prompts\n\n`;
-      
-      // Add each sentence with its corresponding image prompt
-      for (let i = 0; i < Math.max(scriptSentences.length, imagePrompts.length); i++) {
-        const sentenceNum = i + 1;
-        const sentence = scriptSentences[i] || 'N/A';
-        const imagePrompt = imagePrompts[i] || 'N/A';
-        
-        breakdownText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
-        breakdownText += `🎬 SENTENCE ${sentenceNum}\n`;
-        breakdownText += `📝 Text: ${sentence}\n`;
-        breakdownText += `🎨 Image Prompt: ${imagePrompt}\n`;
-        breakdownText += '✅ Status: Pending\n\n';
-      }
-      
-      breakdownText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
-      breakdownText += '📈 Processing Status: Script breakdown completed\n';
-      breakdownText += `🕒 Created: ${new Date().toISOString().split('T')[0]} ${new Date().toTimeString().split(' ')[0]}\n`;
-      
-      // Truncate if too long (Notion rich text has limits)
-      if (breakdownText.length > 2000) {
-        breakdownText = breakdownText.substring(0, 1950) + '\n\n... (truncated)';
-      }
-      
-      // Create initial sentence status array
-      const sentenceStatuses = [];
-      for (let i = 0; i < totalSentences; i++) {
-        sentenceStatuses.push(`S${i + 1}: Pending`);
-      }
-      
-      // Update the Notion page with script breakdown
-      await this.updateVideoStatus(pageId, null, {
-        scriptBreakdown: breakdownText,
-        sentenceStatus: sentenceStatuses.slice(0, 10) // Notion multi-select limit
+      await this.updateVideoStatus(pageId, 'Approved', {
+        scriptApproved: true
       });
       
-      logger.info(`Script breakdown created successfully with ${totalSentences} sentences and ${totalPrompts} image prompts`);
-      
-      return {
-        success: true,
-        sentenceCount: totalSentences,
-        imagePromptCount: totalPrompts,
-        breakdownText,
-        message: 'Script breakdown stored in Notion successfully'
-      };
-      
+      logger.info(`Script approved for page: ${pageId}`);
+      return true;
     } catch (error) {
-      logger.error('Error creating script breakdown in Notion:', error);
+      logger.error('Error approving script:', error);
       throw error;
     }
   }
 
-  async updateSentenceStatus(pageId, sentenceIndex, status) {
+  // === PER-VIDEO DATABASE OPERATIONS ===
+
+  async createVideoScriptDatabase(videoTitle, videoPageId) {
     try {
-      logger.info(`Updating sentence ${sentenceIndex + 1} status to: ${status} for page: ${pageId}`);
+      logger.info(`Creating dedicated script database for video: ${videoTitle}`);
       
-      // Get current page to read existing sentence status
-      const page = await this.notion.pages.retrieve({ page_id: pageId });
-      const currentStatuses = page.properties['Sentence Status']?.multi_select?.map(item => item.name) || [];
+      const databaseTitle = `${videoTitle} - Script Details`.substring(0, 100); // Notion title limit
       
-      // Update the specific sentence status
-      const sentenceLabel = `S${sentenceIndex + 1}`;
-      const newStatus = `${sentenceLabel}: ${status}`;
-      
-      // Replace existing status for this sentence or add new one
-      const updatedStatuses = currentStatuses.filter(s => !s.startsWith(`${sentenceLabel}:`));
-      updatedStatuses.push(newStatus);
-      
-      await this.updateVideoStatus(pageId, null, {
-        sentenceStatus: updatedStatuses.slice(0, 10) // Notion multi-select limit
+      // Create database properties schema with optimized configuration
+      const properties = {
+        'Sentence': {
+          title: {}
+        },
+        'Sentence Number': {
+          number: {
+            format: 'number'
+          }
+        },
+        'Script Text': {
+          rich_text: {}
+        },
+        'Image Prompt': {
+          rich_text: {}
+        },
+        'Generated Image URL': {
+          url: {}
+        },
+        'Status': {
+          select: {
+            options: [
+              { name: 'Pending', color: 'gray' },
+              { name: 'Processing', color: 'yellow' },
+              { name: 'Image Generated', color: 'blue' },
+              { name: 'Complete', color: 'green' }
+            ]
+          }
+        },
+        'Word Count': {
+          formula: {
+            expression: 'length(prop("Script Text"))'
+          }
+        },
+        'Created Time': {
+          created_time: {}
+        },
+        'Last Edited Time': {
+          last_edited_time: {}
+        }
+      };
+
+      // Create the database
+      const database = await this.notion.databases.create({
+        parent: {
+          type: 'page_id',
+          page_id: videoPageId
+        },
+        title: [
+          {
+            type: 'text',
+            text: {
+              content: databaseTitle
+            }
+          }
+        ],
+        properties: properties
       });
+
+      logger.info(`Created dedicated script database: ${database.id} with URL: ${database.url}`);
+      
+      // Note: Due to Notion API limitations, we cannot set the default view's sort order programmatically.
+      // However, all queries to this database will use proper sorting by Sentence Number ascending.
+      logger.info('Note: Default view sort order must be set manually in Notion UI (API limitation)');
+      
+      return {
+        databaseId: database.id,
+        databaseUrl: database.url,
+        title: databaseTitle
+      };
+      
+    } catch (error) {
+      logger.error('Error creating video script database:', error);
+      throw error;
+    }
+  }
+
+  async createScriptBreakdown(videoPageId, scriptSentences, imagePrompts) {
+    try {
+      // First get the video title for database naming
+      const videoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
+      const videoTitle = videoPage.properties.Title?.title[0]?.text?.content || 'Unknown Video';
+      
+      logger.info(`Creating script breakdown for video: ${videoTitle}`);
+      
+      // Create dedicated database for this video
+      const scriptDatabase = await this.createVideoScriptDatabase(videoTitle, videoPageId);
+      
+      const detailRecords = [];
+      
+      // Create a record for each sentence in the dedicated database
+      for (let i = 0; i < scriptSentences.length; i++) {
+        const sentenceNumber = i + 1;
+        const scriptText = scriptSentences[i] || '';
+        const imagePrompt = imagePrompts[i] || '';
+        
+        const detailProperties = {
+          'Sentence': {
+            title: [
+              {
+                text: {
+                  content: `Sentence ${sentenceNumber}`
+                }
+              }
+            ]
+          },
+          'Sentence Number': {
+            number: sentenceNumber
+          },
+          'Script Text': {
+            rich_text: [
+              {
+                text: {
+                  content: scriptText
+                }
+              }
+            ]
+          },
+          'Image Prompt': {
+            rich_text: [
+              {
+                text: {
+                  content: imagePrompt
+                }
+              }
+            ]
+          },
+          'Status': {
+            select: {
+              name: 'Pending'
+            }
+          }
+        };
+
+        const detailRecord = await this.notion.pages.create({
+          parent: { database_id: scriptDatabase.databaseId },
+          properties: detailProperties
+        });
+
+        detailRecords.push(detailRecord);
+      }
+
+      // Update main video record with database info and sentence count
+      logger.info(`Linking script database to main video record: ${videoPageId}`);
+      
+      await this.updateVideoStatus(videoPageId, null, {
+        totalSentences: scriptSentences.length,
+        completedSentences: 0,
+        scriptDetailsDatabaseUrl: scriptDatabase.databaseUrl,
+        scriptDetailsDatabaseId: scriptDatabase.databaseId
+      });
+
+      // Verify the linking was successful
+      const updatedVideoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
+      const linkedUrl = updatedVideoPage.properties['Script Details Database URL']?.url;
+      const linkedId = updatedVideoPage.properties['Script Details Database ID']?.rich_text[0]?.text?.content;
+      
+      if (linkedUrl && linkedId) {
+        logger.info(`Successfully linked script database: URL=${linkedUrl}, ID=${linkedId}`);
+      } else {
+        logger.warn('Script database linking may have failed - URL or ID not found in main record');
+      }
+
+      logger.info(`Script breakdown created successfully with ${scriptSentences.length} sentences and ${imagePrompts.length} image prompts`);
+      
+      return {
+        success: true,
+        sentenceCount: scriptSentences.length,
+        imagePromptCount: imagePrompts.length,
+        detailRecords,
+        scriptDatabase,
+        message: `Script breakdown stored in dedicated database: ${scriptDatabase.title}`
+      };
+      
+    } catch (error) {
+      logger.error('Error creating script breakdown:', error);
+      throw error;
+    }
+  }
+
+  async updateSentenceStatus(videoPageId, sentenceNumber, status, imageUrl = null) {
+    try {
+      logger.info(`Updating sentence ${sentenceNumber} status to: ${status} for video: ${videoPageId}`);
+      
+      // Find the detail record for this sentence
+      const detailRecord = await this.getVideoDetailBySentence(videoPageId, sentenceNumber);
+      
+      if (!detailRecord) {
+        throw new Error(`Detail record not found for sentence ${sentenceNumber}`);
+      }
+
+      const updateProperties = {
+        'Status': {
+          select: {
+            name: status
+          }
+        }
+      };
+
+      if (imageUrl) {
+        updateProperties['Generated Image URL'] = {
+          url: imageUrl
+        };
+      }
+
+      await this.notion.pages.update({
+        page_id: detailRecord.id,
+        properties: updateProperties
+      });
+
+      // Update completed count in main video record if status is Complete
+      if (status === 'Complete') {
+        await this.updateVideoCompletedCount(videoPageId);
+      }
       
       logger.info('Sentence status updated successfully');
       return true;
@@ -507,17 +618,260 @@ class NotionService {
     }
   }
 
-  async getScriptBreakdown(pageId) {
+  async getVideoDetailBySentence(videoPageId, sentenceNumber) {
     try {
-      const page = await this.notion.pages.retrieve({ page_id: pageId });
+      // Get the video's dedicated database ID
+      const videoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
+      const scriptDatabaseId = videoPage.properties['Script Details Database ID']?.rich_text[0]?.text?.content;
       
-      const scriptBreakdown = page.properties['Script Breakdown']?.rich_text[0]?.text?.content || '';
-      const sentenceStatuses = page.properties['Sentence Status']?.multi_select?.map(item => item.name) || [];
+      if (!scriptDatabaseId) {
+        logger.warn(`No script database found for video: ${videoPageId}`);
+        return null;
+      }
+
+      const response = await this.notion.databases.query({
+        database_id: scriptDatabaseId,
+        filter: {
+          property: 'Sentence Number',
+          number: {
+            equals: sentenceNumber
+          }
+        }
+      });
+
+      if (response.results.length === 0) {
+        return null;
+      }
+
+      const page = response.results[0];
+      return {
+        id: page.id,
+        sentenceNumber: page.properties['Sentence Number']?.number || 0,
+        scriptText: page.properties['Script Text']?.rich_text[0]?.text?.content || '',
+        imagePrompt: page.properties['Image Prompt']?.rich_text[0]?.text?.content || '',
+        imageUrl: page.properties['Generated Image URL']?.url || '',
+        status: page.properties.Status?.select?.name || 'Pending'
+      };
+      
+    } catch (error) {
+      logger.error('Error retrieving video detail by sentence:', error);
+      throw error;
+    }
+  }
+
+  async getVideoDetails(videoPageId) {
+    try {
+      // Get the video's dedicated database ID
+      const videoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
+      const scriptDatabaseId = videoPage.properties['Script Details Database ID']?.rich_text[0]?.text?.content;
+      
+      if (!scriptDatabaseId) {
+        logger.warn(`No script database found for video: ${videoPageId}`);
+        return [];
+      }
+
+      const response = await this.notion.databases.query({
+        database_id: scriptDatabaseId,
+        sorts: [
+          {
+            property: 'Sentence Number',
+            direction: 'ascending'
+          }
+        ]
+      });
+
+      logger.debug(`Retrieved ${response.results.length} script details for video ${videoPageId}, sorted by Sentence Number ascending`);
+
+      return response.results.map(page => ({
+        id: page.id,
+        sentenceNumber: page.properties['Sentence Number']?.number || 0,
+        scriptText: page.properties['Script Text']?.rich_text[0]?.text?.content || '',
+        imagePrompt: page.properties['Image Prompt']?.rich_text[0]?.text?.content || '',
+        imageUrl: page.properties['Generated Image URL']?.url || '',
+        status: page.properties.Status?.select?.name || 'Pending',
+        wordCount: page.properties['Word Count']?.formula?.number || 0,
+        createdTime: page.created_time
+      }));
+      
+    } catch (error) {
+      logger.error('Error retrieving video details:', error);
+      throw error;
+    }
+  }
+
+  async updateVideoCompletedCount(videoPageId) {
+    try {
+      // Get all details for this video
+      const details = await this.getVideoDetails(videoPageId);
+      const completedCount = details.filter(detail => detail.status === 'Complete').length;
+      
+      // Update the main video record
+      await this.updateVideoStatus(videoPageId, null, {
+        completedSentences: completedCount
+      });
+      
+      logger.info(`Updated completed sentence count to ${completedCount} for video ${videoPageId}`);
+      return completedCount;
+      
+    } catch (error) {
+      logger.error('Error updating video completed count:', error);
+      throw error;
+    }
+  }
+
+  async updateMultipleImageUrls(videoPageId, imageUrls) {
+    try {
+      logger.info(`Updating ${imageUrls.length} image URLs for video: ${videoPageId}`);
+      
+      const details = await this.getVideoDetails(videoPageId);
+      
+      for (let i = 0; i < Math.min(details.length, imageUrls.length); i++) {
+        if (imageUrls[i]) {
+          await this.updateSentenceStatus(videoPageId, i + 1, 'Image Generated', imageUrls[i]);
+        }
+      }
+      
+      logger.info(`Updated ${imageUrls.length} image URLs successfully`);
+      return true;
+      
+    } catch (error) {
+      logger.error('Error updating multiple image URLs:', error);
+      throw error;
+    }
+  }
+
+  // === UTILITY FUNCTIONS ===
+
+  async verifyScriptDatabaseLinking(videoPageId) {
+    try {
+      const videoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
+      const scriptDatabaseUrl = videoPage.properties['Script Details Database URL']?.url;
+      const scriptDatabaseId = videoPage.properties['Script Details Database ID']?.rich_text[0]?.text?.content;
+      
+      const isLinked = scriptDatabaseUrl && scriptDatabaseId;
+      
+      if (isLinked) {
+        // Verify the database actually exists and is accessible
+        try {
+          await this.notion.databases.retrieve({ database_id: scriptDatabaseId });
+          logger.info(`Script database linking verified for video ${videoPageId}: ${scriptDatabaseUrl}`);
+          return {
+            isLinked: true,
+            scriptDatabaseUrl,
+            scriptDatabaseId,
+            accessible: true
+          };
+        } catch (error) {
+          logger.error(`Script database exists in main record but is not accessible: ${scriptDatabaseId}`, error);
+          return {
+            isLinked: true,
+            scriptDatabaseUrl,
+            scriptDatabaseId,
+            accessible: false,
+            error: error.message
+          };
+        }
+      } else {
+        logger.warn(`No script database linked for video ${videoPageId}`);
+        return {
+          isLinked: false,
+          scriptDatabaseUrl: null,
+          scriptDatabaseId: null,
+          accessible: false
+        };
+      }
+    } catch (error) {
+      logger.error('Error verifying script database linking:', error);
+      throw error;
+    }
+  }
+
+  async getScriptDatabaseInfo(videoPageId) {
+    try {
+      const linkInfo = await this.verifyScriptDatabaseLinking(videoPageId);
+      
+      if (!linkInfo.isLinked) {
+        return {
+          hasScriptDatabase: false,
+          error: 'No script database linked to this video'
+        };
+      }
+      
+      if (!linkInfo.accessible) {
+        return {
+          hasScriptDatabase: true,
+          accessible: false,
+          error: linkInfo.error || 'Script database not accessible'
+        };
+      }
+      
+      // Get additional info about the script database
+      const database = await this.notion.databases.retrieve({ 
+        database_id: linkInfo.scriptDatabaseId 
+      });
+      
+      const sentenceCount = await this.getVideoDetails(videoPageId);
       
       return {
-        breakdown: scriptBreakdown,
-        statuses: sentenceStatuses,
-        hasBreakdown: scriptBreakdown.length > 0
+        hasScriptDatabase: true,
+        accessible: true,
+        databaseId: linkInfo.scriptDatabaseId,
+        databaseUrl: linkInfo.scriptDatabaseUrl,
+        title: database.title[0]?.text?.content || 'Unknown',
+        sentenceCount: sentenceCount.length,
+        createdTime: database.created_time,
+        lastEditedTime: database.last_edited_time
+      };
+      
+    } catch (error) {
+      logger.error('Error getting script database info:', error);
+      throw error;
+    }
+  }
+
+  // === LEGACY COMPATIBILITY (for smooth transition) ===
+
+  async createScriptBreakdown_LEGACY(pageId, scriptSentences, imagePrompts) {
+    // This is the old method - redirect to new method
+    return await this.createScriptBreakdown(pageId, scriptSentences, imagePrompts);
+  }
+
+  async getScriptBreakdown(pageId) {
+    try {
+      // Get all details for this video and format them as a single breakdown text
+      const details = await this.getVideoDetails(pageId);
+      
+      if (details.length === 0) {
+        return {
+          breakdown: '',
+          statuses: [],
+          hasBreakdown: false
+        };
+      }
+
+      // Format as a readable breakdown text (similar to old format)
+      let breakdownText = '📋 SCRIPT BREAKDOWN\n\n';
+      breakdownText += `📊 Overview: ${details.length} sentences\n\n`;
+      
+      details.forEach((detail, _index) => {
+        breakdownText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        breakdownText += `🎬 SENTENCE ${detail.sentenceNumber}\n`;
+        breakdownText += `📝 Text: ${detail.scriptText}\n`;
+        breakdownText += `🎨 Image Prompt: ${detail.imagePrompt}\n`;
+        breakdownText += `✅ Status: ${detail.status}\n`;
+        if (detail.imageUrl) {
+          breakdownText += `🖼️ Image: ${detail.imageUrl}\n`;
+        }
+        breakdownText += '\n';
+      });
+      
+      const statuses = details.map(detail => `S${detail.sentenceNumber}: ${detail.status}`);
+      
+      return {
+        breakdown: breakdownText,
+        statuses,
+        hasBreakdown: details.length > 0,
+        details // Include raw details for advanced usage
       };
       
     } catch (error) {
@@ -528,13 +882,11 @@ class NotionService {
 
   async healthCheck() {
     try {
-      // Test Notion API by getting database info
-      const response = await this.notion.databases.retrieve({
-        database_id: this.databaseId
-      });
+      // Test main database only (per-video databases are created dynamically)
+      const mainDbResponse = await this.notion.databases.retrieve({ database_id: this.databaseId });
       
-      if (response && response.id) {
-        logger.info('Notion service health check passed');
+      if (mainDbResponse?.id) {
+        logger.info('Notion service health check passed (main database accessible)');
         return true;
       } else {
         throw new Error('Invalid response from Notion API');
