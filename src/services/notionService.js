@@ -94,13 +94,16 @@ class NotionService {
 
   async updateVideoStatus(pageId, status, additionalData = {}) {
     try {
-      const properties = {
-        'Status': {
+      const properties = {};
+
+      // Only add Status property if status is provided and not null/undefined
+      if (status !== null && status !== undefined && status !== '') {
+        properties['Status'] = {
           select: {
             name: status
           }
-        }
-      };
+        };
+      }
 
       if (additionalData.optimizedTitle) {
         properties['Optimized Title'] = {
@@ -167,7 +170,11 @@ class NotionService {
         properties
       });
 
-      logger.info(`Updated Notion entry status to: ${status}`);
+      if (status) {
+        logger.info(`Updated Notion entry status to: ${status}`);
+      } else {
+        logger.info('Updated Notion entry properties (no status change)');
+      }
       return response;
     } catch (error) {
       logger.error('Error updating Notion entry:', error);
