@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Always use use a specialized subagent to do every single task
 - Task need pass QA. QC before mark done
 - Update all related document if needed when requirement change 
+- When finish task, find issue from Notion Issue List ID: 23f47ea75bd1808a91fbec96173e969f and fix them then change status of that isssue in my Notion
+
 
 
 <!-- # Code Development Team

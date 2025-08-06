@@ -446,7 +446,16 @@ class NotionService {
           youtubeVideoId: page.properties['🔒 YouTube Video ID']?.rich_text[0]?.text?.content || '',
           status: page.properties['🔒 Status']?.select?.name || '',
           scriptApproved: page.properties['Script Approved']?.checkbox || false,
+          // Missing critical fields that should be populated by autoPopulateVideoData
+          channel: page.properties['🔒 Channel']?.rich_text[0]?.text?.content || '',
+          duration: page.properties['🔒 Duration']?.rich_text[0]?.text?.content || '',
+          viewCount: page.properties['🔒 View Count']?.number || 0,
+          publishedDate: page.properties['🔒 Published Date']?.date?.start || '',
+          // AI-generated content fields
           optimizedTitle: page.properties['🔒 Optimized Title']?.rich_text[0]?.text?.content || '',
+          optimizedDescription: page.properties['🔒 Optimized Description']?.rich_text[0]?.text?.content || '',
+          keywords: page.properties['🔒 Keywords']?.multi_select?.map(option => option.name) || [],
+          // Script processing fields
           totalSentences: page.properties['🔒 Total Sentences']?.number || 0,
           completedSentences: page.properties['🔒 Completed Sentences']?.number || 0,
           thumbnail: page.properties['🔒 Thumbnail']?.url || '',

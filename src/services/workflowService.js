@@ -93,6 +93,13 @@ class WorkflowService {
       if (!hasScript) {
         // Resume from script generation stage
         logger.info(`Resuming from script generation stage for: ${video.videoId}`);
+        
+        // Ensure basic video data fields are populated if missing
+        if (!video.youtubeVideoId || !video.title || video.title === 'Processing...') {
+          logger.info(`Auto-populating missing video data for resumed video: ${video.videoId}`);
+          await this.notionService.autoPopulateVideoData(video.id, videoData);
+        }
+        
         const result = await this.processInitialVideo(videoData, video.id);
         return result;
       } else if (hasScript && hasApproval) {
@@ -690,6 +697,9 @@ class WorkflowService {
         
         // Update status to Processing
         await this.notionService.updateVideoStatus(notionPageId, 'Processing');
+        
+        // Auto-populate Notion entry with YouTube data (populate 🔒 fields)
+        await this.notionService.autoPopulateVideoData(notionPageId, videoData);
         
         // Process the video
         const result = await this.processInitialVideo(videoData, notionPageId);
