@@ -381,12 +381,13 @@ class WorkflowService {
 
       // Get video data with proper video ID for cost tracking
       const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
-      videoData.videoId = videoInfo.id;
+      videoData.videoId = videoInfo.videoId || videoInfo.id;
 
       // Create Digital Ocean folder structure for this video
+      const videoDisplayId = videoInfo.videoId || videoInfo.id; // Use VideoID (VID-XX) or fallback to internal ID
       try {
-        await this.aiService.digitalOceanService.createVideoFolder(videoInfo.id);
-        logger.info(`Created Digital Ocean folder structure for video ${videoInfo.id}`);
+        await this.aiService.digitalOceanService.createVideoFolder(videoDisplayId);
+        logger.info(`Created Digital Ocean folder structure for video ${videoDisplayId}`);
       } catch (error) {
         logger.warn('Failed to create Digital Ocean folder structure:', error.message);
         // Continue processing
@@ -412,8 +413,7 @@ class WorkflowService {
 
       // Send enhanced Telegram notification with cost information
       const costSummary = enhancedContent.costSummary;
-      const videoDisplayId = videoInfo.videoId || videoInfo.id.replace(/-/g, ''); // Use proper VideoID (VID-XX) or fallback
-      const folderName = `videos/${videoData.videoId || videoInfo.id}`;
+      const folderName = `videos/${videoInfo.videoId || videoInfo.id}`;
       
       await this.telegramService.sendMessage(
         '✅ <b>Image Generation Completed</b>\n\n' +
@@ -437,12 +437,12 @@ class WorkflowService {
       const thumbnailResult = enhancedContent.thumbnail;
       if (thumbnailResult) {
         // Upload thumbnail to Digital Ocean if not already done
-        const thumbnailFileName = `${videoInfo.id}_thumbnail.png`;
+        const thumbnailFileName = `${videoInfo.videoId || videoInfo.id}_thumbnail.png`;
         try {
           const thumbnailUpload = await this.aiService.downloadAndUploadImage(
             thumbnailResult.url,
             thumbnailFileName,
-            videoInfo.id
+            videoInfo.videoId || videoInfo.id
           );
           
           await this.telegramService.sendMessage(
