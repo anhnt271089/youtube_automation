@@ -37,15 +37,25 @@ GOOGLE_DRIVE_FOLDER_ID=your_shared_folder_id
 
 ## Notion Database Requirements
 
-### Required Properties
-1. **Script Breakdown** (Rich Text)
-   - Stores formatted script breakdown with sentences and image prompts
-   - Handles Notion's 2000 character limit with automatic truncation
+### Main Database Properties
+1. **Thumbnail** (URL)
+   - Generated thumbnail image URL
+   - Updated when AI thumbnail generation completes
 
-2. **Sentence Status** (Multi-select)
-   - Tracks individual sentence processing status
-   - Format: "S1: Pending", "S2: Completed", etc.
-   - Respects Notion's 10-item multi-select limit
+2. **New Thumbnail Prompt** (Text)
+   - AI-generated prompt for thumbnail creation
+   - Used by DALL-E or other image generation services
+
+3. **Sentence Status** (Select)
+   - Overall script processing status
+   - Values: 'Script Created', 'Images Generated', 'Complete', etc.
+   - Tracks full script progress instead of individual sentences
+
+### Per-Video Script Databases
+- **Automatic Creation**: Each video gets its own dedicated script breakdown database
+- **Child Pages**: Script databases are created as child pages of the main video entry
+- **No Main DB References**: No longer store database IDs/URLs in main database
+- **Individual Sentence Tracking**: Each sentence tracked separately in its own database
 
 ## Script Breakdown Format
 

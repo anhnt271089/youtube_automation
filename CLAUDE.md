@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 # Important
-- Always use best fit sub agent to do the task
+- Always use use a specialized subagent to do every single task
 - Task need pass QA. QC before mark done
 - Update all related document if needed when requirement change 
 
@@ -196,24 +196,32 @@ The system requires extensive API integration. Copy `.env.example` to `.env` and
 ### Notion Database Schema
 **Manual Input Required:**
 - `YouTube URL` (URL): Source video URL - **ONLY FIELD YOU NEED TO INPUT**
+- `Script Approved` (Checkbox): Manual approval flag for script processing
 
-**Auto-Populated Fields:**
-- `VideoID` (Formula): Internal unique identifier - auto-generated using `id()` formula
-- `Title` (Title): Video title (extracted from YouTube)
-- `Status` (Select): Workflow state tracking (defaults to 'New')
+**Auto-Populated Fields (Read-Only - 🔒 Prefix):**
+- `🔒 VideoID` (Rich Text): Sequential identifier - auto-generated as VID_0001, VID_0002, etc. (up to VID_9999)
+- `🔒 Title` (Title): Video title (extracted from YouTube)
+- `🔒 Status` (Select): Workflow state tracking (defaults to 'New')
   - Options: 'New', 'Processing', 'Script Generated', 'Approved', 'Video Generated', 'Completed', 'Error'
-- `Channel` (Text): YouTube channel name (extracted from YouTube)
-- `YouTube Video ID` (Text): YouTube video ID (extracted from URL)
-- `Duration` (Text): Video duration (extracted from YouTube)
-- `View Count` (Number): Video view count (extracted from YouTube)
-- `Published Date` (Date): Video publish date (extracted from YouTube)
-- `Optimized Title` (Text): AI-generated title
-- `Optimized Description` (Text): AI-generated description
-- `Keywords` (Multi-select): SEO keywords
-- `Script Approved` (Checkbox): Manual approval flag
-- `Drive Folder` (URL): Generated Google Drive folder link
-- `Created Time` (Created time): Auto-populated by Notion
-- `Last Edited Time` (Last edited time): Auto-populated by Notion
+- `🔒 Channel` (Text): YouTube channel name (extracted from YouTube)
+- `🔒 YouTube Video ID` (Text): YouTube video ID (extracted from URL)
+- `🔒 Duration` (Text): Video duration (extracted from YouTube)
+- `🔒 View Count` (Number): Video view count (extracted from YouTube)
+- `🔒 Published Date` (Date): Video publish date (extracted from YouTube)
+- `🔒 Optimized Title` (Text): AI-generated title
+- `🔒 Optimized Description` (Text): AI-generated description
+- `🔒 Keywords` (Multi-select): SEO keywords
+- `🔒 Total Sentences` (Number): Script sentence count
+- `🔒 Completed Sentences` (Number): Progress tracking
+- `🔒 Thumbnail` (URL): Generated thumbnail URLs
+- `🔒 New Thumbnail Prompt` (Text): AI-generated prompts
+- `🔒 Sentence Status` (Select): Script processing state
+- `🔒 Drive Folder` (URL): Generated Google Drive folder link
+- `🔒 Created Time` (Created time): Auto-populated by Notion
+- `🔒 Last Edited Time` (Last edited time): Auto-populated by Notion
+
+**User Input Fields (No 🔒 Prefix):**
+- `Script Approved` (Checkbox): Manual approval flag (user-controlled)
 
 <!-- ## Development Guidelines
 

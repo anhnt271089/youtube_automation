@@ -9,13 +9,174 @@ class NotionService {
     });
     this.databaseId = config.notion.databaseId;
     // Note: No longer using a shared details database - each video gets its own
+    
+    // Define protected properties that cannot be edited by users
+    this.protectedMainDbProperties = new Set([
+      '🔒 VideoID',
+      '🔒 Title', 
+      '🔒 Status',
+      '🔒 Channel',
+      '🔒 Duration',
+      '🔒 View Count',
+      '🔒 Published Date',
+      '🔒 YouTube Video ID',
+      '🔒 Optimized Title',
+      '🔒 Optimized Description',
+      '🔒 Keywords',
+      '🔒 Total Sentences',
+      '🔒 Completed Sentences',
+      '🔒 Thumbnail',
+      '🔒 New Thumbnail Prompt',
+      '🔒 Sentence Status',
+      '🔒 Drive Folder',
+      '🔒 Created Time',
+      '🔒 Last Edited Time'
+    ]);
+    
+    // Protected properties in video detail databases
+    this.protectedDetailDbProperties = new Set([
+      '🔒 Sentence Number',
+      '🔒 Script Text',
+      '🔒 Image Prompt',
+      '🔒 Generated Image URL',
+      '🔒 Status',
+      '🔒 Word Count',
+      '🔒 Created Time',
+      '🔒 Last Edited Time'
+    ]);
+    
+    // Allowed user-editable properties
+    this.allowedMainDbProperties = new Set([
+      'YouTube URL',
+      'Script Approved'
+    ]);
+    
+    // Allowed properties in detail databases
+    this.allowedDetailDbProperties = new Set([
+      'Sentence' // Only the title field in detail databases
+    ]);
+  }
+
+  // === PROPERTY VALIDATION AND PROTECTION ===
+
+  /**
+   * Validates that only allowed properties are being updated in main database
+   * @param {Object} properties - Properties object from Notion API call
+   * @param {boolean} isSystemUpdate - True if this is a system/automation update
+   * @returns {Object} - Filtered properties object containing only allowed properties
+   */
+  validateMainDatabaseUpdate(properties, isSystemUpdate = true) {
+    if (!properties || typeof properties !== 'object') {
+      return properties;
+    }
+
+    const filteredProperties = {};
+    const rejectedProperties = [];
+
+    for (const [propertyName, value] of Object.entries(properties)) {
+      if (isSystemUpdate) {
+        // System updates can modify any property
+        filteredProperties[propertyName] = value;
+      } else {
+        // User updates can only modify allowed properties
+        if (this.allowedMainDbProperties.has(propertyName)) {
+          filteredProperties[propertyName] = value;
+          logger.info(`User update allowed for property: ${propertyName}`);
+        } else if (this.protectedMainDbProperties.has(propertyName)) {
+          rejectedProperties.push(propertyName);
+          logger.warn(`User attempted to modify protected property: ${propertyName} - BLOCKED`);
+        } else {
+          // Unknown property - allow it (might be a new field)
+          filteredProperties[propertyName] = value;
+          logger.info(`Unknown property allowed: ${propertyName}`);
+        }
+      }
+    }
+
+    if (rejectedProperties.length > 0) {
+      logger.warn(`Blocked ${rejectedProperties.length} protected property updates: ${rejectedProperties.join(', ')}`);
+    }
+
+    return filteredProperties;
+  }
+
+  /**
+   * Validates that only allowed properties are being updated in video detail databases
+   * @param {Object} properties - Properties object from Notion API call
+   * @param {boolean} isSystemUpdate - True if this is a system/automation update
+   * @returns {Object} - Filtered properties object containing only allowed properties
+   */
+  validateDetailDatabaseUpdate(properties, isSystemUpdate = true) {
+    if (!properties || typeof properties !== 'object') {
+      return properties;
+    }
+
+    const filteredProperties = {};
+    const rejectedProperties = [];
+
+    for (const [propertyName, value] of Object.entries(properties)) {
+      if (isSystemUpdate) {
+        // System updates can modify any property
+        filteredProperties[propertyName] = value;
+      } else {
+        // User updates can only modify allowed properties
+        if (this.allowedDetailDbProperties.has(propertyName)) {
+          filteredProperties[propertyName] = value;
+          logger.info(`User update allowed for detail property: ${propertyName}`);
+        } else if (this.protectedDetailDbProperties.has(propertyName)) {
+          rejectedProperties.push(propertyName);
+          logger.warn(`User attempted to modify protected detail property: ${propertyName} - BLOCKED`);
+        } else {
+          // Unknown property - allow it (might be a new field)
+          filteredProperties[propertyName] = value;
+          logger.info(`Unknown detail property allowed: ${propertyName}`);
+        }
+      }
+    }
+
+    if (rejectedProperties.length > 0) {
+      logger.warn(`Blocked ${rejectedProperties.length} protected detail property updates: ${rejectedProperties.join(', ')}`);
+    }
+
+    return filteredProperties;
+  }
+
+  /**
+   * Creates a validated page update call with property protection
+   * @param {string} pageId - Notion page ID
+   * @param {Object} properties - Properties to update
+   * @param {boolean} isSystemUpdate - Whether this is a system update
+   * @param {boolean} isDetailDatabase - Whether this is a detail database update
+   * @returns {Promise} - Notion API response
+   */
+  async safePageUpdate(pageId, properties, isSystemUpdate = true, isDetailDatabase = false) {
+    try {
+      const validatedProperties = isDetailDatabase 
+        ? this.validateDetailDatabaseUpdate(properties, isSystemUpdate)
+        : this.validateMainDatabaseUpdate(properties, isSystemUpdate);
+
+      const response = await this.notion.pages.update({
+        page_id: pageId,
+        properties: validatedProperties
+      });
+
+      const updateType = isSystemUpdate ? 'System' : 'User';
+      const dbType = isDetailDatabase ? 'detail database' : 'main database';
+      logger.info(`${updateType} update completed successfully on ${dbType} page: ${pageId}`);
+      
+      return response;
+    } catch (error) {
+      logger.error(`Error in safe page update (${isSystemUpdate ? 'system' : 'user'}):`, error);
+      throw error;
+    }
   }
 
   // === MAIN VIDEOS DATABASE OPERATIONS ===
 
   async createVideoEntry(videoData) {
     try {
-      // VideoID is now auto-generated by Notion formula - no need to set it manually
+      // Generate sequential VideoID
+      const nextVideoId = await this.getNextVideoId();
       
       const properties = {
         '🔒 Title': {
@@ -30,13 +191,21 @@ class NotionService {
         'YouTube URL': {
           url: videoData.originalUrl
         },
-        // VideoID is auto-generated by Notion formula when YouTube URL is set
-        'Status': {
+        '🔒 VideoID': {
+          rich_text: [
+            {
+              text: {
+                content: nextVideoId
+              }
+            }
+          ]
+        },
+        '🔒 Status': {
           select: {
             name: 'New'
           }
         },
-        'Channel': {
+        '🔒 Channel': {
           rich_text: [
             {
               text: {
@@ -45,7 +214,7 @@ class NotionService {
             }
           ]
         },
-        'Duration': {
+        '🔒 Duration': {
           rich_text: [
             {
               text: {
@@ -54,15 +223,15 @@ class NotionService {
             }
           ]
         },
-        'View Count': {
+        '🔒 View Count': {
           number: parseInt(videoData.viewCount) || 0
         },
-        'Published Date': {
+        '🔒 Published Date': {
           date: {
             start: videoData.publishedAt
           }
         },
-        'YouTube Video ID': {
+        '🔒 YouTube Video ID': {
           rich_text: [
             {
               text: {
@@ -73,12 +242,16 @@ class NotionService {
         }
       };
 
+      // Note: VideoID is handled by the formula property in Notion database schema
+      // Sequential VideoID generation is available via getNextSequentialVideoId() if needed
+      logger.debug('VideoID will be auto-generated by Notion formula property');
+
       const response = await this.notion.pages.create({
         parent: { database_id: this.databaseId },
         properties
       });
 
-      logger.info(`Created Notion entry for video: ${videoData.title} - VideoID will be auto-generated`);
+      logger.info(`Created Notion entry for video: ${videoData.title} with VideoID: ${nextVideoId}`);
       return response;
     } catch (error) {
       logger.error('Error creating Notion entry:', error);
@@ -92,7 +265,7 @@ class NotionService {
 
       // Only add Status property if status is provided and not null/undefined
       if (status !== null && status !== undefined && status !== '') {
-        properties['Status'] = {
+        properties['🔒 Status'] = {
           select: {
             name: status
           }
@@ -100,7 +273,7 @@ class NotionService {
       }
 
       if (additionalData.optimizedTitle) {
-        properties['Optimized Title'] = {
+        properties['🔒 Optimized Title'] = {
           rich_text: [
             {
               text: {
@@ -112,7 +285,7 @@ class NotionService {
       }
 
       if (additionalData.optimizedDescription) {
-        properties['Optimized Description'] = {
+        properties['🔒 Optimized Description'] = {
           rich_text: [
             {
               text: {
@@ -124,7 +297,7 @@ class NotionService {
       }
 
       if (additionalData.keywords) {
-        properties['Keywords'] = {
+        properties['🔒 Keywords'] = {
           multi_select: additionalData.keywords.slice(0, 10).map(keyword => ({ name: keyword }))
         };
       }
@@ -136,25 +309,25 @@ class NotionService {
       }
 
       if (additionalData.totalSentences !== undefined) {
-        properties['Total Sentences'] = {
+        properties['🔒 Total Sentences'] = {
           number: additionalData.totalSentences
         };
       }
 
       if (additionalData.completedSentences !== undefined) {
-        properties['Completed Sentences'] = {
+        properties['🔒 Completed Sentences'] = {
           number: additionalData.completedSentences
         };
       }
 
       if (additionalData.thumbnail) {
-        properties['Thumbnail'] = {
+        properties['🔒 Thumbnail'] = {
           url: additionalData.thumbnail
         };
       }
 
       if (additionalData.thumbnailPrompt) {
-        properties['New Thumbnail Prompt'] = {
+        properties['🔒 New Thumbnail Prompt'] = {
           rich_text: [
             {
               text: {
@@ -166,17 +339,15 @@ class NotionService {
       }
 
       if (additionalData.scriptStatus) {
-        properties['Sentence Status'] = {
+        properties['🔒 Sentence Status'] = {
           select: {
             name: additionalData.scriptStatus
           }
         };
       }
 
-      const response = await this.notion.pages.update({
-        page_id: pageId,
-        properties
-      });
+      // Use safe page update for system updates (isSystemUpdate = true by default)
+      const response = await this.safePageUpdate(pageId, properties, true, false);
 
       if (status) {
         logger.info(`Updated Notion entry status to: ${status}`);
@@ -195,7 +366,7 @@ class NotionService {
       const response = await this.notion.databases.query({
         database_id: this.databaseId,
         filter: {
-          property: 'Status',
+          property: '🔒 Status',
           select: {
             equals: status
           }
@@ -204,18 +375,18 @@ class NotionService {
 
       return response.results.map(page => ({
         id: page.id,
-        videoId: page.properties.VideoID?.formula?.string || page.properties.VideoID?.rich_text[0]?.text?.content || page.id,
+        videoId: page.properties['🔒 VideoID']?.formula?.string || page.properties['🔒 VideoID']?.rich_text[0]?.text?.content || page.id,
         title: page.properties['🔒 Title']?.title[0]?.text?.content || '',
         youtubeUrl: page.properties['YouTube URL']?.url || '',
-        youtubeVideoId: page.properties['YouTube Video ID']?.rich_text[0]?.text?.content || '',
-        status: page.properties.Status?.select?.name || '',
+        youtubeVideoId: page.properties['🔒 YouTube Video ID']?.rich_text[0]?.text?.content || '',
+        status: page.properties['🔒 Status']?.select?.name || '',
         scriptApproved: page.properties['Script Approved']?.checkbox || false,
-        optimizedTitle: page.properties['Optimized Title']?.rich_text[0]?.text?.content || '',
-        totalSentences: page.properties['Total Sentences']?.number || 0,
-        completedSentences: page.properties['Completed Sentences']?.number || 0,
-        thumbnail: page.properties['Thumbnail']?.url || '',
-        thumbnailPrompt: page.properties['New Thumbnail Prompt']?.rich_text[0]?.text?.content || '',
-        scriptStatus: page.properties['Sentence Status']?.select?.name || '',
+        optimizedTitle: page.properties['🔒 Optimized Title']?.rich_text[0]?.text?.content || '',
+        totalSentences: page.properties['🔒 Total Sentences']?.number || 0,
+        completedSentences: page.properties['🔒 Completed Sentences']?.number || 0,
+        thumbnail: page.properties['🔒 Thumbnail']?.url || '',
+        thumbnailPrompt: page.properties['🔒 New Thumbnail Prompt']?.rich_text[0]?.text?.content || '',
+        scriptStatus: page.properties['🔒 Sentence Status']?.select?.name || '',
         createdTime: page.created_time
       }));
     } catch (error) {
@@ -224,17 +395,100 @@ class NotionService {
     }
   }
 
-  // DEPRECATED: VideoID is now auto-generated by Notion formula
-  // This method is kept for backward compatibility but should not be used
+  // Generate sequential VideoID with 4-digit padding
+  async getNextSequentialVideoId() {
+    try {
+      // Query all pages to get the highest existing VideoID
+      const response = await this.notion.databases.query({
+        database_id: this.databaseId,
+        sorts: [
+          {
+            property: 'Created Time',
+            direction: 'descending'
+          }
+        ]
+      });
+
+      let highestNumber = 0;
+      
+      // Extract numeric part from existing VideoIDs
+      response.results.forEach(page => {
+        const videoId = page.properties.VideoID?.formula?.string || '';
+        const match = videoId.match(/VID_(\d+)/);
+        if (match) {
+          const number = parseInt(match[1], 10);
+          if (number > highestNumber) {
+            highestNumber = number;
+          }
+        }
+      });
+
+      // Generate next sequential number with 4-digit padding
+      const nextNumber = highestNumber + 1;
+      const paddedNumber = nextNumber.toString().padStart(4, '0');
+      return `VID_${paddedNumber}`;
+      
+    } catch (error) {
+      logger.error('Error generating sequential VideoID:', error);
+      // Fallback to timestamp-based ID
+      const timestamp = Date.now().toString().slice(-4);
+      return `VID_${timestamp}`;
+    }
+  }
+
+  // Updated: Generate sequential VideoID from VID_0001 to VID_9999
   async getNextVideoId() {
-    logger.warn('getNextVideoId() is deprecated - VideoID is now auto-generated by Notion formula');
-    const timestamp = Date.now().toString().slice(-4);
-    return `VID_${timestamp}`;
+    try {
+      // Get all entries and filter VideoIDs on the client side
+      // since we can't reliably filter on VideoID (could be formula or rich_text)
+      const response = await this.notion.databases.query({
+        database_id: this.databaseId,
+        sorts: [
+          {
+            property: '🔒 Created Time',
+            direction: 'descending'
+          }
+        ]
+      });
+
+      let maxId = 0;
+      
+      response.results.forEach(page => {
+        // Handle both formula and rich_text formats for VideoID
+        const videoId = page.properties['🔒 VideoID']?.formula?.string || 
+                       page.properties['🔒 VideoID']?.rich_text?.[0]?.text?.content || '';
+        
+        if (videoId.startsWith('VID_')) {
+          const numberPart = parseInt(videoId.substring(4));
+          if (!isNaN(numberPart) && numberPart > maxId) {
+            maxId = numberPart;
+          }
+        }
+      });
+
+      const nextId = maxId + 1;
+      
+      // Ensure we don't exceed 9999
+      if (nextId > 9999) {
+        logger.warn('VideoID limit reached (9999), cycling back to 1');
+        return 'VID_0001';
+      }
+      
+      const formattedId = `VID_${nextId.toString().padStart(4, '0')}`;
+      
+      logger.info(`Generated next VideoID: ${formattedId}`);
+      return formattedId;
+    } catch (error) {
+      logger.error('Error generating next VideoID:', error);
+      const timestamp = Date.now().toString().slice(-4);
+      return `VID_${timestamp}`;
+    }
   }
 
   async addVideoUrl(url) {
     try {
-      // VideoID is now auto-generated by Notion formula - no need to set it manually
+      // Generate sequential VideoID
+      const nextVideoId = await this.getNextVideoId();
       
       const properties = {
         '🔒 Title': {
@@ -249,8 +503,16 @@ class NotionService {
         'YouTube URL': {
           url: url
         },
-        // VideoID is auto-generated by Notion formula when YouTube URL is set
-        'Status': {
+        '🔒 VideoID': {
+          rich_text: [
+            {
+              text: {
+                content: nextVideoId
+              }
+            }
+          ]
+        },
+        '🔒 Status': {
           select: {
             name: 'New'
           }
@@ -262,7 +524,7 @@ class NotionService {
         properties
       });
 
-      logger.info(`Added new YouTube URL to Notion: ${url} - VideoID will be auto-generated`);
+      logger.info(`Added new YouTube URL to Notion: ${url} with VideoID: ${nextVideoId}`);
       return response;
     } catch (error) {
       logger.error('Error adding video URL to Notion:', error);
@@ -282,7 +544,7 @@ class NotionService {
             }
           ]
         },
-        'Channel': {
+        '🔒 Channel': {
           rich_text: [
             {
               text: {
@@ -291,7 +553,7 @@ class NotionService {
             }
           ]
         },
-        'Duration': {
+        '🔒 Duration': {
           rich_text: [
             {
               text: {
@@ -300,15 +562,15 @@ class NotionService {
             }
           ]
         },
-        'View Count': {
+        '🔒 View Count': {
           number: parseInt(youtubeData.viewCount) || 0
         },
-        'Published Date': {
+        '🔒 Published Date': {
           date: {
             start: youtubeData.publishedAt || new Date().toISOString().split('T')[0]
           }
         },
-        'YouTube Video ID': {
+        '🔒 YouTube Video ID': {
           rich_text: [
             {
               text: {
@@ -317,17 +579,14 @@ class NotionService {
             }
           ]
         },
-        'Status': {
+        '🔒 Status': {
           select: {
             name: 'Processing'
           }
         }
       };
 
-      const response = await this.notion.pages.update({
-        page_id: pageId,
-        properties
-      });
+      const response = await this.safePageUpdate(pageId, properties, true, false);
 
       logger.info(`Auto-populated video data for: ${youtubeData.title}`);
       return response;
@@ -359,26 +618,26 @@ class NotionService {
       
       const databaseTitle = `${videoTitle} - Script Details`.substring(0, 100); // Notion title limit
       
-      // Create database properties schema with optimized configuration
+      // Create database properties schema with optimized configuration and protection indicators
       const properties = {
         'Sentence': {
-          title: {}
+          title: {} // Only user-editable field (no 🔒 prefix)
         },
-        'Sentence Number': {
+        '🔒 Sentence Number': {
           number: {
             format: 'number'
           }
         },
-        'Script Text': {
+        '🔒 Script Text': {
           rich_text: {}
         },
-        'Image Prompt': {
+        '🔒 Image Prompt': {
           rich_text: {}
         },
-        'Generated Image URL': {
+        '🔒 Generated Image URL': {
           url: {}
         },
-        'Status': {
+        '🔒 Status': {
           select: {
             options: [
               { name: 'Pending', color: 'gray' },
@@ -388,15 +647,15 @@ class NotionService {
             ]
           }
         },
-        'Word Count': {
+        '🔒 Word Count': {
           formula: {
-            expression: 'length(prop("Script Text"))'
+            expression: 'length(prop("🔒 Script Text"))'  // Updated to reference the new property name
           }
         },
-        'Created Time': {
+        '🔒 Created Time': {
           created_time: {}
         },
-        'Last Edited Time': {
+        '🔒 Last Edited Time': {
           last_edited_time: {}
         }
       };
@@ -465,10 +724,10 @@ class NotionService {
               }
             ]
           },
-          'Sentence Number': {
+          '🔒 Sentence Number': {
             number: sentenceNumber
           },
-          'Script Text': {
+          '🔒 Script Text': {
             rich_text: [
               {
                 text: {
@@ -477,7 +736,7 @@ class NotionService {
               }
             ]
           },
-          'Image Prompt': {
+          '🔒 Image Prompt': {
             rich_text: [
               {
                 text: {
@@ -486,7 +745,7 @@ class NotionService {
               }
             ]
           },
-          'Status': {
+          '🔒 Status': {
             select: {
               name: 'Pending'
             }
@@ -512,7 +771,7 @@ class NotionService {
 
       // Verify the script status was updated successfully
       const updatedVideoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
-      const scriptStatus = updatedVideoPage.properties['Sentence Status']?.select?.name;
+      const scriptStatus = updatedVideoPage.properties['🔒 Sentence Status']?.select?.name;
       
       if (scriptStatus === 'Script Created') {
         logger.info(`Successfully updated script status to: ${scriptStatus}`);
@@ -549,7 +808,7 @@ class NotionService {
       }
 
       const updateProperties = {
-        'Status': {
+        '🔒 Status': {
           select: {
             name: status
           }
@@ -557,15 +816,12 @@ class NotionService {
       };
 
       if (imageUrl) {
-        updateProperties['Generated Image URL'] = {
+        updateProperties['🔒 Generated Image URL'] = {
           url: imageUrl
         };
       }
 
-      await this.notion.pages.update({
-        page_id: detailRecord.id,
-        properties: updateProperties
-      });
+      await this.safePageUpdate(detailRecord.id, updateProperties, true, true);
 
       // Update completed count in main video record if status is Complete
       if (status === 'Complete') {
@@ -595,7 +851,7 @@ class NotionService {
       const response = await this.notion.databases.query({
         database_id: scriptDatabaseId,
         filter: {
-          property: 'Sentence Number',
+          property: '🔒 Sentence Number',
           number: {
             equals: sentenceNumber
           }
@@ -609,11 +865,11 @@ class NotionService {
       const page = response.results[0];
       return {
         id: page.id,
-        sentenceNumber: page.properties['Sentence Number']?.number || 0,
-        scriptText: page.properties['Script Text']?.rich_text[0]?.text?.content || '',
-        imagePrompt: page.properties['Image Prompt']?.rich_text[0]?.text?.content || '',
-        imageUrl: page.properties['Generated Image URL']?.url || '',
-        status: page.properties.Status?.select?.name || 'Pending'
+        sentenceNumber: page.properties['🔒 Sentence Number']?.number || 0,
+        scriptText: page.properties['🔒 Script Text']?.rich_text[0]?.text?.content || '',
+        imagePrompt: page.properties['🔒 Image Prompt']?.rich_text[0]?.text?.content || '',
+        imageUrl: page.properties['🔒 Generated Image URL']?.url || '',
+        status: page.properties['🔒 Status']?.select?.name || 'Pending'
       };
       
     } catch (error) {
@@ -662,7 +918,7 @@ class NotionService {
         database_id: scriptDatabaseId,
         sorts: [
           {
-            property: 'Sentence Number',
+            property: '🔒 Sentence Number',
             direction: 'ascending'
           }
         ]
@@ -672,12 +928,12 @@ class NotionService {
 
       return response.results.map(page => ({
         id: page.id,
-        sentenceNumber: page.properties['Sentence Number']?.number || 0,
-        scriptText: page.properties['Script Text']?.rich_text[0]?.text?.content || '',
-        imagePrompt: page.properties['Image Prompt']?.rich_text[0]?.text?.content || '',
-        imageUrl: page.properties['Generated Image URL']?.url || '',
-        status: page.properties.Status?.select?.name || 'Pending',
-        wordCount: page.properties['Word Count']?.formula?.number || 0,
+        sentenceNumber: page.properties['🔒 Sentence Number']?.number || 0,
+        scriptText: page.properties['🔒 Script Text']?.rich_text[0]?.text?.content || '',
+        imagePrompt: page.properties['🔒 Image Prompt']?.rich_text[0]?.text?.content || '',
+        imageUrl: page.properties['🔒 Generated Image URL']?.url || '',
+        status: page.properties['🔒 Status']?.select?.name || 'Pending',
+        wordCount: page.properties['🔒 Word Count']?.formula?.number || 0,
         createdTime: page.created_time
       }));
       
@@ -741,6 +997,82 @@ class NotionService {
       logger.error('Error updating multiple image URLs:', error);
       throw error;
     }
+  }
+
+  // === USER-SAFE UPDATE METHODS ===
+
+  /**
+   * Allow users to safely update only permitted properties in main database
+   * This method blocks protected properties and only allows YouTube URL and Script Approved changes
+   * @param {string} pageId - Notion page ID
+   * @param {Object} properties - Properties to update (will be filtered)
+   * @returns {Promise} - Notion API response
+   */
+  async userUpdateVideoProperties(pageId, properties) {
+    logger.info(`User-initiated update for page: ${pageId}`);
+    return this.safePageUpdate(pageId, properties, false, false);
+  }
+
+  /**
+   * Allow users to safely update only permitted properties in detail databases
+   * This method blocks protected properties and only allows Sentence title changes
+   * @param {string} pageId - Detail database page ID  
+   * @param {Object} properties - Properties to update (will be filtered)
+   * @returns {Promise} - Notion API response
+   */
+  async userUpdateDetailProperties(pageId, properties) {
+    logger.info(`User-initiated detail update for page: ${pageId}`);
+    return this.safePageUpdate(pageId, properties, false, true);
+  }
+
+  /**
+   * Get list of properties users are allowed to modify in main database
+   * @returns {Array} - Array of allowed property names
+   */
+  getAllowedMainDbProperties() {
+    return Array.from(this.allowedMainDbProperties);
+  }
+
+  /**
+   * Get list of properties users are allowed to modify in detail databases
+   * @returns {Array} - Array of allowed property names  
+   */
+  getAllowedDetailDbProperties() {
+    return Array.from(this.allowedDetailDbProperties);
+  }
+
+  /**
+   * Get list of protected properties in main database
+   * @returns {Array} - Array of protected property names
+   */
+  getProtectedMainDbProperties() {
+    return Array.from(this.protectedMainDbProperties);
+  }
+
+  /**
+   * Get list of protected properties in detail databases
+   * @returns {Array} - Array of protected property names
+   */
+  getProtectedDetailDbProperties() {
+    return Array.from(this.protectedDetailDbProperties);
+  }
+
+  /**
+   * Check if a property is allowed for user editing in main database
+   * @param {string} propertyName - Name of the property to check
+   * @returns {boolean} - True if user can edit this property
+   */
+  isUserAllowedMainDbProperty(propertyName) {
+    return this.allowedMainDbProperties.has(propertyName);
+  }
+
+  /**
+   * Check if a property is allowed for user editing in detail databases
+   * @param {string} propertyName - Name of the property to check
+   * @returns {boolean} - True if user can edit this property
+   */
+  isUserAllowedDetailDbProperty(propertyName) {
+    return this.allowedDetailDbProperties.has(propertyName);
   }
 
   // === UTILITY FUNCTIONS ===

@@ -126,6 +126,9 @@ TELEGRAM_CHAT_ID=your_telegram_chat_id
 - **Optimized Description** (Text): AI-generated description
 - **Keywords** (Multi-select): SEO keywords
 - **Script Approved** (Checkbox): Manual approval flag
+- **Thumbnail** (URL): Generated thumbnail image URL
+- **New Thumbnail Prompt** (Text): AI prompt for thumbnail generation
+- **Sentence Status** (Select): Overall script processing status (e.g., 'Script Created', 'Images Generated', 'Complete')
 - **Drive Folder** (URL): Google Drive folder link
 - **Created Time** (Created time): Auto-populated by Notion
 - **Last Edited Time** (Last edited time): Auto-populated by Notion

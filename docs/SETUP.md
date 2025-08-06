@@ -67,11 +67,14 @@ cp .env.example .env
    - **VideoID** (Formula) - Auto-generated using `id()` formula  
    - **Title** (Title) - Auto-populated from YouTube
    - **Status** (Select) - Processing status tracking
-   - **Script Breakdown** (Rich Text) - Script breakdown storage
-   - **Sentence Status** (Multi-select) - Individual sentence tracking
+   - **Thumbnail** (URL) - Generated thumbnail image URL
+   - **New Thumbnail Prompt** (Text) - AI prompt for thumbnail generation
+   - **Sentence Status** (Select) - Overall script processing status
    - Additional properties as listed in README.md
 2. Share database with your integration
 3. Copy database ID from URL to `.env`
+
+**Note:** Script breakdowns are now stored in separate per-video databases created automatically as child pages.
 
 ### 6. Testing
 ```bash
