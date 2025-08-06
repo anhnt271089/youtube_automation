@@ -1111,7 +1111,9 @@ class NotionService {
       for (let i = 0; i < scriptSentences.length; i++) {
         const sentenceNumber = i + 1;
         const scriptText = scriptSentences[i] || '';
-        const imagePrompt = imagePrompts[i] || '';
+        // Extract prompt string from imagePrompts object (fix for validation error)
+        const imagePromptObj = imagePrompts[i] || {};
+        const imagePrompt = typeof imagePromptObj === 'string' ? imagePromptObj : (imagePromptObj.prompt || '');
         const editorKeywordText = editorKeywords[i] || '';
         
         const detailProperties = {
