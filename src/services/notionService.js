@@ -613,6 +613,72 @@ class NotionService {
   // === SCRIPT SUB-PAGES OPERATIONS ===
 
   /**
+   * Splits long text into chunks at natural breakpoints while respecting Notion's 2000 char limit
+   * @param {string} text - Text to split
+   * @param {number} maxLength - Maximum length per chunk (default: 1900 to be safe)
+   * @returns {Array<string>} - Array of text chunks
+   */
+  splitTextIntoChunks(text, maxLength = 1900) {
+    if (!text || text.length <= maxLength) {
+      return [text || ''];
+    }
+
+    const chunks = [];
+    let currentIndex = 0;
+
+    while (currentIndex < text.length) {
+      const endIndex = currentIndex + maxLength;
+      
+      if (endIndex >= text.length) {
+        // Last chunk
+        chunks.push(text.substring(currentIndex));
+        break;
+      }
+
+      // Try to find a natural breakpoint
+      const chunk = text.substring(currentIndex, endIndex);
+      let breakPoint = endIndex;
+      
+      // Look for natural breakpoints in order of preference
+      const breakChars = ['\n\n', '\n', '. ', '? ', '! ', ', ', ' '];
+      
+      for (const breakChar of breakChars) {
+        const lastBreakIndex = chunk.lastIndexOf(breakChar);
+        if (lastBreakIndex > maxLength * 0.7) { // At least 70% of max length to avoid tiny chunks
+          breakPoint = currentIndex + lastBreakIndex + breakChar.length;
+          break;
+        }
+      }
+      
+      chunks.push(text.substring(currentIndex, breakPoint).trim());
+      currentIndex = breakPoint;
+    }
+
+    return chunks.filter(chunk => chunk.length > 0);
+  }
+
+  /**
+   * Creates paragraph blocks from text chunks
+   * @param {Array<string>} textChunks - Array of text chunks
+   * @returns {Array<Object>} - Array of Notion paragraph blocks
+   */
+  createParagraphBlocks(textChunks) {
+    return textChunks.map(chunk => ({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [
+          {
+            text: {
+              content: chunk
+            }
+          }
+        ]
+      }
+    }));
+  }
+
+  /**
    * Creates the Original Script sub-page under the main video record
    * @param {string} videoPageId - Main video record page ID
    * @param {string} originalTranscript - Raw YouTube transcript
@@ -624,6 +690,50 @@ class NotionService {
       logger.info(`Creating Original Script sub-page for video: ${videoTitle}`);
 
       const pageTitle = `${videoTitle} - Original Script`.substring(0, 100);
+      const transcriptText = originalTranscript || 'No transcript available';
+      
+      // Split transcript into chunks to handle Notion's 2000 character limit
+      const textChunks = this.splitTextIntoChunks(transcriptText);
+      logger.info(`Split transcript into ${textChunks.length} chunks for Notion compatibility`);
+
+      // Create initial page structure
+      const initialChildren = [
+        {
+          object: 'block',
+          type: 'heading_1',
+          heading_1: {
+            rich_text: [
+              {
+                text: {
+                  content: '📝 Original YouTube Transcript'
+                }
+              }
+            ]
+          }
+        },
+        {
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [
+              {
+                text: {
+                  content: 'This is the raw transcript extracted from the YouTube video. Review this content before the AI optimization process.'
+                }
+              }
+            ]
+          }
+        },
+        {
+          object: 'block',
+          type: 'divider',
+          divider: {}
+        }
+      ];
+
+      // Add paragraph blocks for each text chunk
+      const contentBlocks = this.createParagraphBlocks(textChunks);
+      const allChildren = [...initialChildren, ...contentBlocks];
 
       const page = await this.notion.pages.create({
         parent: {
@@ -639,55 +749,10 @@ class NotionService {
             }
           ]
         },
-        children: [
-          {
-            object: 'block',
-            type: 'heading_1',
-            heading_1: {
-              rich_text: [
-                {
-                  text: {
-                    content: '📝 Original YouTube Transcript'
-                  }
-                }
-              ]
-            }
-          },
-          {
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [
-                {
-                  text: {
-                    content: 'This is the raw transcript extracted from the YouTube video. Review this content before the AI optimization process.'
-                  }
-                }
-              ]
-            }
-          },
-          {
-            object: 'block',
-            type: 'divider',
-            divider: {}
-          },
-          {
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [
-                {
-                  text: {
-                    content: originalTranscript || 'No transcript available'
-                  }
-                }
-              ]
-            }
-          }
-        ]
+        children: allChildren
       });
 
-      logger.info(`Original Script page created: ${page.id}`);
+      logger.info(`Original Script page created: ${page.id} with ${textChunks.length} text blocks`);
       return {
         pageId: page.id,
         pageUrl: page.url,
@@ -711,6 +776,66 @@ class NotionService {
       logger.info(`Creating Optimized Script sub-page for video: ${videoTitle}`);
 
       const pageTitle = `${videoTitle} - Optimized Script`.substring(0, 100);
+      const scriptText = optimizedScript || 'No optimized script available';
+      
+      // Split script into chunks to handle Notion's 2000 character limit
+      const textChunks = this.splitTextIntoChunks(scriptText);
+      logger.info(`Split optimized script into ${textChunks.length} chunks for Notion compatibility`);
+
+      // Create initial page structure
+      const initialChildren = [
+        {
+          object: 'block',
+          type: 'heading_1',
+          heading_1: {
+            rich_text: [
+              {
+                text: {
+                  content: '✨ AI-Optimized Script'
+                }
+              }
+            ]
+          }
+        },
+        {
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [
+              {
+                text: {
+                  content: 'This is the AI-enhanced script optimized for engagement and short-form content. Review and approve this script before proceeding to the detailed breakdown.'
+                }
+              }
+            ]
+          }
+        },
+        {
+          object: 'block',
+          type: 'callout',
+          callout: {
+            icon: {
+              emoji: '📋'
+            },
+            rich_text: [
+              {
+                text: {
+                  content: 'Review this script carefully and check the "Script Approved" checkbox in the main video record when ready to proceed.'
+                }
+              }
+            ]
+          }
+        },
+        {
+          object: 'block',
+          type: 'divider',
+          divider: {}
+        }
+      ];
+
+      // Add paragraph blocks for each text chunk
+      const contentBlocks = this.createParagraphBlocks(textChunks);
+      const allChildren = [...initialChildren, ...contentBlocks];
 
       const page = await this.notion.pages.create({
         parent: {
@@ -726,71 +851,10 @@ class NotionService {
             }
           ]
         },
-        children: [
-          {
-            object: 'block',
-            type: 'heading_1',
-            heading_1: {
-              rich_text: [
-                {
-                  text: {
-                    content: '✨ AI-Optimized Script'
-                  }
-                }
-              ]
-            }
-          },
-          {
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [
-                {
-                  text: {
-                    content: 'This is the AI-enhanced script optimized for engagement and short-form content. Review and approve this script before proceeding to the detailed breakdown.'
-                  }
-                }
-              ]
-            }
-          },
-          {
-            object: 'block',
-            type: 'callout',
-            callout: {
-              icon: {
-                emoji: '📋'
-              },
-              rich_text: [
-                {
-                  text: {
-                    content: 'Review this script carefully and check the "Script Approved" checkbox in the main video record when ready to proceed.'
-                  }
-                }
-              ]
-            }
-          },
-          {
-            object: 'block',
-            type: 'divider',
-            divider: {}
-          },
-          {
-            object: 'block',
-            type: 'paragraph',
-            paragraph: {
-              rich_text: [
-                {
-                  text: {
-                    content: optimizedScript || 'No optimized script available'
-                  }
-                }
-              ]
-            }
-          }
-        ]
+        children: allChildren
       });
 
-      logger.info(`Optimized Script page created: ${page.id}`);
+      logger.info(`Optimized Script page created: ${page.id} with ${textChunks.length} text blocks`);
       return {
         pageId: page.id,
         pageUrl: page.url,
