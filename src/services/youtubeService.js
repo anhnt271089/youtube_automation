@@ -418,7 +418,7 @@ class YouTubeService {
     let currentTime = 0;
     const segmentDuration = 3000; // 3 seconds per segment
     
-    sentences.forEach((sentence, index) => {
+    sentences.forEach((sentence, _index) => {
       if (sentence) {
         segments.push({
           text: sentence,

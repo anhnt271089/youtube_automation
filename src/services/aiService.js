@@ -324,6 +324,59 @@ Return only the image prompt, nothing else.`;
     }
   }
 
+  async generateEditorKeywords(scriptSentences) {
+    try {
+      const editorKeywords = [];
+      
+      for (const sentence of scriptSentences) {
+        const promptText = `
+Extract editor keywords for the following script sentence. These keywords will help video editors find relevant B-roll footage, visual elements, or editing cues.
+
+Script Sentence: "${sentence}"
+
+Requirements:
+1. Extract 3-6 relevant keywords or short phrases
+2. Focus on visual elements, actions, objects, locations, or concepts
+3. Include keywords that would help find stock footage or B-roll
+4. Consider what visual elements would enhance this sentence
+5. Keep keywords concise and searchable
+6. Separate with commas
+
+Examples:
+- For "The market crashed in 2008": stock market, financial crisis, graphs, money, Wall Street
+- For "She walked through the forest": forest, walking, nature, trees, path, hiking
+- For "Technology is changing our lives": technology, computers, smartphones, innovation, digital
+
+Return only the comma-separated keywords, nothing else.`;
+
+        const completion = await this.openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert video editor who specializes in identifying keywords for finding relevant B-roll footage and visual elements.'
+            },
+            {
+              role: 'user',
+              content: promptText
+            }
+          ],
+          max_tokens: 100,
+          temperature: 0.6
+        });
+
+        const keywords = completion.choices[0].message.content.trim();
+        editorKeywords.push(keywords);
+      }
+
+      logger.info(`Generated editor keywords for ${editorKeywords.length} sentences`);
+      return editorKeywords;
+    } catch (error) {
+      logger.error('Error generating editor keywords:', error);
+      throw error;
+    }
+  }
+
   async generateImage(prompt, size = '1024x1024') {
     try {
       const response = await this.openai.images.generate({
@@ -414,7 +467,11 @@ Create a detailed prompt for generating this thumbnail image.`;
       ]);
 
       const scriptSentences = await this.breakdownScriptIntoSentences(attractiveScript);
-      const imagePrompts = await this.generateImagePrompts(scriptSentences);
+      
+      const [imagePrompts, editorKeywords] = await Promise.all([
+        this.generateImagePrompts(scriptSentences),
+        this.generateEditorKeywords(scriptSentences)
+      ]);
 
       logger.info('AI content enhancement completed successfully');
       
@@ -424,7 +481,8 @@ Create a detailed prompt for generating this thumbnail image.`;
         optimizedTitles,
         keywords: keywordData,
         scriptSentences,
-        imagePrompts
+        imagePrompts,
+        editorKeywords
       };
     } catch (error) {
       logger.error('Error in AI content enhancement:', error);

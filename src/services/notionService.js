@@ -38,6 +38,7 @@ class NotionService {
       '🔒 Script Text', 
       '🔒 Image Prompt',
       '🔒 Generated Image URL',
+      '🔒 Editor Keywords',
       '🔒 Status',
       '🔒 Word Count',
       '🔒 Created Time',
@@ -644,6 +645,43 @@ class NotionService {
   }
 
   /**
+   * Extracts clean script text suitable for voice generation
+   * Removes headings, formatting, and other non-speech elements
+   * @param {string} scriptText - Original formatted script text
+   * @returns {string} - Clean text ready for voice generation
+   */
+  extractCleanScriptText(scriptText) {
+    if (!scriptText) {
+      return '';
+    }
+
+    let cleanText = scriptText;
+
+    // Remove common markdown-style headings
+    cleanText = cleanText.replace(/^#{1,6}\s+.*/gm, '');
+    
+    // Remove common heading patterns like "Introduction:", "Main Point:", etc.
+    cleanText = cleanText.replace(/^[A-Za-z\s]+:\s*$/gm, '');
+    
+    // Remove lines that are just formatting or section dividers
+    cleanText = cleanText.replace(/^[-=_*]{3,}.*$/gm, '');
+    
+    // Remove bullet points and numbered lists formatting (keep content)
+    cleanText = cleanText.replace(/^[\s]*[-*•]\s+/gm, '');
+    cleanText = cleanText.replace(/^[\s]*\d+\.\s+/gm, '');
+    
+    // Remove excessive whitespace and normalize
+    cleanText = cleanText.replace(/\n\s*\n\s*\n/g, '\n\n'); // Max 2 consecutive newlines
+    cleanText = cleanText.replace(/^\s+/gm, ''); // Remove leading spaces
+    cleanText = cleanText.trim();
+
+    // Ensure proper sentence spacing for voice generation
+    cleanText = cleanText.replace(/([.!?])\s*([A-Z])/g, '$1 $2');
+    
+    return cleanText;
+  }
+
+  /**
    * Creates the Original Script sub-page under the main video record
    * @param {string} videoPageId - Main video record page ID
    * @param {string} originalTranscript - Raw YouTube transcript
@@ -747,6 +785,10 @@ class NotionService {
       const textChunks = this.splitTextIntoChunks(scriptText);
       logger.info(`Split optimized script into ${textChunks.length} chunks for Notion compatibility`);
 
+      // Extract clean text for voice generation (remove headings, markdown, etc.)
+      const cleanScript = this.extractCleanScriptText(scriptText);
+      const cleanScriptChunks = this.splitTextIntoChunks(cleanScript);
+
       // Create initial page structure
       const initialChildren = [
         {
@@ -798,9 +840,51 @@ class NotionService {
         }
       ];
 
-      // Add paragraph blocks for each text chunk
+      // Add paragraph blocks for formatted script
       const contentBlocks = this.createParagraphBlocks(textChunks);
-      const allChildren = [...initialChildren, ...contentBlocks];
+
+      // Add voice generation section
+      const voiceGenerationSection = [
+        {
+          object: 'block',
+          type: 'divider',
+          divider: {}
+        },
+        {
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [
+              {
+                text: {
+                  content: '🎤 Voice Generation Script'
+                }
+              }
+            ]
+          }
+        },
+        {
+          object: 'block',
+          type: 'callout',
+          callout: {
+            icon: {
+              emoji: '🔥'
+            },
+            rich_text: [
+              {
+                text: {
+                  content: 'Clean script text ready for voice generation tools. Simply copy and paste the text below into your preferred voice generation software.'
+                }
+              }
+            ]
+          }
+        }
+      ];
+
+      // Add clean script blocks for voice generation
+      const cleanScriptBlocks = this.createParagraphBlocks(cleanScriptChunks);
+
+      const allChildren = [...initialChildren, ...contentBlocks, ...voiceGenerationSection, ...cleanScriptBlocks];
 
       const page = await this.notion.pages.create({
         parent: {
@@ -841,9 +925,10 @@ class NotionService {
    * @param {string} optimizedScript - AI-enhanced script
    * @param {Array} scriptSentences - Breakdown sentences for database
    * @param {Array} imagePrompts - Image prompts for each sentence
+   * @param {Array} editorKeywords - Editor keywords for each sentence
    * @returns {Promise<Object>} - Complete structure information
    */
-  async createCompleteScriptStructure(videoPageId, videoTitle, originalTranscript, optimizedScript, scriptSentences = [], imagePrompts = []) {
+  async createCompleteScriptStructure(videoPageId, videoTitle, originalTranscript, optimizedScript, scriptSentences = [], imagePrompts = [], editorKeywords = []) {
     try {
       logger.info(`Creating complete script structure for video: ${videoTitle}`);
 
@@ -871,7 +956,7 @@ class NotionService {
       if (scriptSentences.length > 0) {
         logger.info('Creating script breakdown database...');
         const breakdownResult = await this.retryNotionOperation(
-          () => this.createScriptBreakdown(videoPageId, scriptSentences, imagePrompts),
+          () => this.createScriptBreakdown(videoPageId, scriptSentences, imagePrompts, editorKeywords),
           'createScriptBreakdown'
         );
         scriptDatabase = breakdownResult.scriptDatabase;
@@ -925,6 +1010,9 @@ class NotionService {
         },
         '🔒 Generated Image URL': {
           url: {}
+        },
+        '🔒 Editor Keywords': {
+          rich_text: {}
         },
         '🔒 Status': {
           select: {
@@ -984,7 +1072,7 @@ class NotionService {
     }
   }
 
-  async createScriptBreakdown(videoPageId, scriptSentences, imagePrompts) {
+  async createScriptBreakdown(videoPageId, scriptSentences, imagePrompts, editorKeywords = []) {
     try {
       // First get the video title for database naming
       const videoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
@@ -1002,6 +1090,7 @@ class NotionService {
         const sentenceNumber = i + 1;
         const scriptText = scriptSentences[i] || '';
         const imagePrompt = imagePrompts[i] || '';
+        const editorKeywordText = editorKeywords[i] || '';
         
         const detailProperties = {
           'Sentence': {
@@ -1030,6 +1119,15 @@ class NotionService {
               {
                 text: {
                   content: imagePrompt
+                }
+              }
+            ]
+          },
+          '🔒 Editor Keywords': {
+            rich_text: [
+              {
+                text: {
+                  content: editorKeywordText
                 }
               }
             ]
@@ -1158,6 +1256,7 @@ class NotionService {
         scriptText: page.properties['🔒 Script Text']?.rich_text[0]?.text?.content || '',
         imagePrompt: page.properties['🔒 Image Prompt']?.rich_text[0]?.text?.content || '',
         imageUrl: page.properties['🔒 Generated Image URL']?.url || '',
+        editorKeywords: page.properties['🔒 Editor Keywords']?.rich_text[0]?.text?.content || '',
         status: page.properties['🔒 Status']?.select?.name || 'Pending'
       };
       
@@ -1221,6 +1320,7 @@ class NotionService {
         scriptText: page.properties['🔒 Script Text']?.rich_text[0]?.text?.content || '',
         imagePrompt: page.properties['🔒 Image Prompt']?.rich_text[0]?.text?.content || '',
         imageUrl: page.properties['🔒 Generated Image URL']?.url || '',
+        editorKeywords: page.properties['🔒 Editor Keywords']?.rich_text[0]?.text?.content || '',
         status: page.properties['🔒 Status']?.select?.name || 'Pending',
         wordCount: page.properties['🔒 Word Count']?.formula?.number || 0,
         createdTime: page.created_time

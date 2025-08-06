@@ -160,7 +160,8 @@ class WorkflowService {
         videoData.transcriptText, // Original transcript
         enhancedContent.attractiveScript, // Optimized script
         enhancedContent.scriptSentences,
-        enhancedContent.imagePrompts
+        enhancedContent.imagePrompts,
+        enhancedContent.editorKeywords
       );
       
       logger.info(`Complete script structure created successfully for: ${videoData.title}`);
