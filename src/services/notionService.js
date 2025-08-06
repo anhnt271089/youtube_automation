@@ -57,6 +57,84 @@ class NotionService {
     ]);
   }
 
+  /**
+   * Utility method to add delays between API calls
+   * @param {number} ms - Milliseconds to delay
+   * @returns {Promise}
+   */
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Retry mechanism for Notion API operations with exponential backoff
+   * @param {Function} operation - The async operation to retry
+   * @param {string} operationName - Name for logging purposes
+   * @param {number} maxRetries - Maximum number of retry attempts
+   * @returns {Promise} - Result of the operation
+   */
+  async retryNotionOperation(operation, operationName = 'NotionOperation', maxRetries = 3) {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        
+        // Check if it's a conflict error or rate limit error
+        const isRetriableError = this.isRetriableNotionError(error);
+        
+        if (!isRetriableError || attempt === maxRetries) {
+          logger.error(`${operationName} failed after ${attempt} attempts:`, error);
+          throw error;
+        }
+        
+        // Calculate delay with exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Max 10 seconds
+        
+        logger.warn(`${operationName} failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`, {
+          error: error.message,
+          code: error.code,
+          status: error.status
+        });
+        
+        await this.delay(delay);
+      }
+    }
+    
+    throw lastError;
+  }
+
+  /**
+   * Check if a Notion API error is retriable
+   * @param {Error} error - The error to check
+   * @returns {boolean} - Whether the error should be retried
+   */
+  isRetriableNotionError(error) {
+    // Notion API conflict errors
+    if (error.message && error.message.includes('Conflict occurred while saving')) {
+      return true;
+    }
+    
+    // Rate limit errors
+    if (error.code === 'rate_limited' || error.status === 429) {
+      return true;
+    }
+    
+    // Temporary server errors
+    if (error.status >= 500 && error.status < 600) {
+      return true;
+    }
+    
+    // Network timeout errors
+    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+      return true;
+    }
+    
+    return false;
+  }
+
   // === PROPERTY VALIDATION AND PROTECTION ===
 
   /**
@@ -150,7 +228,10 @@ class NotionService {
    * @returns {Promise} - Notion API response
    */
   async safePageUpdate(pageId, properties, isSystemUpdate = true, isDetailDatabase = false) {
-    try {
+    const updateType = isSystemUpdate ? 'System' : 'User';
+    const dbType = isDetailDatabase ? 'detail database' : 'main database';
+    
+    return this.retryNotionOperation(async () => {
       const validatedProperties = isDetailDatabase 
         ? this.validateDetailDatabaseUpdate(properties, isSystemUpdate)
         : this.validateMainDatabaseUpdate(properties, isSystemUpdate);
@@ -160,15 +241,9 @@ class NotionService {
         properties: validatedProperties
       });
 
-      const updateType = isSystemUpdate ? 'System' : 'User';
-      const dbType = isDetailDatabase ? 'detail database' : 'main database';
       logger.info(`${updateType} update completed successfully on ${dbType} page: ${pageId}`);
-      
       return response;
-    } catch (error) {
-      logger.error(`Error in safe page update (${isSystemUpdate ? 'system' : 'user'}):`, error);
-      throw error;
-    }
+    }, `safePageUpdate_${updateType}_${dbType}`);
   }
 
   // === MAIN VIDEOS DATABASE OPERATIONS ===
@@ -868,6 +943,8 @@ class NotionService {
 
   /**
    * Creates the complete hierarchical script structure for a video
+   * Fixed: Sequential page creation instead of concurrent to avoid Notion API conflicts
+   * Includes retry logic with exponential backoff and proper error handling
    * @param {string} videoPageId - Main video record page ID
    * @param {string} videoTitle - Video title
    * @param {string} originalTranscript - Raw YouTube transcript
@@ -880,16 +957,33 @@ class NotionService {
     try {
       logger.info(`Creating complete script structure for video: ${videoTitle}`);
 
-      // Create script sub-pages in parallel
-      const [originalScriptPage, optimizedScriptPage] = await Promise.all([
-        this.createOriginalScriptPage(videoPageId, originalTranscript, videoTitle),
-        this.createOptimizedScriptPage(videoPageId, optimizedScript, videoTitle)
-      ]);
+      // Create script sub-pages sequentially to avoid API conflicts
+      logger.info('Creating original script page...');
+      const originalScriptPage = await this.retryNotionOperation(
+        () => this.createOriginalScriptPage(videoPageId, originalTranscript, videoTitle),
+        'createOriginalScriptPage'
+      );
+      
+      // Add delay between API calls to avoid rate limiting
+      await this.delay(1000);
+      
+      logger.info('Creating optimized script page...');
+      const optimizedScriptPage = await this.retryNotionOperation(
+        () => this.createOptimizedScriptPage(videoPageId, optimizedScript, videoTitle),
+        'createOptimizedScriptPage'
+      );
+
+      // Add delay before creating database
+      await this.delay(1000);
 
       // Create script breakdown database as child if sentences are provided
       let scriptDatabase = null;
       if (scriptSentences.length > 0) {
-        const breakdownResult = await this.createScriptBreakdown(videoPageId, scriptSentences, imagePrompts);
+        logger.info('Creating script breakdown database...');
+        const breakdownResult = await this.retryNotionOperation(
+          () => this.createScriptBreakdown(videoPageId, scriptSentences, imagePrompts),
+          'createScriptBreakdown'
+        );
         scriptDatabase = breakdownResult.scriptDatabase;
       }
 
