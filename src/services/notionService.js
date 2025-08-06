@@ -36,7 +36,7 @@ class NotionService {
     // Protected properties in video detail databases
     this.protectedDetailDbProperties = new Set([
       '🔒 Sentence Number',
-      '🔒 Script Text',
+      '🔒 Script Text', 
       '🔒 Image Prompt',
       '🔒 Generated Image URL',
       '🔒 Status',

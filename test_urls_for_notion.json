@@ -1,0 +1,103 @@
+{
+  "description": "Top 10 most viewed videos from BeyondBeing channel - URLs ready for NotionService testing",
+  "extractedAt": "2025-08-06T05:34:07.102Z",
+  "channelName": "BeyondBeing",
+  "totalVideosAnalyzed": 26,
+  "note": "These URLs are formatted for direct input into the YouTube automation system's Notion database 'YouTube URL' field",
+  
+  "youtubeUrls": [
+    "https://youtube.com/watch?v=r4IQopBxzOo",
+    "https://youtube.com/watch?v=H67kfrqHP2A", 
+    "https://youtube.com/watch?v=yIarDv9G7JM",
+    "https://youtube.com/watch?v=jmAiIhkxMiI",
+    "https://youtube.com/watch?v=9KaKhbzBg3c",
+    "https://youtube.com/watch?v=30CRl-N0Prk",
+    "https://youtube.com/watch?v=pfvUPqv47is",
+    "https://youtube.com/watch?v=dcVQ9UAnxi0",
+    "https://youtube.com/watch?v=RAHLLAgpzpw",
+    "https://youtube.com/watch?v=PqG-glf-iAQ"
+  ],
+  
+  "videoDetails": [
+    {
+      "rank": 1,
+      "title": "The Art of Doing Anything Exceptionally Well ( even if you are not pro )",
+      "url": "https://youtube.com/watch?v=r4IQopBxzOo",
+      "viewCount": 766924,
+      "duration": "1:27",
+      "publishedDate": "2025-04-20"
+    },
+    {
+      "rank": 2,
+      "title": "How to Control your Brain ( before it's TOO late )",
+      "url": "https://youtube.com/watch?v=H67kfrqHP2A",
+      "viewCount": 280437,
+      "duration": "1:25", 
+      "publishedDate": "2025-05-23"
+    },
+    {
+      "rank": 3,
+      "title": "The Art Of Making A Plan ( That Actually Works )",
+      "url": "https://youtube.com/watch?v=yIarDv9G7JM",
+      "viewCount": 211980,
+      "duration": "1:35",
+      "publishedDate": "2025-07-02"
+    },
+    {
+      "rank": 4,
+      "title": "How to Enter Flow State in 2 Minutes ( Do This Before You Work )",
+      "url": "https://youtube.com/watch?v=jmAiIhkxMiI",
+      "viewCount": 203398,
+      "duration": "1:41",
+      "publishedDate": "2025-05-01"
+    },
+    {
+      "rank": 5,
+      "title": "How to Outgrow Everyone Around ( Even the older Generation )",
+      "url": "https://youtube.com/watch?v=9KaKhbzBg3c",
+      "viewCount": 61171,
+      "duration": "1:02",
+      "publishedDate": "2025-05-16"
+    },
+    {
+      "rank": 6,
+      "title": "Why You're Always Tired ( Even When You Do Nothing )",
+      "url": "https://youtube.com/watch?v=30CRl-N0Prk",
+      "viewCount": 59480,
+      "duration": "1:26",
+      "publishedDate": "2025-06-15"
+    },
+    {
+      "rank": 7,
+      "title": "3 Finger Trick to Kill Anxiety Instantly ( Top 1% Knows )",
+      "url": "https://youtube.com/watch?v=pfvUPqv47is",
+      "viewCount": 31731,
+      "duration": "1:08",
+      "publishedDate": "2025-06-23"
+    },
+    {
+      "rank": 8,
+      "title": "Just Start !",
+      "url": "https://youtube.com/watch?v=dcVQ9UAnxi0",
+      "viewCount": 12324,
+      "duration": "1:37",
+      "publishedDate": "2025-07-12"
+    },
+    {
+      "rank": 9,
+      "title": "The Only Time Management Strategy You'll Ever Need",
+      "url": "https://youtube.com/watch?v=RAHLLAgpzpw",
+      "viewCount": 8416,
+      "duration": "1:10",
+      "publishedDate": "2025-04-05"
+    },
+    {
+      "rank": 10,
+      "title": "The Art of Reinventing Your Identity ( even if you Hate who you are  )",
+      "url": "https://youtube.com/watch?v=PqG-glf-iAQ",
+      "viewCount": 8198,
+      "duration": "2:03",
+      "publishedDate": "2025-05-09"
+    }
+  ]
+}

@@ -106,6 +106,15 @@ TELEGRAM_CHAT_ID=your_telegram_chat_id
    - Create bot with [@BotFather](https://t.me/botfather)
    - Get your chat ID by messaging [@userinfobot](https://t.me/userinfobot)
 
+### Verification Checklist
+After setup, verify your configuration:
+- [ ] All API connections working
+- [ ] Notion database accessible
+- [ ] Google Drive folder shared with service account
+- [ ] Telegram notifications working
+- [ ] FFmpeg available in PATH
+- [ ] System health check passes: `node test-single-run.js health`
+
 ### Notion Database Schema
 
 **🎯 Simplified Input - Only One Field Required!**
@@ -159,6 +168,17 @@ await automation.initialize();
 const result = await automation.processUrl('https://www.youtube.com/watch?v=VIDEO_ID');
 ```
 
+### Test System Functionality
+```bash
+# Test system functionality with unified test script
+node test-single-run.js health                    # Health check only
+node test-single-run.js all                       # Run all services once
+node test-single-run.js single-video <url>        # Process specific video
+node test-single-run.js new-videos               # Process new videos
+node test-single-run.js approved-scripts         # Process approved scripts
+node test-single-run.js video-generation         # Run video generation
+```
+
 ### Force Processing
 ```bash
 # In Node.js console or create a script
@@ -166,6 +186,13 @@ automation.forceProcessNewVideos();      // Process all new videos
 automation.forceProcessApprovedScripts(); // Process approved scripts
 automation.forceGenerateVideos();        // Generate final videos
 ```
+
+### Test Data Available
+The project includes curated test data from BeyondBeing YouTube channel:
+- **`test_data_top10_videos.json`**: Complete metadata for top 10 videos
+- **`test_urls_for_notion.json`**: Clean URLs ready for Notion input
+
+Test with high-performing videos (766K+ views) to validate system functionality.
 
 ## 📊 Monitoring & Notifications
 
@@ -316,9 +343,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📚 Documentation
 
 ### Project Documentation
-- [Setup Guide](docs/SETUP.md) - Complete installation and configuration
-- [Script Breakdown System](docs/SCRIPT_BREAKDOWN.md) - Notion vs Google Sheets implementation
-- [Google Sheets Setup](docs/GOOGLE_SHEETS_SETUP.md) - Optional Google Sheets configuration
+- [Script Breakdown System](docs/SCRIPT_BREAKDOWN.md) - Notion-based script processing
 - [API Documentation](docs/API.md) - Service interfaces and methods
 - [Testing Guide](docs/TESTING.md) - Testing procedures and tools
 - [Project Structure](docs/PROJECT_STRUCTURE.md) - Codebase organization
