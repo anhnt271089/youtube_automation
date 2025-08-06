@@ -6,19 +6,23 @@
  */
 
 import YouTubeService from '../src/services/youtubeService.js';
+import { TEST_SCENARIOS, TEST_VIDEOS } from '../src/test-data/beyondBeingTestData.js';
 
 console.log('🔍 YouTube Service Basic Test (No API calls)');
+console.log('Testing with BeyondBeing channel sample data');
 console.log('=' .repeat(50));
 
 const youtube = new YouTubeService();
 
-// Test URLs
+// Test URLs from BeyondBeing channel data
 const testUrls = [
-  'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-  'https://youtu.be/dQw4w9WgXcQ',
-  'https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=123',
-  'https://www.youtube.com/embed/dQw4w9WgXcQ',
-  'dQw4w9WgXcQ', // Already a video ID
+  // BeyondBeing sample videos in different URL formats
+  TEST_VIDEOS[0].youtubeUrl, // Standard format: highest viewed video
+  `https://youtu.be/${TEST_VIDEOS[1].videoId}`, // Short format: second highest
+  `${TEST_VIDEOS[2].youtubeUrl}&list=123`, // With playlist parameter
+  `https://www.youtube.com/embed/${TEST_VIDEOS[3].videoId}`, // Embed format
+  TEST_VIDEOS[4].videoId, // Raw video ID: 9KaKhbzBg3c
+  // Edge cases
   'invalid-url',
   null,
   ''
@@ -98,4 +102,12 @@ console.log('');
 console.log('💡 To test API calls, add your YouTube API key to .env:');
 console.log('   YOUTUBE_API_KEY=your_actual_api_key_here');
 console.log('');
-console.log('Then run: npm run test-youtube "https://www.youtube.com/watch?v=dQw4w9WgXcQ"');
+console.log('Then test with BeyondBeing sample videos:');
+console.log(`   npm run test-youtube "${TEST_VIDEOS[0].youtubeUrl}"`);
+console.log(`   Or try: "${TEST_VIDEOS[1].youtubeUrl}"`);
+console.log('');
+console.log('🎬 BeyondBeing Test Videos Used:');
+TEST_VIDEOS.slice(0, 3).forEach((video, index) => {
+  console.log(`   ${index + 1}. "${video.title}" (${video.viewCount.toLocaleString()} views)`);
+  console.log(`      ${video.youtubeUrl}`);
+});

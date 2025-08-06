@@ -5,6 +5,7 @@ import WorkflowService from './src/services/workflowService.js';
 import NotionService from './src/services/notionService.js';
 import logger from './src/utils/logger.js';
 import { validateConfig } from './config/config.js';
+import { TEST_SCENARIOS, TEST_VIDEOS } from './src/test-data/beyondBeingTestData.js';
 
 dotenv.config();
 
@@ -321,14 +322,15 @@ Parameters:
 
 Examples:
   # Run complete workflow with auto-approval (recommended for testing)
-  node test-complete-workflow.js https://www.youtube.com/watch?v=r4IQopBxzOo
+  node test-complete-workflow.js ${TEST_SCENARIOS.WORKFLOW_TESTING.primaryUrl}
 
   # Run workflow but stop at manual approval stage  
-  node test-complete-workflow.js https://www.youtube.com/watch?v=r4IQopBxzOo false
+  node test-complete-workflow.js ${TEST_SCENARIOS.WORKFLOW_TESTING.primaryUrl} false
 
-Test Video URLs (from your data):
-  • https://youtube.com/watch?v=r4IQopBxzOo (766,924 views - top performer)
-  • https://youtube.com/watch?v=H67kfrqHP2A (280,437 views - second top)
+🎬 BeyondBeing Test Video URLs (from your channel data):
+  • ${TEST_VIDEOS[0].youtubeUrl} (${TEST_VIDEOS[0].viewCount.toLocaleString()} views - "${TEST_VIDEOS[0].title}")
+  • ${TEST_VIDEOS[1].youtubeUrl} (${TEST_VIDEOS[1].viewCount.toLocaleString()} views - "${TEST_VIDEOS[1].title}")
+  • ${TEST_VIDEOS[2].youtubeUrl} (${TEST_VIDEOS[2].viewCount.toLocaleString()} views - "${TEST_VIDEOS[2].title}")
 
 Workflow Stages:
   1. Initial Processing (YouTube data extraction, AI enhancement, script structure)

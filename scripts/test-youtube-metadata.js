@@ -7,6 +7,7 @@
 
 import YouTubeService from '../src/services/youtubeService.js';
 import logger from '../src/utils/logger.js';
+import { TEST_SCENARIOS, TEST_VIDEOS, EXPECTED_METADATA } from '../src/test-data/beyondBeingTestData.js';
 
 class YouTubeMetadataTest {
   constructor() {
@@ -71,6 +72,27 @@ class YouTubeMetadataTest {
         console.log('');
       }
 
+      // Validate against expected values if this is a BeyondBeing test video
+      const videoId = this.youtubeService.extractVideoId(youtubeUrl);
+      if (EXPECTED_METADATA[videoId]) {
+        console.log('🔍 Validating against expected BeyondBeing data:');
+        const expected = EXPECTED_METADATA[videoId];
+        const validations = {
+          title: metadata.title === expected.title,
+          channel: metadata.channelTitle === expected.channelTitle,
+          duration: metadata.duration === expected.duration
+        };
+        
+        Object.entries(validations).forEach(([field, isValid]) => {
+          console.log(`   ${isValid ? '✅' : '❌'} ${field}: ${isValid ? 'Match' : 'Mismatch'}`);
+          if (!isValid) {
+            console.log(`      Expected: ${expected[field]}`);
+            console.log(`      Got: ${metadata[field]}`);
+          }
+        });
+        console.log('');
+      }
+
       // Summary
       console.log('🎉 Test Summary:');
       console.log('=' .repeat(50));
@@ -118,12 +140,8 @@ async function main() {
   const args = process.argv.slice(2);
   const testUrl = args[0];
 
-  // Test URLs if none provided
-  const defaultTestUrls = [
-    'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Rick Astley
-    'https://www.youtube.com/watch?v=9bZkp7q19f0', // Gangnam Style
-    'https://www.youtube.com/watch?v=kJQP7kiw5Fk'  // Despacito
-  ];
+  // BeyondBeing test URLs - actual channel data for realistic testing
+  const defaultTestUrls = TEST_SCENARIOS.METADATA_VALIDATION.videos.map(v => v.youtubeUrl);
 
   const tester = new YouTubeMetadataTest();
 
@@ -132,8 +150,11 @@ async function main() {
       // Test single URL
       await tester.testMetadataExtraction(testUrl);
     } else {
-      // Test multiple default URLs
-      console.log('No URL provided. Testing with default URLs...\n');
+      // Test multiple BeyondBeing URLs
+      console.log('No URL provided. Testing with BeyondBeing sample videos...\n');
+      console.log('🎬 Testing BeyondBeing Channel Videos:');
+      console.log(`📺 Channel: ${TEST_SCENARIOS.METADATA_VALIDATION.expectedChannel}`);
+      console.log(`📊 Videos: ${defaultTestUrls.length} top performing videos\n`);
       await tester.testMultipleUrls(defaultTestUrls);
     }
   } catch (error) {

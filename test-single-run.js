@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import WorkflowService from './src/services/workflowService.js';
 import logger from './src/utils/logger.js';
 import { validateConfig } from './config/config.js';
+import { TEST_SCENARIOS, TEST_VIDEOS } from './src/test-data/beyondBeingTestData.js';
 
 dotenv.config();
 
@@ -186,7 +187,12 @@ async function main() {
       case 'single-video':
         if (!videoUrl) {
           console.error('❌ Please provide a YouTube URL for single video processing');
-          console.log('Usage: node test-single-run.js single-video https://youtube.com/watch?v=...');
+          console.log('Usage: node test-single-run.js single-video <youtube_url>');
+          console.log('');
+          console.log('🎬 BeyondBeing sample URLs:');
+          TEST_VIDEOS.slice(0, 3).forEach((video, index) => {
+            console.log(`  ${index + 1}. ${video.youtubeUrl} (${video.viewCount.toLocaleString()} views)`);
+          });
           process.exit(1);
         }
         results = await testRunner.processSingleVideo(videoUrl);
@@ -235,7 +241,12 @@ Examples:
   node test-single-run.js all
   node test-single-run.js health
   node test-single-run.js new-videos
-  node test-single-run.js single-video https://www.youtube.com/watch?v=dQw4w9WgXcQ
+  node test-single-run.js single-video ${TEST_SCENARIOS.WORKFLOW_TESTING.primaryUrl}
+
+🎬 BeyondBeing Test Videos:
+  Top Performer:    ${TEST_VIDEOS[0].youtubeUrl} (${TEST_VIDEOS[0].viewCount.toLocaleString()} views)
+  Second Best:      ${TEST_VIDEOS[1].youtubeUrl} (${TEST_VIDEOS[1].viewCount.toLocaleString()} views)
+  Quick Test:       ${TEST_SCENARIOS.WORKFLOW_TESTING.quickTestUrl} (${TEST_VIDEOS[4].viewCount.toLocaleString()} views)
 
 Options:
   --help               Show this help message

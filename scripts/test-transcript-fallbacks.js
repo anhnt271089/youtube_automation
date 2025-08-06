@@ -6,6 +6,7 @@
 
 import YouTubeService from '../src/services/youtubeService.js';
 import logger from '../src/utils/logger.js';
+import { TEST_SCENARIOS, TEST_VIDEOS } from '../src/test-data/beyondBeingTestData.js';
 
 class TranscriptFallbackTester {
   constructor() {
@@ -13,26 +14,12 @@ class TranscriptFallbackTester {
   }
 
   async testVideoSet() {
-    const testVideos = [
-      {
-        name: 'Popular video (should have transcript)',
-        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Rick Roll
-        expectedSources: ['youtube']
-      },
-      {
-        name: 'Music video (may not have transcript)',
-        url: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk', // Despacito
-        expectedSources: ['youtube', 'description']
-      },
-      {
-        name: 'Short video (may need fallback)',
-        url: 'https://www.youtube.com/watch?v=rn_YodiJO6k', // YouTube Shorts
-        expectedSources: ['youtube', 'alternative-libs', 'description']
-      }
-    ];
+    // Use actual BeyondBeing channel videos for realistic testing
+    const testVideos = TEST_SCENARIOS.TRANSCRIPT_FALLBACK.videos;
 
-    console.log('\n🧪 Testing Transcript Fallback Methods\n');
-    console.log('='.repeat(50));
+    console.log('\n🧪 Testing Transcript Fallback Methods with BeyondBeing Channel\n');
+    console.log('🎬 Channel: BeyondBeing - Self-improvement & productivity content');
+    console.log('='.repeat(60));
 
     for (const video of testVideos) {
       await this.testSingleVideo(video);
@@ -163,7 +150,7 @@ class TranscriptFallbackTester {
       }
     ];
 
-    const testUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    const testUrl = TEST_VIDEOS[0].youtubeUrl; // Use highest viewed BeyondBeing video
 
     for (const scenario of scenarios) {
       console.log(`\n📋 Scenario: ${scenario.name}`);
@@ -201,7 +188,7 @@ class TranscriptFallbackTester {
         name: 'youtube-transcript library',
         test: async () => {
           const { YoutubeTranscript } = await import('youtube-transcript');
-          const result = await YoutubeTranscript.fetchTranscript('dQw4w9WgXcQ');
+          const result = await YoutubeTranscript.fetchTranscript(TEST_VIDEOS[0].videoId);
           return result && result.length > 0;
         }
       },
@@ -209,7 +196,7 @@ class TranscriptFallbackTester {
         name: 'youtube-captions-scraper',
         test: async () => {
           const { getSubtitles } = await import('youtube-captions-scraper');
-          const result = await getSubtitles({ videoID: 'dQw4w9WgXcQ', lang: 'en' });
+          const result = await getSubtitles({ videoID: TEST_VIDEOS[0].videoId, lang: 'en' });
           return result && result.length > 0;
         }
       }
@@ -236,11 +223,17 @@ async function main() {
     
     console.log('\n🎉 Transcript fallback testing completed!\n');
     
-    console.log('💡 Configuration Tips:');
+    console.log('💡 Configuration Tips for BeyondBeing Content:');
+    console.log('   - Self-improvement videos typically have good transcripts');
     console.log('   - Enable description fallback for free, low-quality transcripts');
     console.log('   - Use alternative libraries for better YouTube coverage');
     console.log('   - Enable Whisper fallback only if budget allows (costs per minute)');
     console.log('   - Comments analysis uses API quota but provides unique insights');
+    console.log('');
+    console.log('🎬 BeyondBeing Test Videos Used:');
+    TEST_SCENARIOS.TRANSCRIPT_FALLBACK.videos.forEach((video, index) => {
+      console.log(`   ${index + 1}. ${video.name}: ${video.url}`);
+    });
     
   } catch (error) {
     console.error('🚨 Testing failed:', error);
