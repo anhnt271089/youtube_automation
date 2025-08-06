@@ -662,7 +662,8 @@ class NotionService {
 
   /**
    * Extracts clean script text suitable for voice generation
-   * Removes headings, formatting, stage directions, and other non-speech elements
+   * Removes headings, formatting, stage directions, speaker labels, and other non-speech elements
+   * Specifically removes **Host:** prefixes and similar speaker markers for clean voice output
    * @param {string} scriptText - Original formatted script text
    * @returns {string} - Clean text ready for voice generation
    */
@@ -691,6 +692,19 @@ class NotionService {
     // Remove bullet points and numbered lists formatting (keep content)
     cleanText = cleanText.replace(/^[\s]*[-*•]\s+/gm, '');
     cleanText = cleanText.replace(/^[\s]*\d+\.\s+/gm, '');
+    
+    // Remove **Host:** and similar speaker labels (for voice generation)
+    cleanText = cleanText.replace(/\*\*\s*Host\s*:\s*\*\*/gi, '');
+    cleanText = cleanText.replace(/\*\*\s*Narrator\s*:\s*\*\*/gi, '');
+    cleanText = cleanText.replace(/\*\*\s*Speaker\s*:\s*\*\*/gi, '');
+    
+    // Remove other speaker label patterns: **[Name]:**, *[Name]:*, [Name]:
+    cleanText = cleanText.replace(/\*\*\s*[A-Za-z\s]+\s*:\s*\*\*/gi, '');  // **Speaker Name:**
+    cleanText = cleanText.replace(/\*\s*[A-Za-z\s]+\s*:\s*\*/gi, '');     // *Speaker Name:*
+    
+    // Remove speaker labels at line start or after periods (but be more specific to avoid removing content)
+    cleanText = cleanText.replace(/^(Host|Narrator|Speaker|Interviewer|Guest):\s*/gmi, '');  // At line start
+    cleanText = cleanText.replace(/\.\s+(Host|Narrator|Speaker|Interviewer|Guest):\s*/gi, '. ');  // After periods
     
     // Remove common stage direction patterns that might not be in brackets
     cleanText = cleanText.replace(/\b(intro|conclusion|outro|music plays|music fades|dramatic pause|upbeat music|background music|sound effect|voice over|narrator|speaker|cue|fade in|fade out|cut to)\b[\s\S]*?(?=\.|$)/gi, '');
