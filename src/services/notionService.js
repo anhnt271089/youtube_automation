@@ -432,22 +432,29 @@ class NotionService {
         }
       });
 
-      return response.results.map(page => ({
-        id: page.id,
-        videoId: page.id, // Use Notion's built-in page ID
-        title: page.properties['🔒 Title']?.title[0]?.text?.content || '',
-        youtubeUrl: page.properties['YouTube URL']?.url || '',
-        youtubeVideoId: page.properties['🔒 YouTube Video ID']?.rich_text[0]?.text?.content || '',
-        status: page.properties['🔒 Status']?.select?.name || '',
-        scriptApproved: page.properties['Script Approved']?.checkbox || false,
-        optimizedTitle: page.properties['🔒 Optimized Title']?.rich_text[0]?.text?.content || '',
-        totalSentences: page.properties['🔒 Total Sentences']?.number || 0,
-        completedSentences: page.properties['🔒 Completed Sentences']?.number || 0,
-        thumbnail: page.properties['🔒 Thumbnail']?.url || '',
-        thumbnailPrompt: page.properties['🔒 New Thumbnail Prompt']?.rich_text[0]?.text?.content || '',
-        scriptStatus: page.properties['🔒 Sentence Status']?.select?.name || '',
-        createdTime: page.created_time
-      }));
+      return response.results.map(page => {
+        // Extract the unique_id for VideoID (already has VID prefix)
+        const uniqueIdData = page.properties['ID']?.unique_id;
+        const videoId = uniqueIdData ? `${uniqueIdData.prefix}-${uniqueIdData.number}` : page.id; // Fallback to page ID if no unique ID
+        
+        return {
+          id: page.id, // Keep the Notion page ID for internal operations
+          videoId: videoId, // Use formatted VideoID (VID-XX) for display
+          uniqueIdNumber: uniqueIdData?.number, // Store the raw number for reference
+          title: page.properties['🔒 Title']?.title[0]?.text?.content || '',
+          youtubeUrl: page.properties['YouTube URL']?.url || '',
+          youtubeVideoId: page.properties['🔒 YouTube Video ID']?.rich_text[0]?.text?.content || '',
+          status: page.properties['🔒 Status']?.select?.name || '',
+          scriptApproved: page.properties['Script Approved']?.checkbox || false,
+          optimizedTitle: page.properties['🔒 Optimized Title']?.rich_text[0]?.text?.content || '',
+          totalSentences: page.properties['🔒 Total Sentences']?.number || 0,
+          completedSentences: page.properties['🔒 Completed Sentences']?.number || 0,
+          thumbnail: page.properties['🔒 Thumbnail']?.url || '',
+          thumbnailPrompt: page.properties['🔒 New Thumbnail Prompt']?.rich_text[0]?.text?.content || '',
+          scriptStatus: page.properties['🔒 Sentence Status']?.select?.name || '',
+          createdTime: page.created_time
+        };
+      });
     } catch (error) {
       logger.error('Error fetching videos by status:', error);
       throw error;

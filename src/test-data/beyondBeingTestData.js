@@ -13,8 +13,8 @@ const loadTestData = () => {
     const dataPath = path.join(process.cwd(), 'test_data_top10_videos.json');
     const rawData = fs.readFileSync(dataPath, 'utf8');
     return JSON.parse(rawData);
-  } catch (error) {
-    console.warn('Could not load test data from JSON file, using fallback data');
+  } catch {
+    // Could not load test data from JSON file, using fallback data
     return null;
   }
 };
@@ -33,58 +33,58 @@ export const CHANNEL_INFO = {
 export const TEST_VIDEOS = testDataJSON?.topVideos || [
   {
     rank: 1,
-    title: "The Art of Doing Anything Exceptionally Well ( even if you are not pro )",
-    youtubeUrl: "https://youtube.com/watch?v=r4IQopBxzOo",
-    videoId: "r4IQopBxzOo",
+    title: 'The Art of Doing Anything Exceptionally Well ( even if you are not pro )',
+    youtubeUrl: 'https://youtube.com/watch?v=r4IQopBxzOo',
+    videoId: 'r4IQopBxzOo',
     viewCount: 766924,
-    duration: "1:27",
-    publishedDate: "2025-04-20",
-    channelName: "BeyondBeing",
-    category: "high-performance" // Most viewed - good for success testing
+    duration: '1:27',
+    publishedDate: '2025-04-20',
+    channelName: 'BeyondBeing',
+    category: 'high-performance' // Most viewed - good for success testing
   },
   {
     rank: 2,
-    title: "How to Control your Brain ( before it's TOO late )",
-    youtubeUrl: "https://youtube.com/watch?v=H67kfrqHP2A",
-    videoId: "H67kfrqHP2A",
+    title: 'How to Control your Brain ( before it\'s TOO late )',
+    youtubeUrl: 'https://youtube.com/watch?v=H67kfrqHP2A',
+    videoId: 'H67kfrqHP2A',
     viewCount: 280437,
-    duration: "1:25",
-    publishedDate: "2025-05-23",
-    channelName: "BeyondBeing",
-    category: "brain-control" // Second most viewed - good for metadata testing
+    duration: '1:25',
+    publishedDate: '2025-05-23',
+    channelName: 'BeyondBeing',
+    category: 'brain-control' // Second most viewed - good for metadata testing
   },
   {
     rank: 3,
-    title: "The Art Of Making A Plan ( That Actually Works )",
-    youtubeUrl: "https://youtube.com/watch?v=yIarDv9G7JM",
-    videoId: "yIarDv9G7JM",
+    title: 'The Art Of Making A Plan ( That Actually Works )',
+    youtubeUrl: 'https://youtube.com/watch?v=yIarDv9G7JM',
+    videoId: 'yIarDv9G7JM',
     viewCount: 211980,
-    duration: "1:35",
-    publishedDate: "2025-07-02",
-    channelName: "BeyondBeing",
-    category: "planning" // Recent video - good for transcript testing
+    duration: '1:35',
+    publishedDate: '2025-07-02',
+    channelName: 'BeyondBeing',
+    category: 'planning' // Recent video - good for transcript testing
   },
   {
     rank: 4,
-    title: "How to Enter Flow State in 2 Minutes ( Do This Before You Work )",
-    youtubeUrl: "https://youtube.com/watch?v=jmAiIhkxMiI",
-    videoId: "jmAiIhkxMiI",
+    title: 'How to Enter Flow State in 2 Minutes ( Do This Before You Work )',
+    youtubeUrl: 'https://youtube.com/watch?v=jmAiIhkxMiI',
+    videoId: 'jmAiIhkxMiI',
     viewCount: 203398,
-    duration: "1:41",
-    publishedDate: "2025-05-01",
-    channelName: "BeyondBeing",
-    category: "flow-state" // Longer duration - good for workflow testing
+    duration: '1:41',
+    publishedDate: '2025-05-01',
+    channelName: 'BeyondBeing',
+    category: 'flow-state' // Longer duration - good for workflow testing
   },
   {
     rank: 5,
-    title: "How to Outgrow Everyone Around ( Even the older Generation )",
-    youtubeUrl: "https://youtube.com/watch?v=9KaKhbzBg3c",
-    videoId: "9KaKhbzBg3c",
+    title: 'How to Outgrow Everyone Around ( Even the older Generation )',
+    youtubeUrl: 'https://youtube.com/watch?v=9KaKhbzBg3c',
+    videoId: '9KaKhbzBg3c',
     viewCount: 61171,
-    duration: "1:02",
-    publishedDate: "2025-05-16",
-    channelName: "BeyondBeing",
-    category: "personal-growth" // Shorter video - good for quick testing
+    duration: '1:02',
+    publishedDate: '2025-05-16',
+    channelName: 'BeyondBeing',
+    category: 'personal-growth' // Shorter video - good for quick testing
   }
 ];
 
@@ -119,24 +119,24 @@ export const TEST_URLS = {
 export const EXPECTED_METADATA = {
   [TEST_VIDEOS[0].videoId]: {
     title: TEST_VIDEOS[0].title,
-    channelTitle: "BeyondBeing",
-    duration: "1:27",
+    channelTitle: 'BeyondBeing',
+    duration: '1:27',
     viewCount: 766924,
-    publishedDate: "2025-04-20"
+    publishedDate: '2025-04-20'
   },
   [TEST_VIDEOS[1].videoId]: {
     title: TEST_VIDEOS[1].title,
-    channelTitle: "BeyondBeing", 
-    duration: "1:25",
+    channelTitle: 'BeyondBeing', 
+    duration: '1:25',
     viewCount: 280437,
-    publishedDate: "2025-05-23"
+    publishedDate: '2025-05-23'
   },
   [TEST_VIDEOS[2].videoId]: {
     title: TEST_VIDEOS[2].title,
-    channelTitle: "BeyondBeing",
-    duration: "1:35", 
+    channelTitle: 'BeyondBeing',
+    duration: '1:35', 
     viewCount: 211980,
-    publishedDate: "2025-07-02"
+    publishedDate: '2025-07-02'
   }
 };
 

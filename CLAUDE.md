@@ -144,41 +144,45 @@ The system follows a service-oriented pattern with a central WorkflowService orc
 
 ```
 WorkflowService (Central Orchestrator)
-├── YouTubeService      # Video metadata/transcript extraction  
-├── NotionService       # Database operations & approval workflows
-├── GoogleDriveService  # File organization & Google Sheets integration
-├── AIService          # OpenAI/Anthropic content generation
-├── TelegramService    # Notifications & manual approvals
-└── VideoService       # FFmpeg video processing & assembly
+├── YouTubeService       # Video metadata/transcript extraction  
+├── NotionService        # Database operations & approval workflows
+├── DigitalOceanService  # Cloud storage for images & assets
+├── AIService           # OpenAI/Anthropic content generation + DALL-E 3
+├── TelegramService     # Notifications & manual approvals
+└── VideoService        # FFmpeg video processing & assembly
 ```
 
 ### Processing Pipeline
-1. **Input Stage**: YouTube URLs tracked in Notion database
-2. **Extraction**: Video metadata, transcripts, thumbnails via YouTube API
-3. **AI Enhancement**: Script optimization, descriptions, titles using GPT-4/Claude
-4. **Organization**: Google Drive folder creation, Google Sheets script breakdown
-5. **Approval**: Manual review workflow via Telegram notifications
-6. **Generation**: AI image creation (DALL-E), thumbnail generation
-7. **Assembly**: Video creation using FFmpeg with text overlays
-8. **Delivery**: Final assets uploaded to Google Drive
+1. **Input Stage**: YouTube URLs tracked in Notion database with unique VideoID (VID-XX format)
+2. **Extraction**: Video metadata, transcripts, thumbnails via YouTube API with 5-layer fallback
+3. **AI Enhancement**: Script optimization, descriptions, titles using GPT-4o-mini
+4. **Organization**: Hierarchical Notion structure (Main → Original Script → Optimized Script → Breakdown)
+5. **Approval**: Auto-approval or manual review workflow via Telegram notifications
+6. **Generation**: AI image creation (DALL-E 3, 16:9 format), consistent styling, thumbnail generation
+7. **Storage**: Assets uploaded to Digital Ocean Spaces with CDN delivery
+8. **Assembly**: Video creation using FFmpeg with text overlays (optional)
+9. **Delivery**: Final assets accessible via CDN URLs with cost tracking
 
 ### Key Design Patterns
 
 #### Cron-Based Automation
 - Multiple scheduled jobs run at different intervals (10-20 minutes)
 - Each job processes different workflow stages independently
+- **Enhanced Resume Capability**: Automatically handles interrupted workflows in any processing state
 - Graceful shutdown handling with SIGINT/SIGTERM signals
 
 #### Error Handling Strategy
 - Comprehensive logging with Winston (logs/ directory)
-- Telegram notifications for critical errors
+- Telegram notifications with VideoID format (VID-XX - Video Title)
 - Per-video error tracking with retry mechanisms
+- **Smart Resume**: Videos stuck in "Processing", "Generating Images", or "Generating Final Video" are automatically resumed
 - Status tracking in Notion database
 
 #### State Management
-- Notion database serves as primary state store
-- Processing status: 'New' → 'Processing' → 'Script Generated' → 'Approved' → 'Completed'
-- Manual approval gates prevent automated progression
+- Notion database serves as primary state store with unique VideoID (VID-XX format)
+- Processing status: 'New' → 'Processing' → 'Script Generated' → 'Approved' → 'Video Generated' → 'Completed'
+- **Intelligent Recovery**: System detects and resumes interrupted workflows at correct stage
+- Manual approval gates prevent automated progression (optional auto-approval available)
 
 ## Configuration Requirements
 
@@ -187,39 +191,39 @@ The system requires extensive API integration. Copy `.env.example` to `.env` and
 
 **Critical Services:**
 - YouTube Data API v3 (metadata extraction)
-- Google Service Account (Drive/Sheets access)
-- Notion Integration (database operations)
-- OpenAI API (primary AI generation)
+- Notion Integration (database operations with VideoID)
+- OpenAI API (GPT-4o-mini + DALL-E 3 image generation)
 - Anthropic API (alternative AI provider)
-- Telegram Bot (notifications/approvals)
+- Digital Ocean Spaces (cloud storage with CDN)
+- Telegram Bot (notifications/approvals with enhanced formatting)
 
 ### Notion Database Schema
 
 **Video Identification:**
-Videos are now identified using Notion's built-in page ID system, eliminating the need for custom VideoID fields. Each video record's unique identifier is automatically assigned by Notion when the page is created.
+Videos are identified using Notion's unique ID property that generates user-friendly VideoIDs in VID-XX format (VID-40, VID-41, etc.). This provides clean identification for Telegram notifications while maintaining Notion's internal page ID system for API operations.
 
 **Manual Input Required:**
 - `YouTube URL` (URL): Source video URL - **ONLY FIELD YOU NEED TO INPUT**
 - `Script Approved` (Checkbox): Manual approval flag for script processing
 
 **Auto-Populated Fields (Read-Only - 🔒 Prefix):**
+- `ID` (Unique ID): Auto-generated VideoID in VID-XX format (VID-40, VID-41...)
 - `🔒 Title` (Title): Video title (extracted from YouTube)
 - `🔒 Status` (Select): Workflow state tracking (defaults to 'New')
-  - Options: 'New', 'Processing', 'Script Generated', 'Approved', 'Video Generated', 'Completed', 'Error'
+  - Options: 'New', 'Processing', 'Script Generated', 'Approved', 'Generating Images', 'Video Generated', 'Generating Final Video', 'Completed', 'Error'
 - `🔒 Channel` (Text): YouTube channel name (extracted from YouTube)
 - `🔒 YouTube Video ID` (Text): YouTube video ID (extracted from URL)
 - `🔒 Duration` (Text): Video duration (extracted from YouTube)
 - `🔒 View Count` (Number): Video view count (extracted from YouTube)
 - `🔒 Published Date` (Date): Video publish date (extracted from YouTube)
-- `🔒 Optimized Title` (Text): AI-generated title
-- `🔒 Optimized Description` (Text): AI-generated description
-- `🔒 Keywords` (Multi-select): SEO keywords
-- `🔒 Total Sentences` (Number): Script sentence count
-- `🔒 Completed Sentences` (Number): Progress tracking
-- `🔒 Thumbnail` (URL): Generated thumbnail URLs
-- `🔒 New Thumbnail Prompt` (Text): AI-generated prompts
+- `🔒 Optimized Title` (Text): AI-generated title (GPT-4o-mini)
+- `🔒 Optimized Description` (Text): AI-generated description (GPT-4o-mini)
+- `🔒 Keywords` (Multi-select): SEO keywords (AI-generated)
+- `🔒 Total Sentences` (Number): Script sentence count (for breakdown tracking)
+- `🔒 Completed Sentences` (Number): Progress tracking for image generation
+- `🔒 Thumbnail` (URL): Generated thumbnail URLs (DALL-E 3, Digital Ocean CDN)
+- `🔒 New Thumbnail Prompt` (Text): AI-generated thumbnail prompts
 - `🔒 Sentence Status` (Select): Script processing state
-- `🔒 Drive Folder` (URL): Generated Google Drive folder link
 - `🔒 Created Time` (Created time): Auto-populated by Notion
 - `🔒 Last Edited Time` (Last edited time): Auto-populated by Notion
 
@@ -508,21 +512,35 @@ async function profiledMethod() {
 }
 ``` -->
 
-### Common Error Patterns
-1. **Rate Limit Exceeded**: Implement exponential backoff
-2. **Memory Exhaustion**: Reduce CONCURRENT_WORKERS
-3. **API Authentication**: Check .env file formatting
-4. **File System Errors**: Ensure temp directories exist and are writable
-5. **Network Timeouts**: Increase timeout values or implement retry logic
+### Common Error Patterns & Solutions
+1. **Rate Limit Exceeded**: All services implement exponential backoff with 5-layer fallback
+2. **VideoID Not Found**: Use proper Notion unique_id property extraction via notion-expert
+3. **Image Generation Budget**: DALL-E 3 with cost tracking and 5-image limit per video
+4. **Workflow Interruption**: Smart resume capability handles "Processing", "Generating Images", "Generating Final Video" states
+5. **Digital Ocean Upload**: Retry mechanism with fallback to local storage
+6. **API Authentication**: Enhanced .env validation and health checks
+7. **File System Errors**: Ensure temp/ and output/ directories writable
+8. **Network Timeouts**: 30s timeout for image downloads, 2s delays between generations
+
+### Recent Enhancements (Latest Session)
+- **VideoID Format**: Clean VID-XX format in Telegram notifications using Notion's unique_id property
+- **Enhanced Image Quality**: Restored DALL-E 3 with 10 professional visual enhancement requirements
+- **Smart Workflow Resume**: Automatic detection and continuation of interrupted processing at any stage
+- **Digital Ocean Integration**: Complete cloud storage with CDN URLs in Script Detail database
+- **Cost Optimization**: Full flow cost summaries with DALL-E 2/3 savings analysis
+- **5-Layer Fallback System**: Ultimate reliability for video processing pipeline
+- **Professional Image Generation**: Enhanced prompts with lighting, composition, color palette specifications
 
 ### Production Deployment Checklist
-- [ ] All environment variables configured
-- [ ] API keys tested and working  
-- [ ] Notion database schema matches exactly
-- [ ] Google Drive folder shared with service account
-- [ ] Telegram bot configured and accessible
-- [ ] FFmpeg installed and accessible
-- [ ] Log directory writable
-- [ ] System resources adequate (CPU, memory, disk)
-- [ ] Health checks passing
-- [ ] Error notifications working
+- [ ] All environment variables configured (including Digital Ocean Spaces)
+- [ ] API keys tested and working (OpenAI, Notion, Telegram, YouTube, Digital Ocean)
+- [ ] Notion database schema matches exactly with VideoID unique_id property
+- [ ] Digital Ocean Spaces bucket configured with proper permissions
+- [ ] Telegram bot configured and accessible with VideoID notification format
+- [ ] FFmpeg installed and accessible for video generation
+- [ ] Log directory writable with rotation policy
+- [ ] System resources adequate (CPU, memory, disk for image processing)
+- [ ] Health checks passing for all services including Digital Ocean
+- [ ] Error notifications working with cost summaries
+- [ ] Cost tracking and budget limits configured ($0.50 per video default)
+- [ ] Test video processing with sample URL (BeyondBeing test data recommended)

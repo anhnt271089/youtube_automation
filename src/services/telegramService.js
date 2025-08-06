@@ -25,11 +25,12 @@ class TelegramService {
   }
 
   async sendVideoProcessingStarted(videoData) {
-    const message = `🎬 <b>Processing Started</b>\n\n📹 ${videoData.title}\n📺 ${videoData.channelTitle}\n⏱️ ${videoData.duration}`;
+    const title = videoData.displayTitle || videoData.title;
+    const message = `🎬 <b>Processing Started</b>\n\n📹 ${title}\n📺 ${videoData.channelTitle}\n⏱️ ${videoData.duration}`;
     return await this.sendMessage(message);
   }
 
-  async sendScriptGenerated(videoTitle, scriptPreview) {
+  async sendScriptGenerated(videoTitle, _scriptPreview) {
     const message = `✍️ <b>Script Generated</b>\n\n🎬 ${videoTitle}\n✅ Ready for approval`;
     return await this.sendMessage(message);
   }
@@ -74,10 +75,13 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
   }
 
   async sendVideoCompleted(videoData, driveFolder, finalVideoUrl) {
-    const message = `
+    const title = videoData.displayTitle || videoData.optimizedTitle || videoData.title;
+    const costSummary = videoData.costSummary;
+    
+    let message = `
 🎉 <b>Video Processing Completed!</b>
 
-🎬 <b>Title:</b> ${videoData.optimizedTitle || videoData.title}
+🎬 <b>Title:</b> ${title}
 📹 <b>Original:</b> ${videoData.originalUrl}
 📁 <b>Drive Folder:</b> <a href="${driveFolder}">View Files</a>
 🎥 <b>Final Video:</b> <a href="${finalVideoUrl}">Download</a>
@@ -88,9 +92,18 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
 ✅ Keyword research
 ✅ Generated images
 ✅ Custom thumbnail
-✅ 2-3 minute video
+✅ 2-3 minute video`;
 
-<b>Ready for upload!</b> 🚀`;
+    // Add full flow cost breakdown if available
+    if (costSummary) {
+      message += `\n\n💰 <b>Full Flow Cost Summary:</b>
+📈 Total Cost: $${costSummary.totalCost.toFixed(4)}
+🖼️ Images Generated: ${costSummary.totalImagesGenerated}
+📊 Average Cost/Video: $${costSummary.averageCostPerVideo.toFixed(4)}
+💡 Savings vs DALL-E 3: $${costSummary.costSavingsVsDallE3.toFixed(4)}`;
+    }
+
+    message += '\n\n<b>Ready for upload!</b> 🚀';
 
     return await this.sendMessage(message);
   }

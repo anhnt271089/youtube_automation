@@ -3,7 +3,7 @@ import NotionService from './notionService.js';
 import AIService from './aiService.js';
 import TelegramService from './telegramService.js';
 import VideoService from './videoService.js';
-import DigitalOceanService from './digitalOceanService.js';
+// import DigitalOceanService from './digitalOceanService.js';
 import { config } from '../../config/config.js';
 import fs from 'fs';
 import path from 'path';
@@ -30,31 +30,92 @@ class WorkflowService {
     try {
       logger.info('Starting new video processing cycle');
       
-      const newVideos = await this.notionService.getVideosByStatus('New');
+      // Process both "New" and "Processing" status videos to handle interrupted workflows
+      const [newVideos, processingVideos] = await Promise.all([
+        this.notionService.getVideosByStatus('New'),
+        this.notionService.getVideosByStatus('Processing')
+      ]);
       
-      if (newVideos.length === 0) {
-        logger.info('No new videos to process');
-        return { success: true, processed: 0, message: 'No new videos to process' };
+      const allVideosToProcess = [...newVideos, ...processingVideos];
+      
+      if (allVideosToProcess.length === 0) {
+        logger.info('No videos to process');
+        return { success: true, processed: 0, message: 'No videos to process' };
       }
 
-      logger.info(`Found ${newVideos.length} new videos to process`);
+      logger.info(`Found ${newVideos.length} new videos and ${processingVideos.length} processing videos to handle`);
       let processedCount = 0;
 
-      for (const video of newVideos) {
+      for (const video of allVideosToProcess) {
         try {
-          await this.processSingleVideo(video);
+          // For processing videos, continue from where they left off
+          if (video.status === 'Processing') {
+            logger.info(`Resuming processing for video: ${video.videoId} - ${video.title}`);
+            await this.resumeVideoProcessing(video);
+          } else {
+            // Normal processing for new videos
+            await this.processSingleVideo(video);
+          }
           processedCount++;
         } catch (error) {
-          logger.error(`Error processing video ${video.title}:`, error);
+          logger.error(`Error processing video ${video.videoId} - ${video.title}:`, error);
           await this.handleVideoError(video, error, 'Initial Processing');
         }
       }
 
-      logger.info('New video processing cycle completed');
-      return { success: true, processed: processedCount, total: newVideos.length };
+      logger.info('Video processing cycle completed');
+      return { 
+        success: true, 
+        processed: processedCount, 
+        total: allVideosToProcess.length,
+        breakdown: {
+          newVideos: newVideos.length,
+          resumedVideos: processingVideos.length
+        }
+      };
     } catch (error) {
       logger.error('Error in processNewVideos:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  async resumeVideoProcessing(video) {
+    try {
+      logger.info(`Resuming processing for interrupted video: ${video.videoId} - ${video.title}`);
+      
+      // Get complete video data from YouTube
+      const videoData = await this.youtubeService.getCompleteVideoData(video.youtubeUrl);
+      
+      // Check what stage the video was interrupted at by examining existing data
+      const hasScript = video.optimizedTitle && video.optimizedTitle.trim() !== '';
+      const hasApproval = video.scriptApproved;
+      
+      if (!hasScript) {
+        // Resume from script generation stage
+        logger.info(`Resuming from script generation stage for: ${video.videoId}`);
+        const result = await this.processInitialVideo(videoData, video.id);
+        return result;
+      } else if (hasScript && hasApproval) {
+        // Resume from image generation stage (script was already approved)
+        logger.info(`Resuming from image generation stage for: ${video.videoId}`);
+        const result = await this.processApprovedScript(video);
+        return result;
+      } else {
+        // Script exists but not approved - update status to Script Generated for manual approval
+        logger.info(`Script exists but not approved, updating status for: ${video.videoId}`);
+        await this.notionService.updateVideoStatus(video.id, 'Script Generated');
+        
+        // Send approval request
+        await this.telegramService.sendScriptApprovalRequest(
+          `${video.videoId} - ${video.title}`,
+          `https://notion.so/${video.id.replace(/-/g, '')}`
+        );
+        
+        return { success: true, stage: 'awaiting_approval' };
+      }
+    } catch (error) {
+      logger.error(`Error resuming video processing for ${video.videoId}:`, error);
+      throw error;
     }
   }
 
@@ -62,26 +123,45 @@ class WorkflowService {
     try {
       logger.info('Processing approved scripts');
       
-      const approvedVideos = await this.notionService.getVideosByStatus('Approved');
+      // Process both "Approved" and "Generating Images" status videos to handle interrupted workflows
+      const [approvedVideos, generatingVideos] = await Promise.all([
+        this.notionService.getVideosByStatus('Approved'),
+        this.notionService.getVideosByStatus('Generating Images')
+      ]);
       
-      if (approvedVideos.length === 0) {
+      const allVideosToProcess = [...approvedVideos, ...generatingVideos];
+      
+      if (allVideosToProcess.length === 0) {
         logger.info('No approved scripts to process');
         return { success: true, processed: 0, message: 'No approved scripts to process' };
       }
 
+      logger.info(`Found ${approvedVideos.length} approved scripts and ${generatingVideos.length} generating videos to handle`);
       let processedCount = 0;
-      for (const video of approvedVideos) {
+      
+      for (const video of allVideosToProcess) {
         try {
+          if (video.status === 'Generating Images') {
+            logger.info(`Resuming image generation for video: ${video.videoId} - ${video.title}`);
+          }
           await this.processApprovedScript(video);
           processedCount++;
         } catch (error) {
-          logger.error(`Error processing approved script for ${video.title}:`, error);
+          logger.error(`Error processing approved script for ${video.videoId} - ${video.title}:`, error);
           await this.handleVideoError(video, error, 'Script Processing');
         }
       }
 
       logger.info('Approved script processing completed');
-      return { success: true, processed: processedCount, total: approvedVideos.length };
+      return { 
+        success: true, 
+        processed: processedCount, 
+        total: allVideosToProcess.length,
+        breakdown: {
+          approvedScripts: approvedVideos.length,
+          resumedImageGeneration: generatingVideos.length
+        }
+      };
     } catch (error) {
       logger.error('Error in processApprovedScripts:', error);
       return { success: false, error: error.message };
@@ -92,26 +172,45 @@ class WorkflowService {
     try {
       logger.info('Processing video generation queue');
       
-      const readyVideos = await this.notionService.getVideosByStatus('Video Generated');
+      // Process both "Video Generated" and "Generating Final Video" status to handle interrupted workflows
+      const [readyVideos, generatingVideos] = await Promise.all([
+        this.notionService.getVideosByStatus('Video Generated'),
+        this.notionService.getVideosByStatus('Generating Final Video')
+      ]);
       
-      if (readyVideos.length === 0) {
+      const allVideosToProcess = [...readyVideos, ...generatingVideos];
+      
+      if (allVideosToProcess.length === 0) {
         logger.info('No videos ready for generation');
         return { success: true, processed: 0, message: 'No videos ready for generation' };
       }
 
+      logger.info(`Found ${readyVideos.length} ready videos and ${generatingVideos.length} interrupted video generation to handle`);
       let processedCount = 0;
-      for (const video of readyVideos) {
+      
+      for (const video of allVideosToProcess) {
         try {
+          if (video.status === 'Generating Final Video') {
+            logger.info(`Resuming final video generation for: ${video.videoId} - ${video.title}`);
+          }
           await this.generateFinalVideo(video);
           processedCount++;
         } catch (error) {
-          logger.error(`Error generating video for ${video.title}:`, error);
+          logger.error(`Error generating video for ${video.videoId} - ${video.title}:`, error);
           await this.handleVideoError(video, error, 'Video Generation');
         }
       }
 
       logger.info('Video generation processing completed');
-      return { success: true, processed: processedCount, total: readyVideos.length };
+      return { 
+        success: true, 
+        processed: processedCount, 
+        total: allVideosToProcess.length,
+        breakdown: {
+          readyVideos: readyVideos.length,
+          resumedGeneration: generatingVideos.length
+        }
+      };
     } catch (error) {
       logger.error('Error in processVideoGeneration:', error);
       return { success: false, error: error.message };
@@ -143,17 +242,34 @@ class WorkflowService {
 
   async processInitialVideo(videoData, notionPageId) {
     try {
-      await this.telegramService.sendVideoProcessingStarted(videoData);
+      // Fetch the video information from Notion to get the proper VideoID (VID-XX format)
+      let videoDisplayId = notionPageId.replace(/-/g, ''); // Fallback
+      try {
+        // Query the database to get the video record with the proper VideoID
+        const videos = await this.notionService.getVideosByStatus('Processing');
+        const currentVideo = videos.find(v => v.id === notionPageId);
+        if (currentVideo && currentVideo.videoId) {
+          videoDisplayId = currentVideo.videoId; // Use the proper VID-XX format
+        }
+      } catch (fetchError) {
+        logger.warn('Could not fetch proper VideoID, using fallback:', fetchError.message);
+      }
+
+      await this.telegramService.sendVideoProcessingStarted({
+        ...videoData,
+        recordId: videoDisplayId,
+        displayTitle: `${videoDisplayId} - ${videoData.title}`
+      });
 
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
 
       await this.telegramService.sendScriptGenerated(
-        videoData.title, 
+        `${videoDisplayId} - ${videoData.title}`, 
         enhancedContent.attractiveScript
       );
 
       await this.telegramService.sendKeywordResearchResults(
-        videoData.title, 
+        `${videoDisplayId} - ${videoData.title}`, 
         enhancedContent.keywords
       );
 
@@ -190,7 +306,7 @@ class WorkflowService {
         try {
           await this.telegramService.sendMessage(
             '✅ Complete script structure created in Notion!\n\n' +
-            `📋 Video: ${videoData.title}\n` +
+            `📋 Video: ${videoDisplayId} - ${videoData.title}\n` +
             `📊 Sentences: ${enhancedContent.scriptSentences.length}\n` +
             `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n\n` +
             '📁 **Hierarchical Structure Created:**\n' +
@@ -226,12 +342,12 @@ class WorkflowService {
         });
         
         await this.telegramService.sendMessage(
-          `✅ <b>Script Auto-Approved</b>\n\n🎬 ${videoData.title}\n🤖 Automatically approved for processing`
+          `✅ <b>Script Auto-Approved</b>\n\n🎬 ${videoDisplayId} - ${videoData.title}\n🤖 Automatically approved for processing`
         );
       } else {
         await this.telegramService.sendScriptApprovalRequest(
-          videoData.title,
-          `https://notion.so/${notionPageId.replace(/-/g, '')}`
+          `${videoDisplayId} - ${videoData.title}`,
+          `https://notion.so/${notionPageId.replace(/-/g, '')}` // Keep using page ID for Notion URL
         );
       }
 
@@ -262,7 +378,7 @@ class WorkflowService {
 
       // Create Digital Ocean folder structure for this video
       try {
-        const folderStructure = await this.aiService.digitalOceanService.createVideoFolder(videoInfo.id);
+        await this.aiService.digitalOceanService.createVideoFolder(videoInfo.id);
         logger.info(`Created Digital Ocean folder structure for video ${videoInfo.id}`);
       } catch (error) {
         logger.warn('Failed to create Digital Ocean folder structure:', error.message);
@@ -289,19 +405,25 @@ class WorkflowService {
 
       // Send enhanced Telegram notification with cost information
       const costSummary = enhancedContent.costSummary;
+      const videoDisplayId = videoInfo.videoId || videoInfo.id.replace(/-/g, ''); // Use proper VideoID (VID-XX) or fallback
+      const folderName = `videos/${videoData.videoId || videoInfo.id}`;
+      
       await this.telegramService.sendMessage(
-        `✅ <b>Image Generation Completed</b>\n\n` +
-        `🎬 Video: ${videoInfo.title}\n` +
+        '✅ <b>Image Generation Completed</b>\n\n' +
+        `🎬 ${videoDisplayId} - ${videoInfo.title}\n` +
+        `📁 Folder: ${folderName}\n` +
         `🎨 Images Generated: ${generatedImages.length}\n` +
         `🏷️ Style: ${enhancedContent.videoStyle?.style || 'Custom'}\n` +
-        `💰 Cost: $${costSummary.totalCost.toFixed(4)}\n` +
-        `🖼️ Format: 1920x1080 (16:9 YouTube)\n` +
-        `☁️ Storage: Digital Ocean Spaces\n\n` +
-        `📊 <b>Cost Breakdown:</b>\n${
+        `💰 Total Cost: $${costSummary.totalCost.toFixed(4)}\n` +
+        '🖼️ Format: 1792x1024 (16:9 YouTube)\n' +
+        '☁️ Storage: Digital Ocean Spaces\n\n' +
+        `📊 <b>Full Flow Cost Breakdown:</b>\n${
           Object.entries(costSummary.breakdown)
             .map(([type, cost]) => `• ${type}: $${cost.toFixed(4)}`)
             .join('\n')
-        }`
+        }\n\n` +
+        `💡 <i>Total processing cost for this video: $${costSummary.totalCost.toFixed(4)}</i>\n` +
+        `🔗 [View Record](https://notion.so/${videoInfo.id.replace(/-/g, '')})`
       );
 
       // Thumbnail is already generated by enhanceContentWithAI
@@ -317,7 +439,7 @@ class WorkflowService {
           );
           
           await this.telegramService.sendMessage(
-            `🖼️ <b>Thumbnail Generated</b>\n\n` +
+            '🖼️ <b>Thumbnail Generated</b>\n\n' +
             `🎬 Video: ${videoInfo.title}\n` +
             `🎨 Style: ${thumbnailResult.style}\n` +
             `📱 [View Thumbnail](${thumbnailUpload.cdnUrl})`
@@ -396,8 +518,18 @@ class WorkflowService {
         processingCompleted: new Date().toISOString()
       });
 
+      // Get complete cost summary for final message
+      const finalCostSummary = this.aiService.getCostSummary();
+      const videoDisplayId = videoInfo.videoId || videoInfo.id.replace(/-/g, ''); // Use proper VideoID (VID-XX) or fallback
+      
       await this.telegramService.sendVideoCompleted(
-        { ...videoData, optimizedTitle: enhancedContent.optimizedTitles.recommended },
+        { 
+          ...videoData, 
+          optimizedTitle: enhancedContent.optimizedTitles.recommended,
+          recordId: videoDisplayId,
+          displayTitle: `${videoDisplayId} - ${videoData.title}`,
+          costSummary: finalCostSummary
+        },
         'Local Output Directory',
         videoResult.videoPath
       );
@@ -444,7 +576,8 @@ class WorkflowService {
         const now = new Date();
         
         if (now - createdTime > timeoutThreshold) {
-          await this.telegramService.sendApprovalTimeout(video.title, 24);
+          const videoDisplayTitle = video.videoId ? `${video.videoId} - ${video.title}` : video.title;
+          await this.telegramService.sendApprovalTimeout(videoDisplayTitle, 24);
           processedCount++;
           
           if (now - createdTime > timeoutThreshold * 2) { // 48 hours

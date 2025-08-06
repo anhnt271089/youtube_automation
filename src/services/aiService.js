@@ -4,8 +4,8 @@ import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 import DigitalOceanService from './digitalOceanService.js';
 import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
+// import fs from 'fs';
+// import path from 'path';
 
 class AIService {
   constructor() {
@@ -383,24 +383,37 @@ Return only the style name (one word) that best matches this content.`;
       
       for (const sentence of scriptSentences) {
         const promptText = `
-Create a DALL-E image prompt for the following script sentence:
+Create a high-quality DALL-E image prompt for the following script sentence:
 
 Sentence: "${sentence}"
 
 STYLE REQUIREMENTS (MUST BE CONSISTENT):
 ${baseStylePrompt}
 
-Additional Requirements:
-1. Create a visually appealing image that represents the sentence
+Enhanced Requirements:
+1. Create a visually stunning, professional image that represents the sentence
 2. MUST maintain the exact same ${styleInfo.style} style as other images
-3. Optimize for YouTube video format (16:9 aspect ratio)
-4. Keep the image clean and readable at 1920x1080 resolution
-5. Ensure visual consistency across all images in this video
-6. Include relevant visual elements that support the text content
+3. Optimize for YouTube video format (16:9 aspect ratio, 1920x1080)
+4. Use high-quality, premium visual elements with excellent composition
+5. Include detailed lighting, shadows, and depth for professional appearance
+6. Ensure visual consistency across all images in this video
+7. Add specific visual metaphors and symbols that enhance the content
+8. Use vibrant, engaging colors that work well for social media
+9. Include subtle gradients, textures, or patterns to add visual interest
+10. Make sure text overlay areas are clean and uncluttered
+
+ENHANCED VISUAL ELEMENTS:
+- Professional lighting and composition
+- Rich color palette with high contrast
+- Detailed textures and materials
+- Dynamic perspectives and angles
+- Symbolic imagery that reinforces the message
+- High-resolution quality appearance
+- Modern, polished aesthetic
 
 IMPORTANT: Start your prompt with "${baseStylePrompt}, " to ensure consistency.
 
-Return only the complete image prompt, nothing else.`;
+Return only the complete enhanced image prompt, nothing else.`;
 
         const completion = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
@@ -577,14 +590,21 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
           logger.info(`Using DALL-E 3 with 16:9 format: ${imageSize}`);
         }
         
-        response = await this.openai.images.generate({
+        // Build parameters based on model capabilities
+        const generateParams = {
           model: finalOptions.model,
           prompt: prompt,
           n: 1,
           size: imageSize,
-          quality: finalOptions.quality,
           response_format: 'url'
-        });
+        };
+        
+        // DALL-E 3 supports quality parameter, DALL-E 2 does not
+        if (finalOptions.model === 'dall-e-3') {
+          generateParams.quality = finalOptions.quality;
+        }
+        
+        response = await this.openai.images.generate(generateParams);
         
         actualCost = this.calculateImageCost(
           finalOptions.model === 'dall-e-3' && finalOptions.quality === 'hd' ? 'dall-e-3-hd' : finalOptions.model,

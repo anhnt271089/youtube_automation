@@ -52,7 +52,7 @@ export const config = {
     imageAspectRatio: process.env.IMAGE_ASPECT_RATIO || '16:9', // YouTube video format
     imageWidth: parseInt(process.env.IMAGE_WIDTH) || 1920,
     imageHeight: parseInt(process.env.IMAGE_HEIGHT) || 1080,
-    imageModel: process.env.IMAGE_MODEL || 'dall-e-2', // dall-e-2, dall-e-3, stable-diffusion
+    imageModel: process.env.IMAGE_MODEL || 'dall-e-3', // dall-e-2, dall-e-3, stable-diffusion
     costTrackingEnabled: process.env.COST_TRACKING_ENABLED !== 'false',
     maxImageCostPerVideo: parseFloat(process.env.MAX_IMAGE_COST_PER_VIDEO) || 1.50, // $1.50 budget
   }
