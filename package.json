@@ -20,6 +20,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
     "@notionhq/client": "^2.2.15",
+    "aws-sdk": "^2.1692.0",
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",
     "ffmpeg-static": "^5.2.0",

@@ -26,6 +26,14 @@ export const config = {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
     chatId: process.env.TELEGRAM_CHAT_ID,
   },
+  digitalOcean: {
+    endpoint: process.env.DO_SPACES_ENDPOINT || 'nyc3.digitaloceanspaces.com',
+    region: process.env.DO_SPACES_REGION || 'nyc3',
+    accessKey: process.env.DO_SPACES_ACCESS_KEY,
+    secretKey: process.env.DO_SPACES_SECRET_KEY,
+    bucketName: process.env.DO_SPACES_BUCKET_NAME,
+    cdnUrl: process.env.DO_SPACES_CDN_URL, // Optional CDN endpoint
+  },
   transcript: {
     enableFallbacks: process.env.ENABLE_TRANSCRIPT_FALLBACKS !== 'false', // Default true
     enableWhisperFallback: process.env.ENABLE_WHISPER_FALLBACK === 'true', // Default false (costs money)
@@ -40,6 +48,13 @@ export const config = {
     concurrentWorkers: parseInt(process.env.CONCURRENT_WORKERS) || 4,
     imageGenerationLimit: parseInt(process.env.IMAGE_GENERATION_LIMIT) || 0, // 0 = no limit
     autoApproveScripts: process.env.AUTO_APPROVE_SCRIPTS === 'true', // Default false
+    // Image generation settings
+    imageAspectRatio: process.env.IMAGE_ASPECT_RATIO || '16:9', // YouTube video format
+    imageWidth: parseInt(process.env.IMAGE_WIDTH) || 1920,
+    imageHeight: parseInt(process.env.IMAGE_HEIGHT) || 1080,
+    imageModel: process.env.IMAGE_MODEL || 'dall-e-2', // dall-e-2, dall-e-3, stable-diffusion
+    costTrackingEnabled: process.env.COST_TRACKING_ENABLED !== 'false',
+    maxImageCostPerVideo: parseFloat(process.env.MAX_IMAGE_COST_PER_VIDEO) || 1.50, // $1.50 budget
   }
 };
 
