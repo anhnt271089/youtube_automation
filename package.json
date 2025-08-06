@@ -13,6 +13,7 @@
     "setup-notion": "node scripts/updateNotionDatabase.js",
     "test-youtube": "node scripts/test-youtube-metadata.js",
     "test-youtube-basic": "node scripts/test-youtube-basic.js",
+    "test-transcript-fallbacks": "node scripts/test-transcript-fallbacks.js",
     "health-check": "node scripts/health-check.js",
     "test-sheets": "node scripts/health-check.js sheets"
   },
@@ -29,7 +30,9 @@
     "openai": "^4.52.7",
     "sharp": "^0.33.4",
     "winston": "^3.13.0",
+    "youtube-captions-scraper": "^2.0.3",
     "youtube-transcript": "^1.2.1",
+    "youtube-transcript-api": "^3.0.6",
     "ytdl-core": "^4.11.5"
   },
   "devDependencies": {
