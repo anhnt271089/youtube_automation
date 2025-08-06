@@ -194,12 +194,15 @@ The system requires extensive API integration. Copy `.env.example` to `.env` and
 - Telegram Bot (notifications/approvals)
 
 ### Notion Database Schema
+
+**Video Identification:**
+Videos are now identified using Notion's built-in page ID system, eliminating the need for custom VideoID fields. Each video record's unique identifier is automatically assigned by Notion when the page is created.
+
 **Manual Input Required:**
 - `YouTube URL` (URL): Source video URL - **ONLY FIELD YOU NEED TO INPUT**
 - `Script Approved` (Checkbox): Manual approval flag for script processing
 
 **Auto-Populated Fields (Read-Only - 🔒 Prefix):**
-- `🔒 VideoID` (Rich Text): Sequential identifier - auto-generated as VID_0001, VID_0002, etc. (up to VID_9999)
 - `🔒 Title` (Title): Video title (extracted from YouTube)
 - `🔒 Status` (Select): Workflow state tracking (defaults to 'New')
   - Options: 'New', 'Processing', 'Script Generated', 'Approved', 'Video Generated', 'Completed', 'Error'
