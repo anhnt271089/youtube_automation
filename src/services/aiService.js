@@ -330,31 +330,31 @@ Return only the image prompt, nothing else.`;
       
       for (const sentence of scriptSentences) {
         const promptText = `
-Extract editor keywords for the following script sentence. These keywords will help video editors find relevant B-roll footage, visual elements, or editing cues.
+Extract 3-6 key words or phrases that ACTUALLY APPEAR in the following script sentence. These keywords will help video editors find relevant B-roll footage.
 
 Script Sentence: "${sentence}"
 
 Requirements:
-1. Extract 3-6 relevant keywords or short phrases
-2. Focus on visual elements, actions, objects, locations, or concepts
-3. Include keywords that would help find stock footage or B-roll
-4. Consider what visual elements would enhance this sentence
-5. Keep keywords concise and searchable
-6. Separate with commas
+1. ONLY extract words/phrases that exist in the sentence - do not create new keywords
+2. Focus on important nouns, action verbs, and visual elements that appear in the text
+3. Highlight words that would help find stock footage or B-roll
+4. Include the most visually significant words from the sentence
+5. Separate with commas
+6. Use the exact words as they appear in the sentence (maintain capitalization if meaningful)
 
 Examples:
-- For "The market crashed in 2008": stock market, financial crisis, graphs, money, Wall Street
-- For "She walked through the forest": forest, walking, nature, trees, path, hiking
-- For "Technology is changing our lives": technology, computers, smartphones, innovation, digital
+- For "The market crashed in 2008 causing widespread panic": market, crashed, 2008, widespread panic
+- For "She walked through the forest path": walked, forest, path
+- For "Technology is changing our daily lives rapidly": Technology, changing, daily lives, rapidly
 
-Return only the comma-separated keywords, nothing else.`;
+Return only the comma-separated keywords that exist in the sentence, nothing else.`;
 
         const completion = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
-              content: 'You are an expert video editor who specializes in identifying keywords for finding relevant B-roll footage and visual elements.'
+              content: 'You are an expert at extracting key words and phrases that actually appear in text for video editing purposes. Only highlight words that exist in the original sentence.'
             },
             {
               role: 'user',
@@ -362,7 +362,7 @@ Return only the comma-separated keywords, nothing else.`;
             }
           ],
           max_tokens: 100,
-          temperature: 0.6
+          temperature: 0.3
         });
 
         const keywords = completion.choices[0].message.content.trim();

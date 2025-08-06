@@ -646,7 +646,7 @@ class NotionService {
 
   /**
    * Extracts clean script text suitable for voice generation
-   * Removes headings, formatting, and other non-speech elements
+   * Removes headings, formatting, stage directions, and other non-speech elements
    * @param {string} scriptText - Original formatted script text
    * @returns {string} - Clean text ready for voice generation
    */
@@ -657,6 +657,12 @@ class NotionService {
 
     let cleanText = scriptText;
 
+    // Remove ALL stage directions in brackets: [intro], [music plays], [conclusion], etc.
+    cleanText = cleanText.replace(/\[[\s\S]*?\]/g, '');
+    
+    // Remove stage directions in parentheses: (music fades), (dramatic pause), etc.
+    cleanText = cleanText.replace(/\([\s\S]*?\)/g, '');
+    
     // Remove common markdown-style headings
     cleanText = cleanText.replace(/^#{1,6}\s+.*/gm, '');
     
@@ -670,13 +676,22 @@ class NotionService {
     cleanText = cleanText.replace(/^[\s]*[-*•]\s+/gm, '');
     cleanText = cleanText.replace(/^[\s]*\d+\.\s+/gm, '');
     
+    // Remove common stage direction patterns that might not be in brackets
+    cleanText = cleanText.replace(/\b(intro|conclusion|outro|music plays|music fades|dramatic pause|upbeat music|background music|sound effect|voice over|narrator|speaker|cue|fade in|fade out|cut to)\b[\s\S]*?(?=\.|$)/gi, '');
+    
     // Remove excessive whitespace and normalize
     cleanText = cleanText.replace(/\n\s*\n\s*\n/g, '\n\n'); // Max 2 consecutive newlines
     cleanText = cleanText.replace(/^\s+/gm, ''); // Remove leading spaces
+    cleanText = cleanText.replace(/\s{2,}/g, ' '); // Replace multiple spaces with single space
     cleanText = cleanText.trim();
 
     // Ensure proper sentence spacing for voice generation
     cleanText = cleanText.replace(/([.!?])\s*([A-Z])/g, '$1 $2');
+    
+    // Final cleanup: remove any remaining empty lines or orphaned punctuation
+    cleanText = cleanText.replace(/^\s*[.,:;!?]\s*$/gm, ''); // Remove lines with only punctuation
+    cleanText = cleanText.replace(/\n\s*\n/g, '\n\n'); // Normalize line breaks again
+    cleanText = cleanText.trim();
     
     return cleanText;
   }
@@ -1187,11 +1202,14 @@ class NotionService {
     try {
       logger.info(`Updating sentence ${sentenceNumber} status to: ${status} for video: ${videoPageId}`);
       
-      // Find the detail record for this sentence
-      const detailRecord = await this.getVideoDetailBySentence(videoPageId, sentenceNumber);
+      // Find the detail record for this sentence with retries
+      const detailRecord = await this.retryNotionOperation(
+        () => this.getVideoDetailBySentence(videoPageId, sentenceNumber),
+        `getVideoDetailBySentence_${videoPageId}_${sentenceNumber}`
+      );
       
       if (!detailRecord) {
-        throw new Error(`Detail record not found for sentence ${sentenceNumber}`);
+        throw new Error(`Detail record not found for sentence ${sentenceNumber} in video ${videoPageId}`);
       }
 
       const updateProperties = {
@@ -1203,23 +1221,38 @@ class NotionService {
       };
 
       if (imageUrl) {
+        logger.info(`Adding image URL to sentence ${sentenceNumber}: ${imageUrl.substring(0, 50)}...`);
         updateProperties['🔒 Generated Image URL'] = {
           url: imageUrl
         };
       }
 
-      await this.safePageUpdate(detailRecord.id, updateProperties, true, true);
+      // Update the sentence record with enhanced error handling
+      await this.retryNotionOperation(
+        () => this.safePageUpdate(detailRecord.id, updateProperties, true, true),
+        `updateSentenceStatus_${videoPageId}_${sentenceNumber}`
+      );
+
+      // Verify the update was successful if imageUrl was provided
+      if (imageUrl) {
+        const updatedRecord = await this.getVideoDetailBySentence(videoPageId, sentenceNumber);
+        if (updatedRecord && updatedRecord.imageUrl === imageUrl) {
+          logger.info(`Successfully verified image URL update for sentence ${sentenceNumber}`);
+        } else {
+          logger.warn(`Image URL verification failed for sentence ${sentenceNumber}. Expected: ${imageUrl}, Got: ${updatedRecord?.imageUrl || 'null'}`);
+        }
+      }
 
       // Update completed count in main video record if status is Complete
       if (status === 'Complete') {
         await this.updateVideoCompletedCount(videoPageId);
       }
       
-      logger.info('Sentence status updated successfully');
+      logger.info(`Sentence status updated successfully: ${sentenceNumber} -> ${status}`);
       return true;
       
     } catch (error) {
-      logger.error('Error updating sentence status:', error);
+      logger.error(`Error updating sentence status for sentence ${sentenceNumber} in video ${videoPageId}:`, error);
       throw error;
     }
   }
@@ -1268,24 +1301,35 @@ class NotionService {
 
   async findScriptDatabaseForVideo(videoPageId) {
     try {
-      // Search for databases that are children of the video page
+      // Search all databases and filter by parent manually since search API doesn't support parent filtering reliably
       const response = await this.notion.search({
         filter: {
           value: 'database',
           property: 'object'
         },
-        parent: {
-          type: 'page_id',
-          page_id: videoPageId
-        }
+        page_size: 100
       });
 
-      // Look for a database with "Script" in the title
-      const scriptDatabase = response.results.find(db => 
-        db.title && db.title[0]?.text?.content?.toLowerCase().includes('script')
-      );
+      // Look for databases that are children of our video page
+      for (const database of response.results) {
+        try {
+          // Check if this database has our video page as parent
+          if (database.parent && 
+              database.parent.type === 'page_id' && 
+              database.parent.page_id === videoPageId &&
+              database.title && 
+              database.title[0]?.text?.content?.toLowerCase().includes('script')) {
+            
+            logger.info(`Found script database: ${database.id} for video: ${videoPageId}`);
+            return database.id;
+          }
+        } catch (dbError) {
+          logger.debug(`Skipping database ${database.id}: ${dbError.message}`);
+        }
+      }
 
-      return scriptDatabase ? scriptDatabase.id : null;
+      logger.warn(`No script database found for video: ${videoPageId}`);
+      return null;
     } catch (error) {
       logger.error('Error finding script database for video:', error);
       return null;
