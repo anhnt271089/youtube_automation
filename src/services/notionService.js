@@ -610,6 +610,247 @@ class NotionService {
     }
   }
 
+  // === SCRIPT SUB-PAGES OPERATIONS ===
+
+  /**
+   * Creates the Original Script sub-page under the main video record
+   * @param {string} videoPageId - Main video record page ID
+   * @param {string} originalTranscript - Raw YouTube transcript
+   * @param {string} videoTitle - Video title for page naming
+   * @returns {Promise<Object>} - Created page information
+   */
+  async createOriginalScriptPage(videoPageId, originalTranscript, videoTitle) {
+    try {
+      logger.info(`Creating Original Script sub-page for video: ${videoTitle}`);
+
+      const pageTitle = `${videoTitle} - Original Script`.substring(0, 100);
+
+      const page = await this.notion.pages.create({
+        parent: {
+          type: 'page_id',
+          page_id: videoPageId
+        },
+        properties: {
+          title: [
+            {
+              text: {
+                content: pageTitle
+              }
+            }
+          ]
+        },
+        children: [
+          {
+            object: 'block',
+            type: 'heading_1',
+            heading_1: {
+              rich_text: [
+                {
+                  text: {
+                    content: '📝 Original YouTube Transcript'
+                  }
+                }
+              ]
+            }
+          },
+          {
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [
+                {
+                  text: {
+                    content: 'This is the raw transcript extracted from the YouTube video. Review this content before the AI optimization process.'
+                  }
+                }
+              ]
+            }
+          },
+          {
+            object: 'block',
+            type: 'divider',
+            divider: {}
+          },
+          {
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [
+                {
+                  text: {
+                    content: originalTranscript || 'No transcript available'
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      });
+
+      logger.info(`Original Script page created: ${page.id}`);
+      return {
+        pageId: page.id,
+        pageUrl: page.url,
+        title: pageTitle
+      };
+    } catch (error) {
+      logger.error('Error creating original script page:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Creates the Optimized Script sub-page under the main video record
+   * @param {string} videoPageId - Main video record page ID
+   * @param {string} optimizedScript - AI-enhanced script
+   * @param {string} videoTitle - Video title for page naming
+   * @returns {Promise<Object>} - Created page information
+   */
+  async createOptimizedScriptPage(videoPageId, optimizedScript, videoTitle) {
+    try {
+      logger.info(`Creating Optimized Script sub-page for video: ${videoTitle}`);
+
+      const pageTitle = `${videoTitle} - Optimized Script`.substring(0, 100);
+
+      const page = await this.notion.pages.create({
+        parent: {
+          type: 'page_id',
+          page_id: videoPageId
+        },
+        properties: {
+          title: [
+            {
+              text: {
+                content: pageTitle
+              }
+            }
+          ]
+        },
+        children: [
+          {
+            object: 'block',
+            type: 'heading_1',
+            heading_1: {
+              rich_text: [
+                {
+                  text: {
+                    content: '✨ AI-Optimized Script'
+                  }
+                }
+              ]
+            }
+          },
+          {
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [
+                {
+                  text: {
+                    content: 'This is the AI-enhanced script optimized for engagement and short-form content. Review and approve this script before proceeding to the detailed breakdown.'
+                  }
+                }
+              ]
+            }
+          },
+          {
+            object: 'block',
+            type: 'callout',
+            callout: {
+              icon: {
+                emoji: '📋'
+              },
+              rich_text: [
+                {
+                  text: {
+                    content: 'Review this script carefully and check the "Script Approved" checkbox in the main video record when ready to proceed.'
+                  }
+                }
+              ]
+            }
+          },
+          {
+            object: 'block',
+            type: 'divider',
+            divider: {}
+          },
+          {
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [
+                {
+                  text: {
+                    content: optimizedScript || 'No optimized script available'
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      });
+
+      logger.info(`Optimized Script page created: ${page.id}`);
+      return {
+        pageId: page.id,
+        pageUrl: page.url,
+        title: pageTitle
+      };
+    } catch (error) {
+      logger.error('Error creating optimized script page:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Creates the complete hierarchical script structure for a video
+   * @param {string} videoPageId - Main video record page ID
+   * @param {string} videoTitle - Video title
+   * @param {string} originalTranscript - Raw YouTube transcript
+   * @param {string} optimizedScript - AI-enhanced script
+   * @param {Array} scriptSentences - Breakdown sentences for database
+   * @param {Array} imagePrompts - Image prompts for each sentence
+   * @returns {Promise<Object>} - Complete structure information
+   */
+  async createCompleteScriptStructure(videoPageId, videoTitle, originalTranscript, optimizedScript, scriptSentences = [], imagePrompts = []) {
+    try {
+      logger.info(`Creating complete script structure for video: ${videoTitle}`);
+
+      // Create script sub-pages in parallel
+      const [originalScriptPage, optimizedScriptPage] = await Promise.all([
+        this.createOriginalScriptPage(videoPageId, originalTranscript, videoTitle),
+        this.createOptimizedScriptPage(videoPageId, optimizedScript, videoTitle)
+      ]);
+
+      // Create script breakdown database as child if sentences are provided
+      let scriptDatabase = null;
+      if (scriptSentences.length > 0) {
+        const breakdownResult = await this.createScriptBreakdown(videoPageId, scriptSentences, imagePrompts);
+        scriptDatabase = breakdownResult.scriptDatabase;
+      }
+
+      const result = {
+        originalScriptPage,
+        optimizedScriptPage,
+        scriptDatabase,
+        structure: {
+          mainVideoPage: videoPageId,
+          children: {
+            originalScript: originalScriptPage.pageId,
+            optimizedScript: optimizedScriptPage.pageId,
+            ...(scriptDatabase && { scriptBreakdown: scriptDatabase.databaseId })
+          }
+        }
+      };
+
+      logger.info(`Complete script structure created successfully for: ${videoTitle}`);
+      return result;
+    } catch (error) {
+      logger.error('Error creating complete script structure:', error);
+      throw error;
+    }
+  }
+
   // === PER-VIDEO DATABASE OPERATIONS ===
 
   async createVideoScriptDatabase(videoTitle, videoPageId) {
@@ -1073,6 +1314,224 @@ class NotionService {
    */
   isUserAllowedDetailDbProperty(propertyName) {
     return this.allowedDetailDbProperties.has(propertyName);
+  }
+
+  // === NAVIGATION HELPER METHODS ===
+
+  /**
+   * Retrieves all child pages and databases for a video record
+   * @param {string} videoPageId - Main video record page ID
+   * @returns {Promise<Object>} - Structure with all children
+   */
+  async getVideoScriptStructure(videoPageId) {
+    try {
+      logger.info(`Retrieving script structure for video: ${videoPageId}`);
+
+      // Search for pages and databases that might be children of this video
+      // We'll use a combination of search and manual filtering
+      const searchResponse = await this.notion.search({
+        query: '',
+        filter: {
+          value: 'page',
+          property: 'object'
+        },
+        page_size: 100
+      });
+
+      const structure = {
+        mainVideoPage: videoPageId,
+        children: {
+          originalScript: null,
+          optimizedScript: null,
+          scriptBreakdown: null
+        },
+        pages: []
+      };
+
+      // Since Notion API doesn't allow direct parent filtering in search,
+      // we'll need to check each result to see if it's a child of our video page
+      for (const result of searchResponse.results) {
+        try {
+          // Check if this page/database has our video page as parent
+          if (result.parent && 
+              result.parent.type === 'page_id' && 
+              result.parent.page_id === videoPageId) {
+            
+            const title = result.properties?.title?.[0]?.text?.content || 
+                         result.title?.[0]?.text?.content || 
+                         'Untitled';
+
+            const childInfo = {
+              id: result.id,
+              title: title,
+              type: result.object, // 'page' or 'database'
+              url: result.url,
+              created_time: result.created_time,
+              last_edited_time: result.last_edited_time
+            };
+
+            structure.pages.push(childInfo);
+
+            // Categorize by content
+            const titleLower = title.toLowerCase();
+            if (titleLower.includes('original script')) {
+              structure.children.originalScript = childInfo;
+            } else if (titleLower.includes('optimized script')) {
+              structure.children.optimizedScript = childInfo;
+            } else if (titleLower.includes('script') && result.object === 'database') {
+              structure.children.scriptBreakdown = childInfo;
+            }
+          }
+        } catch (childError) {
+          // Skip this result if we can't process it
+          logger.debug(`Skipping result ${result.id}: ${childError.message}`);
+        }
+      }
+
+      // Also search for databases specifically
+      const databaseSearchResponse = await this.notion.search({
+        query: '',
+        filter: {
+          value: 'database',
+          property: 'object'
+        },
+        page_size: 100
+      });
+
+      for (const database of databaseSearchResponse.results) {
+        try {
+          if (database.parent && 
+              database.parent.type === 'page_id' && 
+              database.parent.page_id === videoPageId) {
+            
+            const title = database.title?.[0]?.text?.content || 'Untitled Database';
+
+            const childInfo = {
+              id: database.id,
+              title: title,
+              type: 'database',
+              url: database.url,
+              created_time: database.created_time,
+              last_edited_time: database.last_edited_time
+            };
+
+            // Only add if not already found in pages search
+            const alreadyExists = structure.pages.some(page => page.id === database.id);
+            if (!alreadyExists) {
+              structure.pages.push(childInfo);
+
+              const titleLower = title.toLowerCase();
+              if (titleLower.includes('script')) {
+                structure.children.scriptBreakdown = childInfo;
+              }
+            }
+          }
+        } catch (dbError) {
+          logger.debug(`Skipping database ${database.id}: ${dbError.message}`);
+        }
+      }
+
+      logger.info(`Found ${structure.pages.length} child items for video ${videoPageId}`);
+      return structure;
+    } catch (error) {
+      logger.error('Error retrieving video script structure:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets quick navigation links for a video's script components
+   * @param {string} videoPageId - Main video record page ID
+   * @param {Object} knownUrls - Optional known URLs to use instead of searching
+   * @returns {Promise<Object>} - Navigation links
+   */
+  async getVideoNavigationLinks(videoPageId, knownUrls = {}) {
+    try {
+      let structure;
+      
+      // If known URLs are provided, use them directly (more reliable)
+      if (knownUrls.originalScript || knownUrls.optimizedScript || knownUrls.scriptBreakdown) {
+        structure = {
+          children: {
+            originalScript: knownUrls.originalScript ? { url: knownUrls.originalScript } : null,
+            optimizedScript: knownUrls.optimizedScript ? { url: knownUrls.optimizedScript } : null,
+            scriptBreakdown: knownUrls.scriptBreakdown ? { url: knownUrls.scriptBreakdown } : null
+          }
+        };
+        logger.info('Using provided URLs for navigation links');
+      } else {
+        // Fallback to searching (less reliable due to API limitations)
+        structure = await this.getVideoScriptStructure(videoPageId);
+      }
+
+      const links = {
+        mainVideo: `https://notion.so/${videoPageId.replace(/-/g, '')}`,
+        originalScript: structure.children.originalScript?.url || null,
+        optimizedScript: structure.children.optimizedScript?.url || null,
+        scriptBreakdown: structure.children.scriptBreakdown?.url || null
+      };
+
+      // Generate formatted navigation text
+      const navigationText = [
+        '📋 **Video Navigation**',
+        '',
+        `🎬 [Main Video Record](${links.mainVideo})`,
+        links.originalScript ? `📝 [Original Script](${links.originalScript})` : '📝 Original Script: Available as sub-page',
+        links.optimizedScript ? `✨ [Optimized Script](${links.optimizedScript})` : '✨ Optimized Script: Available as sub-page', 
+        links.scriptBreakdown ? `🎯 [Script Breakdown](${links.scriptBreakdown})` : '🎯 Script Breakdown: Available as child database',
+        '',
+        '💡 *All components are accessible as children of the main video record*'
+      ].join('\n');
+
+      return {
+        links,
+        navigationText,
+        structure: structure.children
+      };
+    } catch (error) {
+      logger.error('Error getting video navigation links:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifies the complete hierarchical structure for a video
+   * @param {string} videoPageId - Main video record page ID
+   * @returns {Promise<Object>} - Verification result
+   */
+  async verifyVideoHierarchy(videoPageId) {
+    try {
+      const structure = await this.getVideoScriptStructure(videoPageId);
+      
+      const verification = {
+        isComplete: false,
+        hasOriginalScript: !!structure.children.originalScript,
+        hasOptimizedScript: !!structure.children.optimizedScript,
+        hasScriptBreakdown: !!structure.children.scriptBreakdown,
+        totalChildren: structure.pages.length,
+        missingComponents: []
+      };
+
+      // Check what's missing
+      if (!verification.hasOriginalScript) {
+        verification.missingComponents.push('Original Script');
+      }
+      if (!verification.hasOptimizedScript) {
+        verification.missingComponents.push('Optimized Script');
+      }
+      if (!verification.hasScriptBreakdown) {
+        verification.missingComponents.push('Script Breakdown Database');
+      }
+
+      // Structure is complete if all components are present
+      verification.isComplete = verification.missingComponents.length === 0;
+
+      logger.info(`Hierarchy verification for ${videoPageId}: Complete=${verification.isComplete}, Missing=${verification.missingComponents.join(', ')}`);
+      return verification;
+    } catch (error) {
+      logger.error('Error verifying video hierarchy:', error);
+      throw error;
+    }
   }
 
   // === UTILITY FUNCTIONS ===

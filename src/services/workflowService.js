@@ -153,27 +153,47 @@ class WorkflowService {
         enhancedContent.keywords
       );
 
-      // Create script breakdown in dedicated per-video database
-      const breakdown = await this.notionService.createScriptBreakdown(
+      // Create complete hierarchical script structure (script pages + breakdown database)
+      const scriptStructure = await this.notionService.createCompleteScriptStructure(
         notionPageId,
+        videoData.title,
+        videoData.transcriptText, // Original transcript
+        enhancedContent.attractiveScript, // Optimized script
         enhancedContent.scriptSentences,
         enhancedContent.imagePrompts
       );
       
-      logger.info(`Script breakdown created successfully in dedicated database: ${breakdown.scriptDatabase.title}`);
+      logger.info(`Complete script structure created successfully for: ${videoData.title}`);
+      logger.info(`- Original Script: ${scriptStructure.originalScriptPage.pageUrl}`);
+      logger.info(`- Optimized Script: ${scriptStructure.optimizedScriptPage.pageUrl}`);
+      if (scriptStructure.scriptDatabase) {
+        logger.info(`- Script Breakdown: ${scriptStructure.scriptDatabase.databaseUrl}`);
+      }
       logger.info(`Script sentences: ${enhancedContent.scriptSentences.length}`);
       logger.info(`Image prompts: ${enhancedContent.imagePrompts.length}`);
       
-      // Send Telegram notification about successful breakdown creation
+      // Get navigation links for user-friendly notification using known URLs
+      const knownUrls = {
+        originalScript: scriptStructure.originalScriptPage?.pageUrl,
+        optimizedScript: scriptStructure.optimizedScriptPage?.pageUrl,
+        scriptBreakdown: scriptStructure.scriptDatabase?.databaseUrl
+      };
+      const navigationLinks = await this.notionService.getVideoNavigationLinks(notionPageId, knownUrls);
+      
+      // Send enhanced Telegram notification with hierarchical structure
       if (this.telegramService) {
         try {
           await this.telegramService.sendMessage(
-            '✅ Script breakdown created in dedicated Notion database!\n\n' +
+            '✅ Complete script structure created in Notion!\n\n' +
             `📋 Video: ${videoData.title}\n` +
             `📊 Sentences: ${enhancedContent.scriptSentences.length}\n` +
-            `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n` +
-            `📝 Script Details: ${breakdown.scriptDatabase.databaseUrl}\n` +
-            `📋 Main Video: https://notion.so/${notionPageId.replace(/-/g, '')}`
+            `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n\n` +
+            '📁 **Hierarchical Structure Created:**\n' +
+            `🎬 [Main Video Record](${navigationLinks.links.mainVideo})\n` +
+            `├── 📝 [Original Script](${navigationLinks.links.originalScript})\n` +
+            `├── ✨ [Optimized Script](${navigationLinks.links.optimizedScript})\n` +
+            (navigationLinks.links.scriptBreakdown ? `└── 🎯 [Script Breakdown](${navigationLinks.links.scriptBreakdown})\n` : '') +
+            '\n💡 *Navigate directly from the main video record to review scripts and access the detailed breakdown!*'
           );
         } catch (telegramError) {
           logger.warn('Failed to send Telegram notification:', telegramError.message);
@@ -200,7 +220,7 @@ class WorkflowService {
       return {
         videoData,
         enhancedContent,
-        breakdown,
+        scriptStructure, // Updated to return the complete structure
         notionPageId
       };
     } catch (error) {

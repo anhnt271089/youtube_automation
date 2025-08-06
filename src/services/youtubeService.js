@@ -21,15 +21,15 @@ class YouTubeService {
 
   parseDuration(isoDuration) {
     if (!isoDuration) return 'Unknown';
-    
+
     // Parse ISO 8601 duration format (PT4M13S -> 4:13)
     const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     if (!match) return 'Unknown';
-    
+
     const hours = parseInt(match[1] || '0');
     const minutes = parseInt(match[2] || '0');
     const seconds = parseInt(match[3] || '0');
-    
+
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     } else {
@@ -47,7 +47,7 @@ class YouTubeService {
         // Assume it's already a video ID
         videoId = videoIdOrUrl;
       }
-      
+
       if (!videoId) {
         throw new Error('Invalid YouTube URL or video ID');
       }
@@ -63,10 +63,10 @@ class YouTubeService {
 
       const video = response.data.items[0];
       const snippet = video.snippet;
-      
+
       // Parse duration from ISO 8601 format (PT4M13S -> 4:13)
       const duration = this.parseDuration(video.contentDetails?.duration);
-      
+
       return {
         videoId,
         title: snippet?.title || 'Unknown Title',
@@ -95,7 +95,7 @@ class YouTubeService {
       } else {
         videoId = videoIdOrUrl;
       }
-      
+
       if (!videoId) {
         throw new Error('Invalid YouTube URL or video ID');
       }
@@ -150,16 +150,16 @@ class YouTubeService {
     if (!transcript || !Array.isArray(transcript)) {
       return '';
     }
-    
+
     return transcript.map(item => item.text).join(' ');
   }
 
   async healthCheck() {
     try {
       // Test YouTube API by getting metadata for a known public video
-      const testVideoId = 'dQw4w9WgXcQ'; // Rick Roll - always available
+      const testVideoId = 'r4IQopBxzOo'; // Rick Roll - always available
       const testUrl = `https://www.youtube.com/watch?v=${testVideoId}`;
-      
+
       await this.getVideoMetadata(testUrl);
       logger.info('YouTube service health check passed');
       return true;
@@ -172,7 +172,7 @@ class YouTubeService {
   async getCompleteVideoData(videoUrl) {
     try {
       logger.info(`Processing video: ${videoUrl}`);
-      
+
       const [metadata, transcript, thumbnailUrl] = await Promise.all([
         this.getVideoMetadata(videoUrl),
         this.getTranscript(videoUrl),
