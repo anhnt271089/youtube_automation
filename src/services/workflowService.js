@@ -3,6 +3,9 @@ import NotionService from './notionService.js';
 import AIService from './aiService.js';
 import TelegramService from './telegramService.js';
 import VideoService from './videoService.js';
+import { config } from '../../config/config.js';
+import fs from 'fs';
+import path from 'path';
 import logger from '../utils/logger.js';
 
 class WorkflowService {
@@ -210,10 +213,26 @@ class WorkflowService {
 
       await this.notionService.updateVideoStatus(notionPageId, 'Script Generated', notionUpdateData);
 
-      await this.telegramService.sendScriptApprovalRequest(
-        videoData.title,
-        `https://notion.so/${notionPageId.replace(/-/g, '')}`
-      );
+      // Check if auto-approval is enabled
+      if (config.app.autoApproveScripts) {
+        logger.info(`Auto-approving script for: ${videoData.title}`);
+        
+        // Auto-approve the script
+        await this.notionService.updateVideoStatus(notionPageId, 'Approved', {
+          scriptApproved: true,
+          autoApproved: true,
+          approvedAt: new Date().toISOString()
+        });
+        
+        await this.telegramService.sendMessage(
+          `✅ <b>Script Auto-Approved</b>\n\n🎬 ${videoData.title}\n🤖 Automatically approved for processing`
+        );
+      } else {
+        await this.telegramService.sendScriptApprovalRequest(
+          videoData.title,
+          `https://notion.so/${notionPageId.replace(/-/g, '')}`
+        );
+      }
 
       logger.info(`Initial processing completed for: ${videoData.title}`);
       this.stats.totalProcessed++;
@@ -239,43 +258,29 @@ class WorkflowService {
       const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
 
-      const { imageUrls } = await this.videoService.generateImagesFromPrompts(
+      // Generate images and upload to Google Drive
+      const { imageUrls, driveUrls } = await this.videoService.generateImagesFromPrompts(
         enhancedContent.imagePrompts,
-        this.aiService
+        this.aiService,
+        videoInfo
       );
 
-      // Update Video Details database with generated image URLs
-      if (imageUrls && imageUrls.length > 0) {
+      // Update Script Details database with Google Drive image URLs
+      const urlsToUpdate = driveUrls && driveUrls.length > 0 ? driveUrls : imageUrls;
+      if (urlsToUpdate && urlsToUpdate.length > 0) {
         try {
-          await this.notionService.updateMultipleImageUrls(videoInfo.id, imageUrls);
-          
-          logger.info(`Updated Video Details database with ${imageUrls.length} image URLs`);
-          
-          // Send Telegram notification about database update
-          await this.telegramService.sendMessage(
-            '✅ Video Details updated!\n\n' +
-            `📋 Video: ${videoInfo.title}\n` +
-            `🖼️ Updated ${imageUrls.length} image URLs\n` +
-            '📝 View Details: https://notion.so/86c154fe87ed4c648c92907f2a70c865\n' +
-            `📋 Main Video: https://notion.so/${videoInfo.id.replace(/-/g, '')}`
-          );
+          await this.notionService.updateMultipleImageUrls(videoInfo.id, urlsToUpdate);
+          logger.info(`Updated Script Details database with ${urlsToUpdate.length} image URLs`);
         } catch (error) {
-          logger.warn('Failed to update Video Details with image URLs:', error.message);
-          
-          // Notify about the failure but don't stop the workflow
-          await this.telegramService.sendMessage(
-            '⚠️ Failed to update Video Details with image URLs\n\n' +
-            `📋 Video: ${videoInfo.title}\n` +
-            `❌ Error: ${error.message}\n` +
-            '🔄 Images generated successfully, manual update required'
-          );
+          logger.warn('Failed to update Script Details with image URLs:', error.message);
+          // Continue workflow even if database update fails
         }
       }
 
-      await this.telegramService.sendImageGenerationUpdate(
+      // Send clean Telegram notification
+      await this.telegramService.sendImageGenerationCompleted(
         videoInfo.title,
-        imageUrls.length,
-        enhancedContent.imagePrompts.length
+        urlsToUpdate ? urlsToUpdate.length : 0
       );
 
       const thumbnailResult = await this.aiService.generateThumbnail(
@@ -309,10 +314,26 @@ class WorkflowService {
       const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
 
+      // Get existing image paths from previous processing step
+      let existingImagePaths = null;
+      try {
+        // Try to get image paths from the previous step's temp files
+        const tempDir = './temp';
+        if (fs.existsSync(tempDir)) {
+          const imageFiles = fs.readdirSync(tempDir).filter(file => file.includes('image_') && file.endsWith('.png'));
+          if (imageFiles.length > 0) {
+            existingImagePaths = imageFiles.map(file => path.join(tempDir, file));
+          }
+        }
+      } catch (error) {
+        logger.warn('Could not find existing image paths, will regenerate:', error.message);
+      }
+      
       const videoResult = await this.videoService.createCompleteVideo(
         videoData,
         enhancedContent,
-        this.aiService
+        this.aiService,
+        existingImagePaths
       );
 
       // Mark as completed (final video is stored locally in output/ directory)

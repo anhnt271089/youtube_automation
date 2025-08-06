@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import fs from 'fs';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 
@@ -85,22 +86,31 @@ class GoogleDriveService {
     }
   }
 
-  async uploadFile(filePath, fileName, parentFolderId, mimeType = 'application/octet-stream') {
+  async uploadFile(filePathOrStream, fileName, parentFolderId, mimeType = 'application/octet-stream') {
     try {
       const fileMetadata = {
         name: fileName,
         parents: [parentFolderId]
       };
 
+      let body;
+      if (typeof filePathOrStream === 'string') {
+        // It's a file path
+        body = fs.createReadStream(filePathOrStream);
+      } else {
+        // It's already a stream
+        body = filePathOrStream;
+      }
+
       const media = {
         mimeType: mimeType,
-        body: filePath
+        body: body
       };
 
       const file = await this.drive.files.create({
         resource: fileMetadata,
         media: media,
-        fields: 'id, name, webViewLink'
+        fields: 'id, name, webViewLink, webContentLink'
       });
 
       logger.info(`Uploaded file: ${fileName} to Drive`);

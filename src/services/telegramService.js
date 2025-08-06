@@ -25,60 +25,18 @@ class TelegramService {
   }
 
   async sendVideoProcessingStarted(videoData) {
-    const message = `
-🎬 <b>Video Processing Started</b>
-
-📹 <b>Title:</b> ${videoData.title}
-🔗 <b>URL:</b> ${videoData.originalUrl}
-📺 <b>Channel:</b> ${videoData.channelTitle}
-👀 <b>Views:</b> ${parseInt(videoData.viewCount).toLocaleString()}
-⏱️ <b>Duration:</b> ${videoData.duration}
-
-<i>Starting automation workflow...</i>`;
-
+    const message = `🎬 <b>Processing Started</b>\n\n📹 ${videoData.title}\n📺 ${videoData.channelTitle}\n⏱️ ${videoData.duration}`;
     return await this.sendMessage(message);
   }
 
   async sendScriptGenerated(videoTitle, scriptPreview) {
-    const preview = scriptPreview.length > 200 ? 
-      scriptPreview.substring(0, 200) + '...' : 
-      scriptPreview;
-
-    const message = `
-✍️ <b>Script Generated</b>
-
-🎬 <b>Video:</b> ${videoTitle}
-
-📝 <b>Script Preview:</b>
-<i>${preview}</i>
-
-✅ <b>Status:</b> Awaiting approval for script breakdown`;
-
+    const message = `✍️ <b>Script Generated</b>\n\n🎬 ${videoTitle}\n✅ Ready for approval`;
     return await this.sendMessage(message);
   }
 
   async sendScriptApprovalRequest(videoTitle, notionPageUrl) {
-    const message = `
-⚠️ <b>Script Approval Required</b>
-
-🎬 <b>Video:</b> ${videoTitle}
-
-📋 Please review the generated script and approve it in Notion to continue with the automation process.
-
-🔗 <a href="${notionPageUrl}">View in Notion</a>
-
-<i>The process will continue automatically once approved.</i>`;
-
-    const keyboard = {
-      inline_keyboard: [
-        [
-          { text: '✅ Approve Script', callback_data: 'approve_script' },
-          { text: '❌ Reject Script', callback_data: 'reject_script' }
-        ]
-      ]
-    };
-
-    return await this.sendMessage(message, { reply_markup: keyboard });
+    const message = `⚠️ <b>Approval Required</b>\n\n🎬 ${videoTitle}\n\n<a href="${notionPageUrl}">Review in Notion</a>`;
+    return await this.sendMessage(message);
   }
 
   async sendImageGenerationUpdate(videoTitle, completedImages, totalImages) {
@@ -90,6 +48,16 @@ class TelegramService {
 
 ${completedImages === totalImages ? '✅ All images generated successfully!' : '⏳ Generating remaining images...'}`;
 
+    return await this.sendMessage(message);
+  }
+
+  async sendImageGenerationCompleted(videoTitle, imageCount) {
+    if (imageCount === 0) {
+      const message = `🖼️ <b>Image Generation</b>\n\n🎬 ${videoTitle}\n⚠️ No images generated`;
+      return await this.sendMessage(message);
+    }
+    
+    const message = `🖼️ <b>Images Generated</b>\n\n🎬 ${videoTitle}\n✅ ${imageCount} images created and saved`;
     return await this.sendMessage(message);
   }
 

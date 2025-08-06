@@ -3,6 +3,8 @@ import ffmpegPath from 'ffmpeg-static';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { config } from '../../config/config.js';
+import GoogleDriveService from './googleDriveService.js';
 import logger from '../utils/logger.js';
 
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -11,6 +13,7 @@ class VideoService {
   constructor() {
     this.tempDir = './temp';
     this.outputDir = './output';
+    this.googleDrive = new GoogleDriveService();
     this.ensureDirectories();
   }
 
@@ -45,31 +48,66 @@ class VideoService {
     }
   }
 
-  async generateImagesFromPrompts(imagePrompts, aiService) {
+  async generateImagesFromPrompts(imagePrompts, aiService, videoInfo = null) {
     try {
       const imageUrls = [];
       const localImagePaths = [];
+      const driveUrls = [];
+      
+      // Get image generation limit from config, default to all images
+      const imageLimit = parseInt(config.app?.imageGenerationLimit) || imagePrompts.length;
+      const promptsToProcess = imagePrompts.slice(0, imageLimit);
+      
+      logger.info(`Generating ${promptsToProcess.length}/${imagePrompts.length} images (limit: ${imageLimit})`);
 
-      for (let i = 0; i < imagePrompts.length; i++) {
+      // Create Google Drive folder for this video if videoInfo provided
+      let driveImagesFolderId = null;
+      if (videoInfo) {
         try {
-          logger.info(`Generating image ${i + 1}/${imagePrompts.length}`);
+          const driveFolder = await this.googleDrive.createVideoFolder(videoInfo.title, videoInfo.youtubeVideoId || videoInfo.id);
+          const subfolders = await this.googleDrive.createSubfolders(driveFolder.folderId);
+          driveImagesFolderId = subfolders['Generated Images'];
+          logger.info(`Created Google Drive folder for images: ${driveFolder.folderName}`);
+        } catch (error) {
+          logger.warn('Failed to create Google Drive folder, continuing without Drive upload:', error.message);
+        }
+      }
+
+      for (let i = 0; i < promptsToProcess.length; i++) {
+        try {
+          logger.info(`Generating image ${i + 1}/${promptsToProcess.length}`);
           
-          const imageResult = await aiService.generateImage(imagePrompts[i]);
+          const imageResult = await aiService.generateImage(promptsToProcess[i]);
           const filename = `image_${i + 1}.png`;
           const localPath = await this.downloadImage(imageResult.url, filename);
           
           imageUrls.push(imageResult.url);
           localImagePaths.push(localPath);
           
+          // Upload to Google Drive if folder is available
+          if (driveImagesFolderId && fs.existsSync(localPath)) {
+            try {
+              const driveFile = await this.googleDrive.uploadFile(localPath, filename, driveImagesFolderId, 'image/png');
+              driveUrls.push(driveFile.webViewLink || driveFile.webContentLink);
+              logger.info(`Uploaded image to Google Drive: ${filename}`);
+            } catch (driveError) {
+              logger.warn(`Failed to upload ${filename} to Google Drive:`, driveError.message);
+              driveUrls.push(null);
+            }
+          } else {
+            driveUrls.push(null);
+          }
+          
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
           logger.error(`Error generating image ${i + 1}:`, error);
           imageUrls.push(null);
           localImagePaths.push(null);
+          driveUrls.push(null);
         }
       }
 
-      return { imageUrls, localImagePaths };
+      return { imageUrls, localImagePaths, driveUrls };
     } catch (error) {
       logger.error('Error in batch image generation:', error);
       throw error;
@@ -235,17 +273,27 @@ class VideoService {
     }
   }
 
-  async createCompleteVideo(videoData, enhancedContent, aiService) {
+  async createCompleteVideo(videoData, enhancedContent, aiService, existingImagePaths = null) {
     try {
       const videoId = videoData.videoId;
       const timestamp = Date.now();
       
       logger.info(`Starting video creation for: ${videoData.title}`);
 
-      const { imageUrls, localImagePaths } = await this.generateImagesFromPrompts(
-        enhancedContent.imagePrompts, 
-        aiService
-      );
+      // Use existing image paths if provided, otherwise generate new ones
+      let imageUrls, localImagePaths;
+      if (existingImagePaths) {
+        localImagePaths = existingImagePaths;
+        imageUrls = [];
+        logger.info('Using existing image paths for video creation');
+      } else {
+        const result = await this.generateImagesFromPrompts(
+          enhancedContent.imagePrompts, 
+          aiService
+        );
+        imageUrls = result.imageUrls;
+        localImagePaths = result.localImagePaths;
+      }
 
       const baseVideoFilename = `${videoId}_base_${timestamp}.mp4`;
       const baseVideoPath = await this.createVideoFromImages(

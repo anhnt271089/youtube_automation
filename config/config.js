@@ -38,6 +38,8 @@ export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     logLevel: process.env.LOG_LEVEL || 'info',
     concurrentWorkers: parseInt(process.env.CONCURRENT_WORKERS) || 4,
+    imageGenerationLimit: parseInt(process.env.IMAGE_GENERATION_LIMIT) || 0, // 0 = no limit
+    autoApproveScripts: process.env.AUTO_APPROVE_SCRIPTS === 'true', // Default false
   }
 };
 
