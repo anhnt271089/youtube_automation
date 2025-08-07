@@ -8,7 +8,7 @@ class VoiceIntegrationService {
 
   async detectVoiceFile(videoFolderId) {
     try {
-      logger.info(`Scanning for voice files in folder: ${videoFolderId}`);
+      logger.info(`Scanning voice: ${videoFolderId}`);
       
       const folderContents = await this.googleDriveService.getFolderContents(videoFolderId);
       
@@ -18,16 +18,16 @@ class VoiceIntegrationService {
       );
       
       if (voiceFiles.length === 0) {
-        logger.info('No voice files found in video folder');
+        logger.info('No voice files found');
         return null;
       }
       
       if (voiceFiles.length > 1) {
-        logger.warn(`Multiple voice files found (${voiceFiles.length}), using first one: ${voiceFiles[0].name}`);
+        logger.warn(`${voiceFiles.length} voice files, using: ${voiceFiles[0].name}`);
       }
       
       const selectedVoice = voiceFiles[0];
-      logger.info(`Voice file detected: ${selectedVoice.name}`);
+      logger.info(`Voice: ${selectedVoice.name}`);
       
       return {
         fileId: selectedVoice.id,
@@ -44,7 +44,7 @@ class VoiceIntegrationService {
 
   async downloadVoiceFile(voiceFileInfo, localPath) {
     try {
-      logger.info(`Downloading voice file: ${voiceFileInfo.fileName}`);
+      logger.info(`Downloading: ${voiceFileInfo.fileName}`);
       
       // Use Google Drive API to download the file
       const response = await this.googleDriveService.drive.files.get({
@@ -69,7 +69,7 @@ class VoiceIntegrationService {
       
       return new Promise((resolve, reject) => {
         writer.on('finish', () => {
-          logger.info(`Voice file downloaded to: ${localPath}`);
+          logger.info(`Downloaded to: ${localPath}`);
           resolve(localPath);
         });
         writer.on('error', reject);

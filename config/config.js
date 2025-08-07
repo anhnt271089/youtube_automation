@@ -48,6 +48,8 @@ export const config = {
     concurrentWorkers: parseInt(process.env.CONCURRENT_WORKERS) || 4,
     imageGenerationLimit: parseInt(process.env.IMAGE_GENERATION_LIMIT) || 0, // 0 = no limit
     autoApproveScripts: process.env.AUTO_APPROVE_SCRIPTS === 'true', // Default false
+    // Timezone configuration for cron jobs
+    timezone: process.env.TIMEZONE || 'Asia/Bangkok', // GMT+7
     // Image generation settings
     imageAspectRatio: process.env.IMAGE_ASPECT_RATIO || '16:9', // YouTube video format
     imageWidth: parseInt(process.env.IMAGE_WIDTH) || 1920,

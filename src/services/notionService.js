@@ -159,20 +159,20 @@ class NotionService {
         // User updates can only modify allowed properties
         if (this.allowedMainDbProperties.has(propertyName)) {
           filteredProperties[propertyName] = value;
-          logger.info(`User update allowed for property: ${propertyName}`);
+          logger.info(`Allow: ${propertyName}`);
         } else if (this.protectedMainDbProperties.has(propertyName)) {
           rejectedProperties.push(propertyName);
-          logger.warn(`User attempted to modify protected property: ${propertyName} - BLOCKED`);
+          logger.warn(`Block: ${propertyName}`);
         } else {
           // Unknown property - allow it (might be a new field)
           filteredProperties[propertyName] = value;
-          logger.info(`Unknown property allowed: ${propertyName}`);
+          logger.info(`Allow new: ${propertyName}`);
         }
       }
     }
 
     if (rejectedProperties.length > 0) {
-      logger.warn(`Blocked ${rejectedProperties.length} protected property updates: ${rejectedProperties.join(', ')}`);
+      logger.warn(`Blocked ${rejectedProperties.length} protected updates`);
     }
 
     return filteredProperties;
@@ -200,20 +200,20 @@ class NotionService {
         // User updates can only modify allowed properties
         if (this.allowedDetailDbProperties.has(propertyName)) {
           filteredProperties[propertyName] = value;
-          logger.info(`User update allowed for detail property: ${propertyName}`);
+          logger.info(`Allow detail: ${propertyName}`);
         } else if (this.protectedDetailDbProperties.has(propertyName)) {
           rejectedProperties.push(propertyName);
-          logger.warn(`User attempted to modify protected detail property: ${propertyName} - BLOCKED`);
+          logger.warn(`Block detail: ${propertyName}`);
         } else {
           // Unknown property - allow it (might be a new field)
           filteredProperties[propertyName] = value;
-          logger.info(`Unknown detail property allowed: ${propertyName}`);
+          logger.info(`Allow new detail: ${propertyName}`);
         }
       }
     }
 
     if (rejectedProperties.length > 0) {
-      logger.warn(`Blocked ${rejectedProperties.length} protected detail property updates: ${rejectedProperties.join(', ')}`);
+      logger.warn(`Blocked ${rejectedProperties.length} detail updates`);
     }
 
     return filteredProperties;
@@ -241,7 +241,7 @@ class NotionService {
         properties: validatedProperties
       });
 
-      logger.info(`${updateType} update completed successfully on ${dbType} page: ${pageId}`);
+      logger.info(`${updateType} update completed`);
       return response;
     }, `safePageUpdate_${updateType}_${dbType}`);
   }
@@ -310,7 +310,7 @@ class NotionService {
         properties
       });
 
-      logger.info(`Created Notion entry for video: ${videoData.title} with page ID: ${response.id}`);
+      logger.info(`Created entry: ${videoData.title}`);
       return response;
     } catch (error) {
       logger.error('Error creating Notion entry:', error);
@@ -409,9 +409,9 @@ class NotionService {
       const response = await this.safePageUpdate(pageId, properties, true, false);
 
       if (status) {
-        logger.info(`Updated Notion entry status to: ${status}`);
+        logger.info(`Status: ${status}`);
       } else {
-        logger.info('Updated Notion entry properties (no status change)');
+        logger.info('Properties updated');
       }
       return response;
     } catch (error) {

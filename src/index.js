@@ -13,11 +13,8 @@ class YouTubeAutomation {
 
   async initialize() {
     try {
-      logger.info('Initializing YouTube Automation System...');
-      
-      // Validate configuration
+      logger.info('Starting system initialization...');
       validateConfig();
-      logger.info('Configuration validated successfully');
 
       // Create necessary directories
       this.createDirectories();
@@ -29,13 +26,11 @@ class YouTubeAutomation {
       const healthCheck = await this.workflowService.processHealthCheck();
       
       if (!healthCheck.healthy) {
-        logger.warn('Some services failed health check:', healthCheck.checks);
-      } else {
-        logger.info('All services healthy');
+        logger.warn('Health check failed:', healthCheck.checks);
       }
 
       this.isRunning = true;
-      logger.info('YouTube Automation System initialized successfully');
+      logger.info('System initialized successfully');
       
       return true;
     } catch (error) {
@@ -57,18 +52,24 @@ class YouTubeAutomation {
 
   async setupCronJobs() {
     try {
+      // Define timezone configuration for all cron jobs
+      const cronOptions = {
+        scheduled: false,
+        timezone: config.app.timezone
+      };
+
       // Process new videos every 10 minutes
       this.jobs.set('newVideos', cron.schedule('*/10 * * * *', async () => {
         if (!this.isRunning) return;
         
         try {
-          logger.info('Running scheduled new video processing');
+          logger.info('Processing new videos...');
           await this.workflowService.processNewVideos();
         } catch (error) {
           logger.error('Error in scheduled new video processing:', error);
         }
       }, {
-        scheduled: false,
+        ...cronOptions,
         name: 'newVideoProcessor'
       }));
 
@@ -77,13 +78,13 @@ class YouTubeAutomation {
         if (!this.isRunning) return;
         
         try {
-          logger.info('Running scheduled script processing');
+          logger.info('Processing approved scripts...');
           await this.workflowService.processApprovedScripts();
         } catch (error) {
           logger.error('Error in scheduled script processing:', error);
         }
       }, {
-        scheduled: false,
+        ...cronOptions,
         name: 'scriptProcessor'
       }));
 
@@ -92,13 +93,13 @@ class YouTubeAutomation {
         if (!this.isRunning) return;
         
         try {
-          logger.info('Running scheduled video generation');
+          logger.info('Generating videos...');
           await this.workflowService.processVideoGeneration();
         } catch (error) {
           logger.error('Error in scheduled video generation:', error);
         }
       }, {
-        scheduled: false,
+        ...cronOptions,
         name: 'videoGenerator'
       }));
 
@@ -107,47 +108,47 @@ class YouTubeAutomation {
         if (!this.isRunning) return;
         
         try {
-          logger.info('Checking for approval timeouts');
+          logger.info('Checking approval timeouts...');
           await this.workflowService.processApprovalTimeouts();
         } catch (error) {
           logger.error('Error checking approval timeouts:', error);
         }
       }, {
-        scheduled: false,
+        ...cronOptions,
         name: 'timeoutChecker'
       }));
 
-      // Daily summary at 9 AM
+      // Daily summary at 9 AM Bangkok time
       this.jobs.set('dailySummary', cron.schedule('0 9 * * *', async () => {
         if (!this.isRunning) return;
         
         try {
-          logger.info('Generating daily summary');
+          logger.info('Generating daily summary...');
           await this.workflowService.generateDailySummary();
         } catch (error) {
           logger.error('Error generating daily summary:', error);
         }
       }, {
-        scheduled: false,
+        ...cronOptions,
         name: 'summaryGenerator'
       }));
 
-      // Health check every 6 hours
+      // Health check every 6 hours (starting at midnight Bangkok time)
       this.jobs.set('healthCheck', cron.schedule('0 */6 * * *', async () => {
         if (!this.isRunning) return;
         
         try {
-          logger.info('Running system health check');
+          logger.info('Running health check...');
           const health = await this.workflowService.processHealthCheck();
           
           if (!health.healthy) {
-            logger.warn('System health check failed:', health.checks);
+            logger.warn('Health check failed:', health.checks);
           }
         } catch (error) {
           logger.error('Error in health check:', error);
         }
       }, {
-        scheduled: false,
+        ...cronOptions,
         name: 'healthChecker'
       }));
 
@@ -166,19 +167,12 @@ class YouTubeAutomation {
       }
 
       // Start all cron jobs
-      this.jobs.forEach((job, name) => {
+      this.jobs.forEach((job) => {
         job.start();
-        logger.info(`Started cron job: ${name}`);
       });
 
-      logger.info('='.repeat(50));
-      logger.info('🚀 YouTube Automation System Started');
-      logger.info('='.repeat(50));
-      logger.info('📊 Active Jobs:');
-      this.jobs.forEach((job, name) => {
-        logger.info(`   ✓ ${name}: ${job.options.name}`);
-      });
-      logger.info('='.repeat(50));
+      logger.info('YouTube Automation System Started');
+      logger.info(`Active jobs: ${Array.from(this.jobs.keys()).join(', ')}`);
 
       // Log system status every hour
       setInterval(() => {
@@ -200,12 +194,11 @@ class YouTubeAutomation {
       this.isRunning = false;
       
       // Stop all cron jobs
-      this.jobs.forEach((job, name) => {
+      this.jobs.forEach((job) => {
         job.stop();
-        logger.info(`Stopped cron job: ${name}`);
       });
 
-      logger.info('YouTube Automation System stopped successfully');
+      logger.info('System stopped successfully');
       return true;
     } catch (error) {
       logger.error('Error stopping automation system:', error);
@@ -216,7 +209,7 @@ class YouTubeAutomation {
   // Manual processing methods for testing/immediate execution
   async processUrl(youtubeUrl) {
     try {
-      logger.info(`Manual processing requested for: ${youtubeUrl}`);
+      logger.info(`Processing URL: ${youtubeUrl}`);
       return await this.workflowService.processNewUrl(youtubeUrl);
     } catch (error) {
       logger.error('Error in manual URL processing:', error);
@@ -226,7 +219,7 @@ class YouTubeAutomation {
 
   async forceProcessNewVideos() {
     try {
-      logger.info('Force processing new videos');
+      logger.info('Force processing new videos...');
       return await this.workflowService.processNewVideos();
     } catch (error) {
       logger.error('Error in force processing new videos:', error);
@@ -236,7 +229,7 @@ class YouTubeAutomation {
 
   async forceProcessApprovedScripts() {
     try {
-      logger.info('Force processing approved scripts');
+      logger.info('Force processing scripts...');
       return await this.workflowService.processApprovedScripts();
     } catch (error) {
       logger.error('Error in force processing approved scripts:', error);
@@ -246,7 +239,7 @@ class YouTubeAutomation {
 
   async forceGenerateVideos() {
     try {
-      logger.info('Force generating videos');
+      logger.info('Force generating videos...');
       return await this.workflowService.processVideoGeneration();
     } catch (error) {
       logger.error('Error in force video generation:', error);

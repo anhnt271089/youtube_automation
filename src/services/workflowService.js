@@ -28,7 +28,7 @@ class WorkflowService {
 
   async processNewVideos() {
     try {
-      logger.info('Starting new video processing cycle');
+      logger.info('Processing new videos...');
       
       // Process both "New" and "Processing" status videos to handle interrupted workflows
       const [newVideos, processingVideos] = await Promise.all([
@@ -43,14 +43,14 @@ class WorkflowService {
         return { success: true, processed: 0, message: 'No videos to process' };
       }
 
-      logger.info(`Found ${newVideos.length} new videos and ${processingVideos.length} processing videos to handle`);
+      logger.info(`Found ${newVideos.length} new + ${processingVideos.length} resuming`);
       let processedCount = 0;
 
       for (const video of allVideosToProcess) {
         try {
           // For processing videos, continue from where they left off
           if (video.status === 'Processing') {
-            logger.info(`Resuming processing for video: ${video.videoId} - ${video.title}`);
+            logger.info(`Resuming ${video.videoId}`);
             await this.resumeVideoProcessing(video);
           } else {
             // Normal processing for new videos
@@ -63,7 +63,7 @@ class WorkflowService {
         }
       }
 
-      logger.info('Video processing cycle completed');
+      logger.info('New videos completed');
       return { 
         success: true, 
         processed: processedCount, 
@@ -81,7 +81,7 @@ class WorkflowService {
 
   async resumeVideoProcessing(video) {
     try {
-      logger.info(`Resuming processing for interrupted video: ${video.videoId} - ${video.title}`);
+      logger.info(`Resuming ${video.videoId}`);
       
       // Get complete video data from YouTube
       const videoData = await this.youtubeService.getCompleteVideoData(video.youtubeUrl);
@@ -92,11 +92,11 @@ class WorkflowService {
       
       if (!hasScript) {
         // Resume from script generation stage
-        logger.info(`Resuming from script generation stage for: ${video.videoId}`);
+        logger.info(`${video.videoId}: script generation`);
         
         // Ensure basic video data fields are populated if missing
         if (!video.youtubeVideoId || !video.title || video.title === 'Processing...') {
-          logger.info(`Auto-populating missing video data for resumed video: ${video.videoId}`);
+          logger.info(`${video.videoId}: populating data`);
           await this.notionService.autoPopulateVideoData(video.id, videoData);
         }
         
@@ -104,12 +104,12 @@ class WorkflowService {
         return result;
       } else if (hasScript && hasApproval) {
         // Resume from image generation stage (script was already approved)
-        logger.info(`Resuming from image generation stage for: ${video.videoId}`);
+        logger.info(`${video.videoId}: image generation`);
         const result = await this.processApprovedScript(video);
         return result;
       } else {
         // Script exists but not approved - update status to Script Generated for manual approval
-        logger.info(`Script exists but not approved, updating status for: ${video.videoId}`);
+        logger.info(`${video.videoId}: awaiting approval`);
         await this.notionService.updateVideoStatus(video.id, 'Script Generated');
         
         // Send approval request
@@ -128,7 +128,7 @@ class WorkflowService {
 
   async processApprovedScripts() {
     try {
-      logger.info('Processing approved scripts');
+      logger.info('Processing approved scripts...');
       
       // Process both "Approved" and "Generating Images" status videos to handle interrupted workflows
       const [approvedVideos, generatingVideos] = await Promise.all([
@@ -143,13 +143,13 @@ class WorkflowService {
         return { success: true, processed: 0, message: 'No approved scripts to process' };
       }
 
-      logger.info(`Found ${approvedVideos.length} approved scripts and ${generatingVideos.length} generating videos to handle`);
+      logger.info(`Found ${approvedVideos.length} approved + ${generatingVideos.length} generating`);
       let processedCount = 0;
       
       for (const video of allVideosToProcess) {
         try {
           if (video.status === 'Generating Images') {
-            logger.info(`Resuming image generation for video: ${video.videoId} - ${video.title}`);
+            logger.info(`Resuming ${video.videoId}`);
           }
           await this.processApprovedScript(video);
           processedCount++;
@@ -159,7 +159,7 @@ class WorkflowService {
         }
       }
 
-      logger.info('Approved script processing completed');
+      logger.info('Scripts completed');
       return { 
         success: true, 
         processed: processedCount, 
@@ -177,7 +177,7 @@ class WorkflowService {
 
   async processVideoGeneration() {
     try {
-      logger.info('Processing video generation queue');
+      logger.info('Processing video generation...');
       
       // Process both "Video Generated" and "Generating Final Video" status to handle interrupted workflows
       const [readyVideos, generatingVideos] = await Promise.all([
@@ -188,7 +188,7 @@ class WorkflowService {
       const allVideosToProcess = [...readyVideos, ...generatingVideos];
       
       if (allVideosToProcess.length === 0) {
-        logger.info('No videos ready for generation');
+        logger.info('No videos ready');
         return { success: true, processed: 0, message: 'No videos ready for generation' };
       }
 
@@ -226,7 +226,7 @@ class WorkflowService {
 
   async processNewUrl(youtubeUrl) {
     try {
-      logger.info(`Processing new URL: ${youtubeUrl}`);
+      logger.info(`New URL: ${youtubeUrl}`);
       
       // Step 1: Create initial Notion entry with just the URL
       const notionEntry = await this.notionService.addVideoUrl(youtubeUrl);
@@ -378,7 +378,7 @@ class WorkflowService {
 
   async processApprovedScript(videoInfo) {
     try {
-      logger.info(`Processing approved script for: ${videoInfo.title}`);
+      logger.info(`Approved: ${videoInfo.title}`);
 
       await this.notionService.updateVideoStatus(videoInfo.id, 'Generating Images');
 
@@ -440,7 +440,7 @@ class WorkflowService {
       const thumbnailResult = enhancedContent.thumbnail;
       if (thumbnailResult) {
         // Upload thumbnail to Digital Ocean if not already done
-        const thumbnailFileName = `${(videoInfo.videoId || videoInfo.id).replace(/-/g, '_')}_thumbnail.jpg`;
+        const thumbnailFileName = `${(videoInfo.videoId || videoInfo.id)}_thumbnail.jpg`;
         try {
           const thumbnailUpload = await this.aiService.downloadAndUploadImage(
             thumbnailResult.url,
@@ -687,7 +687,7 @@ class WorkflowService {
 
   async processSingleVideo(video) {
     try {
-      logger.info(`Processing single video: ${video.title || video.youtubeUrl}`);
+      logger.info(`Single video: ${video.title || video.youtubeUrl}`);
       
       let videoData;
       let notionPageId;

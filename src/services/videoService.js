@@ -58,7 +58,7 @@ class VideoService {
       const imageLimit = parseInt(config.app?.imageGenerationLimit) || imagePrompts.length;
       const promptsToProcess = imagePrompts.slice(0, imageLimit);
       
-      logger.info(`Generating ${promptsToProcess.length}/${imagePrompts.length} images (limit: ${imageLimit})`);
+      logger.info(`Generating ${promptsToProcess.length}/${imagePrompts.length} images`);
 
       // Create Google Drive folder for this video if videoInfo provided
       let driveImagesFolderId = null;
@@ -67,15 +67,15 @@ class VideoService {
           const driveFolder = await this.googleDrive.createVideoFolder(videoInfo.title, videoInfo.youtubeVideoId || videoInfo.id);
           const subfolders = await this.googleDrive.createSubfolders(driveFolder.folderId);
           driveImagesFolderId = subfolders['Generated Images'];
-          logger.info(`Created Google Drive folder for images: ${driveFolder.folderName}`);
+          logger.info(`Drive folder: ${driveFolder.folderName}`);
         } catch (error) {
-          logger.warn('Failed to create Google Drive folder, continuing without Drive upload:', error.message);
+          logger.warn('Drive folder failed:', error.message);
         }
       }
 
       for (let i = 0; i < promptsToProcess.length; i++) {
         try {
-          logger.info(`Generating image ${i + 1}/${promptsToProcess.length}`);
+          logger.info(`Image ${i + 1}/${promptsToProcess.length}`);
           
           const imageResult = await aiService.generateImage(promptsToProcess[i]);
           const filename = `image_${i + 1}.png`;
@@ -89,9 +89,9 @@ class VideoService {
             try {
               const driveFile = await this.googleDrive.uploadFile(localPath, filename, driveImagesFolderId, 'image/png');
               driveUrls.push(driveFile.webViewLink || driveFile.webContentLink);
-              logger.info(`Uploaded image to Google Drive: ${filename}`);
+              logger.info(`Uploaded: ${filename}`);
             } catch (driveError) {
-              logger.warn(`Failed to upload ${filename} to Google Drive:`, driveError.message);
+              logger.warn(`Upload failed: ${filename}:`, driveError.message);
               driveUrls.push(null);
             }
           } else {
@@ -100,7 +100,7 @@ class VideoService {
           
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
-          logger.error(`Error generating image ${i + 1}:`, error);
+          logger.error(`Image ${i + 1} failed:`, error);
           imageUrls.push(null);
           localImagePaths.push(null);
           driveUrls.push(null);
@@ -148,8 +148,8 @@ class VideoService {
             '-pix_fmt', 'yuv420p'
           ])
           .output(outputPath)
-          .on('start', (commandLine) => {
-            logger.info('FFmpeg started with command:', commandLine);
+          .on('start', () => {
+            logger.info('FFmpeg started');
           })
           .on('progress', (progress) => {
             logger.info(`Video creation progress: ${Math.round(progress.percent || 0)}%`);
@@ -278,7 +278,7 @@ class VideoService {
       const videoId = videoData.videoId;
       const timestamp = Date.now();
       
-      logger.info(`Starting video creation for: ${videoData.title}`);
+      logger.info(`Creating video: ${videoData.title}`);
 
       // Use existing image paths if provided, otherwise generate new ones
       let imageUrls, localImagePaths;

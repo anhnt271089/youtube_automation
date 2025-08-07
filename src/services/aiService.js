@@ -33,15 +33,16 @@ class AIService {
       'dall-e-3-hd': 0.08 // HD quality
     };
     
-    // Style templates for consistent image generation
+    // Enhanced style templates for professional video content (BeyondBeing-inspired)
     this.styleTemplates = {
-      'minimalist': 'clean minimalist design, simple flat colors, modern aesthetic, white background',
-      'realistic': 'photorealistic style, high detail, natural lighting, professional photography',
-      'illustration': 'hand-drawn illustration style, artistic, colorful, creative design',
-      'corporate': 'professional corporate style, clean lines, business aesthetic, modern',
-      'vibrant': 'vibrant colors, energetic style, dynamic composition, eye-catching',
-      'tech': 'modern tech aesthetic, digital style, futuristic elements, clean interface design',
-      'educational': 'educational illustration style, clear diagrams, informative visuals, professional'
+      'minimalist': 'clean minimalist design with sophisticated color palette, modern geometric elements, premium aesthetic with subtle gradients, professional lighting, space for text overlay, high-contrast elements',
+      'realistic': 'cinematic photorealistic style with dramatic lighting, professional composition, rich textures, depth of field, premium quality aesthetics, inspiring and motivational mood',
+      'illustration': 'modern digital illustration with clean vector style, inspiring color schemes, professional design elements, sophisticated typography space, contemporary artistic approach',
+      'corporate': 'premium corporate aesthetic with modern design elements, professional color palette, clean composition, sophisticated visual hierarchy, inspiring business imagery',
+      'vibrant': 'energetic design with carefully balanced vibrant colors, modern gradients, dynamic composition, professional quality, optimized for social media engagement, inspiring energy',
+      'tech': 'cutting-edge technology aesthetic with futuristic elements, clean interface design, modern color schemes, professional lighting effects, sophisticated digital imagery',
+      'educational': 'premium educational design with clear visual hierarchy, professional infographic elements, inspiring learning aesthetics, modern teaching visuals, engaging instructional style',
+      'beyondbeing': 'inspiring motivational aesthetic with clean modern design, uplifting color palettes (blues, teals, warm whites), professional composition with space for text, cinematic quality lighting, sophisticated gradients, contemporary motivational imagery, premium self-development visual style'
     };
   }
 
@@ -85,7 +86,7 @@ Return only the improved script without any additional commentary.`;
       });
 
       const generatedScript = completion.choices[0].message.content.trim();
-      logger.info('Generated attractive script successfully');
+      logger.info('Script generated');
       
       return generatedScript;
     } catch (error) {
@@ -136,7 +137,7 @@ Return only the optimized description.`;
       });
 
       const optimizedDescription = completion.choices[0].message.content.trim();
-      logger.info('Generated optimized description successfully');
+      logger.info('Description generated');
       
       return optimizedDescription;
     } catch (error) {
@@ -182,7 +183,7 @@ Return 5 title options, each on a new line, numbered 1-5.`;
       const titleOptions = completion.choices[0].message.content.trim();
       const titles = titleOptions.split('\n').map(title => title.replace(/^\d+\.\s*/, '').trim());
       
-      logger.info('Generated optimized titles successfully');
+      logger.info('Titles generated');
       
       return {
         options: titles,
@@ -242,7 +243,7 @@ Format the response as JSON with the following structure:
       }
       
       const keywordData = JSON.parse(responseText);
-      logger.info('Performed keyword research successfully');
+      logger.info('Keywords researched');
       
       return keywordData;
     } catch (error) {
@@ -297,7 +298,7 @@ Return the sentences as a JSON array of strings, like this:
       }
       
       const sentences = JSON.parse(responseText);
-      logger.info(`Broke down script into ${sentences.length} sentences`);
+      logger.info(`Script: ${sentences.length} sentences`);
       
       return sentences;
     } catch (error) {
@@ -323,12 +324,15 @@ Script Preview: ${script.substring(0, 500)}...
 
 Available styles:
 1. minimalist - Clean, simple, modern
-2. realistic - Photorealistic, professional
+2. realistic - Photorealistic, professional  
 3. illustration - Hand-drawn, artistic
 4. corporate - Professional, business-oriented
 5. vibrant - Colorful, energetic
 6. tech - Modern, digital, futuristic
 7. educational - Clear, informative diagrams
+8. beyondbeing - Inspiring motivational aesthetic with uplifting colors and professional composition
+
+For self-development, motivational, personal growth, or inspirational content, prioritize "beyondbeing" style.
 
 Return only the style name (one word) that best matches this content.`;
 
@@ -349,9 +353,9 @@ Return only the style name (one word) that best matches this content.`;
       });
 
       const selectedStyle = completion.choices[0].message.content.trim().toLowerCase();
-      const validStyle = this.styleTemplates[selectedStyle] ? selectedStyle : 'minimalist';
+      const validStyle = this.styleTemplates[selectedStyle] ? selectedStyle : 'beyondbeing';
       
-      logger.info(`Selected video style: ${validStyle}`);
+      logger.info(`Style: ${validStyle}`);
       
       return {
         style: validStyle,
@@ -360,11 +364,11 @@ Return only the style name (one word) that best matches this content.`;
       };
     } catch (error) {
       logger.error('Error selecting video style:', error);
-      // Default fallback
+      // Default fallback to BeyondBeing style for better visual appeal
       return {
-        style: 'minimalist',
-        template: this.styleTemplates.minimalist,
-        description: 'Default minimalist style'
+        style: 'beyondbeing',
+        template: this.styleTemplates.beyondbeing,
+        description: 'Default BeyondBeing inspirational style'
       };
     }
   }
@@ -383,37 +387,40 @@ Return only the style name (one word) that best matches this content.`;
       
       for (const sentence of scriptSentences) {
         const promptText = `
-Create a high-quality DALL-E image prompt for the following script sentence:
+Create a premium DALL-E image prompt for the following script sentence, designed for professional YouTube content:
 
 Sentence: "${sentence}"
 
-STYLE REQUIREMENTS (MUST BE CONSISTENT):
+BASE STYLE (MUST BE MAINTAINED):
 ${baseStylePrompt}
 
-Enhanced Requirements:
-1. Create a visually stunning, professional image that represents the sentence
-2. MUST maintain the exact same ${styleInfo.style} style as other images
-3. Optimize for YouTube video format (16:9 aspect ratio, 1920x1080)
-4. Use high-quality, premium visual elements with excellent composition
-5. Include detailed lighting, shadows, and depth for professional appearance
-6. Ensure visual consistency across all images in this video
-7. Add specific visual metaphors and symbols that enhance the content
-8. Use vibrant, engaging colors that work well for social media
-9. Include subtle gradients, textures, or patterns to add visual interest
-10. Make sure text overlay areas are clean and uncluttered
+PROFESSIONAL ENHANCEMENT REQUIREMENTS:
+1. VISUAL EXCELLENCE: Create cinematically composed, premium quality imagery with professional lighting setup
+2. STYLE CONSISTENCY: MUST maintain the exact same ${styleInfo.style} aesthetic as all other images in this video
+3. FORMAT OPTIMIZATION: Perfect for YouTube video format (16:9 aspect ratio, optimized for 1920x1080 display)
+4. PREMIUM COMPOSITION: Apply rule of thirds, leading lines, depth of field, and professional framing techniques
+5. LIGHTING MASTERY: Implement studio-quality lighting with rim lighting, fill light, key light setup for dimensional depth
+6. COLOR SOPHISTICATION: Use carefully curated color palettes with complementary and analogous color schemes
+7. TEXTURAL RICHNESS: Include premium textures, materials, and surface details for high-end visual appeal
+8. SYMBOLIC DEPTH: Integrate meaningful visual metaphors and symbols that reinforce the content message
+9. TYPOGRAPHY SPACE: Ensure clean, uncluttered areas suitable for professional text overlay placement
+10. ENGAGEMENT OPTIMIZATION: Design for maximum social media engagement and click-through rates
 
-ENHANCED VISUAL ELEMENTS:
-- Professional lighting and composition
-- Rich color palette with high contrast
-- Detailed textures and materials
-- Dynamic perspectives and angles
-- Symbolic imagery that reinforces the message
-- High-resolution quality appearance
-- Modern, polished aesthetic
+ADVANCED VISUAL SPECIFICATIONS:
+- Professional studio lighting with soft shadows and dramatic highlights
+- Rich, saturated color palette with strategic contrast for visual impact
+- Premium materials and textures (brushed metal, soft fabrics, polished surfaces)
+- Dynamic camera angles with intentional perspective and depth
+- Symbolic elements that enhance storytelling and message delivery
+- High-resolution clarity with sharp focus and professional polish
+- Modern, contemporary aesthetic that feels current and inspiring
+- Sophisticated gradients and subtle pattern integration
+- Clean negative space for text overlay functionality
+- Emotional resonance through color psychology and visual psychology
 
-IMPORTANT: Start your prompt with "${baseStylePrompt}, " to ensure consistency.
+CRITICAL: Begin your prompt with "${baseStylePrompt}, " followed by these enhanced specifications to ensure perfect consistency.
 
-Return only the complete enhanced image prompt, nothing else.`;
+Generate only the complete, professional-grade image prompt.`;
 
         const completion = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
@@ -439,7 +446,7 @@ Return only the complete enhanced image prompt, nothing else.`;
         });
       }
 
-      logger.info(`Generated ${prompts.length} consistent ${styleInfo.style} image prompts`);
+      logger.info(`Generated ${prompts.length} prompts`);
       return {
         prompts,
         videoStyle: styleInfo
@@ -495,7 +502,7 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
         editorKeywords.push(keywords);
       }
 
-      logger.info(`Generated editor keywords for ${editorKeywords.length} sentences`);
+      logger.info(`Keywords: ${editorKeywords.length} sentences`);
       return editorKeywords;
     } catch (error) {
       logger.error('Error generating editor keywords:', error);
@@ -646,23 +653,47 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
       const styleTemplate = videoStyle?.template || 'eye-catching and clickable design';
       
       const thumbnailPrompt = `
-Create a compelling YouTube thumbnail for a video titled "${videoTitle}".
+Create a premium YouTube thumbnail optimized for maximum engagement and professional appeal.
 
-Script context: ${script.substring(0, 300)}...
+Video Title: "${videoTitle}"
+Content Context: ${script.substring(0, 300)}...
+Visual Style Foundation: ${styleTemplate}
 
-Style: ${styleTemplate}
+BEYONDBEING-INSPIRED THUMBNAIL SPECIFICATIONS:
 
-Requirements:
-1. ${style} and clickable design
-2. Clear, bold text overlay with the main topic
-3. Bright, contrasting colors that stand out
-4. Professional quality suitable for YouTube
-5. Optimized for 16:9 aspect ratio (1920x1080 or 1792x1024)
-6. Eye-catching and scroll-stopping
-7. Include relevant visual elements from the script
-8. Maintain consistent style with video content
+VISUAL COMPOSITION:
+1. Clean, modern design with sophisticated minimalism and premium aesthetic
+2. Professional composition using rule of thirds with strategic focal points
+3. Inspiring and motivational visual elements that convey growth and transformation
+4. Contemporary color palette with uplifting blues, teals, warm whites, and subtle gradients
+5. High-contrast elements for maximum visibility in YouTube's interface
+6. Clean negative space optimized for bold, readable text overlay placement
 
-Create a detailed prompt for generating this thumbnail image.`;
+PROFESSIONAL QUALITY STANDARDS:
+7. Cinematic lighting with soft shadows and professional highlights
+8. Premium visual hierarchy that guides the viewer's eye naturally
+9. Modern, sophisticated design elements that feel current and inspiring
+10. Optimized for 16:9 aspect ratio (1792x1024 for DALL-E 3) with mobile visibility consideration
+11. High-resolution clarity that maintains quality at all sizes
+12. Psychology-driven color choices that evoke inspiration, growth, and positive transformation
+
+ENGAGEMENT OPTIMIZATION:
+13. Scroll-stopping visual impact that stands out in crowded YouTube feeds
+14. Emotionally resonant imagery that connects with personal development audience
+15. Professional polish that builds trust and authority
+16. Strategic use of visual metaphors related to growth, success, and self-improvement
+17. Clean typography areas that don't compete with the main visual elements
+18. Subtle texture and gradient work for premium feel without visual clutter
+
+STYLE CHARACTERISTICS (BeyondBeing Aesthetic):
+- Clean, inspirational design with modern sophistication
+- Uplifting color psychology with calming yet energizing tones
+- Professional quality that conveys expertise and trustworthiness  
+- Minimalist approach with strategic visual elements
+- Contemporary motivational imagery that feels aspirational
+- Premium finish that reflects high-value content
+
+Generate a detailed DALL-E prompt that creates this professional, BeyondBeing-style thumbnail.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -770,8 +801,8 @@ Create a detailed prompt for generating this thumbnail image.`;
             model: config.app.imageModel
           });
           
-          // Download and upload to Digital Ocean Spaces
-          const fileName = `${videoId.replace(/-/g, '_')}_image_${String(i + 1).padStart(3, '0')}.jpg`;
+          // Download and upload to Digital Ocean Spaces with proper VideoID format
+          const fileName = `${videoId}_image_${String(i + 1).padStart(3, '0')}.jpg`;
           const uploadResult = await this.downloadAndUploadImage(
             imageResult.url,
             fileName,
@@ -812,7 +843,7 @@ Create a detailed prompt for generating this thumbnail image.`;
 
   async enhanceContentWithAI(videoData) {
     try {
-      logger.info('Starting AI content enhancement process');
+      logger.info('AI enhancement...');
       
       // Initialize cost tracking for this video
       const videoId = videoData.videoId || videoData.id;

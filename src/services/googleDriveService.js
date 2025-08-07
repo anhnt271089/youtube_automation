@@ -36,7 +36,7 @@ class GoogleDriveService {
         fields: 'id, name, webViewLink'
       });
 
-      logger.info(`Created Google Drive folder: ${folderName}`);
+      logger.info(`Drive folder: ${folderName}`);
 
       await this.createSubfolders(folder.data.id);
 
@@ -76,7 +76,7 @@ class GoogleDriveService {
         });
 
         createdFolders[folderName] = folder.data.id;
-        logger.info(`Created subfolder: ${folderName}`);
+        logger.info(`Subfolder: ${folderName}`);
       }
 
       return createdFolders;
@@ -113,7 +113,7 @@ class GoogleDriveService {
         fields: 'id, name, webViewLink, webContentLink'
       });
 
-      logger.info(`Uploaded file: ${fileName} to Drive`);
+      logger.info(`Uploaded: ${fileName}`);
       return file.data;
     } catch (error) {
       logger.error('Error uploading file to Drive:', error);
@@ -130,7 +130,7 @@ class GoogleDriveService {
         await this.testSheetsAPI();
         return await this.createNativeGoogleSheet(sheetTitle, parentFolderId);
       } catch (sheetsError) {
-        logger.warn('Google Sheets API not available, falling back to CSV upload method:', sheetsError.message);
+        logger.warn('Sheets API unavailable, using CSV:', sheetsError.message);
         
         // Fallback: Create as CSV and upload to Google Drive (will auto-convert to Sheet)
         return await this.createSheetViaCSVUpload(sheetTitle, parentFolderId);
@@ -181,9 +181,9 @@ class GoogleDriveService {
         fields: 'id, parents'
       });
       
-      logger.info('Successfully moved spreadsheet to target folder');
+      logger.info('Spreadsheet moved');
     } catch (moveError) {
-      logger.warn('Could not move spreadsheet to target folder:', moveError.message);
+      logger.warn('Spreadsheet move failed:', moveError.message);
     }
 
     // Add headers

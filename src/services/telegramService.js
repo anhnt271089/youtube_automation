@@ -16,7 +16,7 @@ class TelegramService {
         ...options
       });
       
-      logger.info('Telegram message sent successfully');
+      logger.info('Telegram sent');
       return response;
     } catch (error) {
       logger.error('Error sending Telegram message:', error);
@@ -220,7 +220,7 @@ Please review and approve the script to continue processing, or the video will b
       const botInfo = await this.bot.getMe();
       
       if (botInfo && botInfo.username) {
-        logger.info(`Telegram service health check passed - Bot: @${botInfo.username}`);
+        logger.info(`Bot: @${botInfo.username}`);
         return true;
       } else {
         throw new Error('Invalid response from Telegram API');

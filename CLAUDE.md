@@ -191,6 +191,11 @@ WorkflowService (Central Orchestrator)
 ### Environment Setup
 The system requires extensive API integration. Copy `.env.example` to `.env` and configure:
 
+**Timezone Configuration:**
+- `TIMEZONE` (optional): Timezone for cron job scheduling (default: 'Asia/Bangkok' GMT+7)
+  - Examples: 'Asia/Bangkok', 'America/New_York', 'Europe/London', 'UTC'
+  - All cron jobs will execute according to this timezone
+
 **Critical Services:**
 - YouTube Data API v3 (metadata extraction)
 - Notion Integration (database operations with VideoID)

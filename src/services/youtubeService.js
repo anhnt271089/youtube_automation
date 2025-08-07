@@ -105,7 +105,7 @@ class YouTubeService {
         throw new Error('Invalid YouTube URL or video ID');
       }
 
-      logger.info(`Attempting to get transcript for video: ${videoId}`);
+      logger.info(`Transcript: ${videoId}`);
       
       // Try primary method first
       const transcript = await this.getTranscriptWithFallbacks(videoId);
@@ -120,15 +120,15 @@ class YouTubeService {
     const fallbackMethods = config.transcript.enableFallbacks ? 
       config.transcript.fallbackMethods : ['primary'];
     
-    logger.info(`Enabled fallback methods: ${fallbackMethods.join(', ')}`);
+    logger.info(`Fallbacks: ${fallbackMethods.join(', ')}`);
     
     // Method 1: Primary youtube-transcript library
     if (fallbackMethods.includes('primary') || fallbackMethods.length === 0) {
       try {
-        logger.info('Trying primary transcript method (youtube-transcript)');
+        logger.info('Primary method...');
         const transcript = await YoutubeTranscript.fetchTranscript(videoId);
         if (transcript && transcript.length > 0) {
-          logger.info(`✅ Primary method succeeded: ${transcript.length} transcript segments`);
+          logger.info(`✅ Primary: ${transcript.length} segments`);
           return transcript.map(item => ({
             text: item.text,
             start: item.offset,
@@ -136,45 +136,45 @@ class YouTubeService {
           }));
         }
       } catch (error) {
-        logger.warn('Primary transcript method failed:', error.message);
+        logger.warn('Primary failed:', error.message);
       }
     }
 
     // Method 2: Alternative transcript libraries
     if (fallbackMethods.includes('alternative-libs')) {
       try {
-        logger.info('Trying alternative transcript libraries');
+        logger.info('Alternative libraries...');
         const alternativeTranscript = await this.getAlternativeTranscript(videoId);
         if (alternativeTranscript && alternativeTranscript.length > 0) {
-          logger.info(`✅ Alternative libraries succeeded: ${alternativeTranscript.length} segments`);
+          logger.info(`✅ Alt libs: ${alternativeTranscript.length} segments`);
           return alternativeTranscript;
         }
       } catch (error) {
-        logger.warn('Alternative transcript libraries failed:', error.message);
+        logger.warn('Alt libs failed:', error.message);
       }
     }
 
     // Method 3: Whisper API fallback (if enabled)
     if (config.transcript.enableWhisperFallback && fallbackMethods.includes('whisper')) {
       try {
-        logger.info('Trying Whisper API fallback');
+        logger.info('Whisper API...');
         const whisperTranscript = await this.getWhisperTranscript(videoId);
         if (whisperTranscript && whisperTranscript.length > 0) {
-          logger.info(`✅ Whisper API succeeded: ${whisperTranscript.length} segments`);
+          logger.info(`✅ Whisper: ${whisperTranscript.length} segments`);
           return whisperTranscript;
         }
       } catch (error) {
-        logger.warn('Whisper API fallback failed:', error.message);
+        logger.warn('Whisper failed:', error.message);
       }
     }
 
     // Method 4: Video description fallback
     if (config.transcript.enableDescriptionFallback && fallbackMethods.includes('description')) {
       try {
-        logger.info('Trying video description fallback');
+        logger.info('Description fallback...');
         const descriptionTranscript = await this.getDescriptionAsTranscript(videoId);
         if (descriptionTranscript && descriptionTranscript.length > 0) {
-          logger.info(`✅ Description fallback succeeded: ${descriptionTranscript.length} segments`);
+          logger.info(`✅ Desc: ${descriptionTranscript.length} segments`);
           return descriptionTranscript;
         }
       } catch (error) {
@@ -188,7 +188,7 @@ class YouTubeService {
         logger.info('Trying comments analysis fallback');
         const commentsTranscript = await this.getCommentsAsTranscript(videoId);
         if (commentsTranscript && commentsTranscript.length > 0) {
-          logger.info(`✅ Comments analysis succeeded: ${commentsTranscript.length} segments`);
+          logger.info(`✅ Comments: ${commentsTranscript.length} segments`);
           return commentsTranscript;
         }
       } catch (error) {
@@ -576,7 +576,7 @@ class YouTubeService {
 
   async getCompleteVideoData(videoUrl) {
     try {
-      logger.info(`Processing video: ${videoUrl}`);
+      logger.info(`Video: ${videoUrl}`);
       const videoId = this.extractVideoId(videoUrl);
       
       // Get metadata and thumbnail in parallel (these should always work)
