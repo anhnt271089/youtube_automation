@@ -5,19 +5,33 @@ import logger from '../utils/logger.js';
 
 class GoogleDriveService {
   constructor() {
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: config.google.clientEmail,
-        private_key: config.google.privateKey,
-      },
-      scopes: [
-        'https://www.googleapis.com/auth/drive',
-        'https://www.googleapis.com/auth/spreadsheets'
-      ],
+    // Use OAuth authentication to avoid service account storage quota issues
+    const auth = new google.auth.OAuth2({
+      clientId: config.google.clientId,
+      clientSecret: config.google.clientSecret,
+      redirectUri: config.google.redirectUri
+    });
+
+    // Set credentials from stored tokens
+    auth.setCredentials({
+      access_token: config.google.accessToken,
+      refresh_token: config.google.refreshToken
     });
 
     this.drive = google.drive({ version: 'v3', auth });
     this.sheets = google.sheets({ version: 'v4', auth });
+    this.auth = auth;
+
+    // Handle token refresh automatically
+    auth.on('tokens', (tokens) => {
+      if (tokens.refresh_token) {
+        // Store the new refresh token (you might want to save this to config or database)
+        logger.info('New refresh token received');
+      }
+      if (tokens.access_token) {
+        logger.debug('Access token refreshed');
+      }
+    });
   }
 
   async createVideoFolder(videoTitle, videoId) {
@@ -374,6 +388,131 @@ class GoogleDriveService {
       return true;
     } catch (error) {
       logger.error('Error updating script status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload image file to Google Drive
+   */
+  async uploadImage(filePath, fileName, folderId, options = {}) {
+    try {
+      const fileMetadata = {
+        name: fileName,
+        parents: [folderId]
+      };
+
+      const media = {
+        mimeType: options.mimeType || 'image/png',
+        body: fs.createReadStream(filePath)
+      };
+
+      const response = await this.drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: 'id, name, webViewLink, webContentLink'
+      });
+
+      // Make file publicly viewable (optional)
+      if (options.makePublic) {
+        await this.drive.permissions.create({
+          fileId: response.data.id,
+          resource: {
+            role: 'reader',
+            type: 'anyone'
+          }
+        });
+      }
+
+      logger.info(`Uploaded image: ${fileName} to Drive folder`);
+      
+      return {
+        fileId: response.data.id,
+        fileName: response.data.name,
+        viewLink: response.data.webViewLink,
+        downloadLink: response.data.webContentLink,
+        publicUrl: options.makePublic ? `https://drive.google.com/uc?id=${response.data.id}` : null
+      };
+    } catch (error) {
+      logger.error('Error uploading image to Google Drive:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload multiple images to Google Drive
+   */
+  async uploadMultipleImages(imageFiles, folderId, options = {}) {
+    const uploadPromises = imageFiles.map(async (imageFile) => {
+      const { filePath, fileName } = imageFile;
+      return await this.uploadImage(filePath, fileName, folderId, options);
+    });
+
+    try {
+      const results = await Promise.all(uploadPromises);
+      logger.info(`Uploaded ${results.length} images to Google Drive`);
+      return results;
+    } catch (error) {
+      logger.error('Error uploading multiple images:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a shareable link for a file
+   */
+  async createShareableLink(fileId) {
+    try {
+      // Set file to be viewable by anyone with the link
+      await this.drive.permissions.create({
+        fileId,
+        resource: {
+          role: 'reader',
+          type: 'anyone'
+        }
+      });
+
+      // Get the file details with webViewLink
+      const response = await this.drive.files.get({
+        fileId,
+        fields: 'id, name, webViewLink, webContentLink'
+      });
+
+      return {
+        viewLink: response.data.webViewLink,
+        downloadLink: response.data.webContentLink,
+        publicUrl: `https://drive.google.com/uc?id=${fileId}`
+      };
+    } catch (error) {
+      logger.error('Error creating shareable link:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test OAuth connection and storage quota
+   */
+  async testConnection() {
+    try {
+      const response = await this.drive.about.get({
+        fields: 'user, storageQuota'
+      });
+
+      logger.info('Google Drive connection test successful');
+      logger.info(`Connected as: ${response.data.user.emailAddress}`);
+      
+      const quota = response.data.storageQuota;
+      if (quota.limit && quota.limit !== '0') {
+        const usedGB = (parseInt(quota.usage) / 1024 / 1024 / 1024).toFixed(2);
+        const limitGB = (parseInt(quota.limit) / 1024 / 1024 / 1024).toFixed(2);
+        logger.info(`Storage used: ${usedGB}GB / ${limitGB}GB`);
+      } else {
+        logger.info('Storage quota: Unlimited or not available');
+      }
+
+      return true;
+    } catch (error) {
+      logger.error('Google Drive connection test failed:', error);
       throw error;
     }
   }

@@ -15,7 +15,11 @@
     "test-youtube-basic": "node scripts/test-youtube-basic.js",
     "test-transcript-fallbacks": "node scripts/test-transcript-fallbacks.js",
     "health-check": "node scripts/health-check.js",
-    "test-sheets": "node scripts/health-check.js sheets"
+    "test-sheets": "node scripts/health-check.js sheets",
+    "setup-google": "node scripts/setup-google-oauth.js",
+    "test-google": "node scripts/test-google-integration.js",
+    "test-google-health": "node scripts/test-google-integration.js --health",
+    "refresh-google-tokens": "node scripts/setup-google-oauth.js --refresh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
@@ -29,6 +33,7 @@
     "googleapis": "^128.0.0",
     "node-cron": "^3.0.3",
     "node-telegram-bot-api": "^0.66.0",
+    "open": "^9.1.0",
     "openai": "^4.52.7",
     "sharp": "^0.33.4",
     "winston": "^3.13.0",

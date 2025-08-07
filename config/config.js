@@ -7,9 +7,23 @@ export const config = {
     apiKey: process.env.YOUTUBE_API_KEY,
   },
   google: {
+    // OAuth Configuration
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/callback',
+    
+    // OAuth Tokens
+    accessToken: process.env.GOOGLE_ACCESS_TOKEN,
+    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+    
+    // Google Services IDs
+    masterSheetId: process.env.GOOGLE_MASTER_SHEET_ID,
+    templateWorkbookId: process.env.GOOGLE_TEMPLATE_WORKBOOK_ID,
+    driveFolderId: process.env.GOOGLE_DRIVE_FOLDER_ID,
+    
+    // Legacy Service Account (for backwards compatibility)
     clientEmail: process.env.GOOGLE_CLIENT_EMAIL,
     privateKey: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    driveFolderId: process.env.GOOGLE_DRIVE_FOLDER_ID,
   },
   notion: {
     token: process.env.NOTION_TOKEN,

@@ -1,16 +1,17 @@
 import YouTubeService from './youtubeService.js';
-import NotionService from './notionService.js';
+import GoogleSheetsService from './googleSheetsService.js';
+import GoogleDriveService from './googleDriveService.js';
 import AIService from './aiService.js';
 import TelegramService from './telegramService.js';
 import VideoService from './videoService.js';
-// import DigitalOceanService from './digitalOceanService.js';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 
 class WorkflowService {
   constructor() {
     this.youtubeService = new YouTubeService();
-    this.notionService = new NotionService();
+    this.sheetsService = new GoogleSheetsService();
+    this.driveService = new GoogleDriveService();
     this.aiService = new AIService();
     this.telegramService = new TelegramService();
     this.videoService = new VideoService();
@@ -24,14 +25,45 @@ class WorkflowService {
     };
   }
 
+  /**
+   * Database service wrapper methods for easier transition
+   */
+  async getVideosByStatus(status) {
+    return this.sheetsService.getVideosByStatus(status);
+  }
+
+  async updateVideoStatus(videoId, status, additionalData = {}) {
+    return this.sheetsService.updateVideoStatus(videoId, status, additionalData);
+  }
+
+  async getVideoDetails(videoId) {
+    return this.sheetsService.getVideoDetails(videoId);
+  }
+
+  async approveScript(videoId) {
+    return this.sheetsService.approveScript(videoId);
+  }
+
+  async createVideoEntry(videoData) {
+    return this.sheetsService.createVideoEntry(videoData);
+  }
+
+  async createScriptBreakdown(videoId, scriptSentences, imagePrompts, editorKeywords = []) {
+    return this.sheetsService.createScriptBreakdown(videoId, scriptSentences, imagePrompts, editorKeywords);
+  }
+
+  async updateSentenceStatus(videoId, sentenceNumber, status, imageUrl = null) {
+    return this.sheetsService.updateSentenceStatus(videoId, sentenceNumber, status, imageUrl);
+  }
+
   async processNewVideos() {
     try {
       logger.info('Processing new videos...');
       
       // Process both "New" and "Processing" status videos to handle interrupted workflows
       const [newVideos, processingVideos] = await Promise.all([
-        this.notionService.getVideosByStatus('New'),
-        this.notionService.getVideosByStatus('Processing')
+        this.sheetsService.getVideosByStatus('New'),
+        this.sheetsService.getVideosByStatus('Processing')
       ]);
       
       const allVideosToProcess = [...newVideos, ...processingVideos];
@@ -136,8 +168,8 @@ class WorkflowService {
       
       // Process both "Approved" and "Generating Images" status videos to handle interrupted workflows
       const [approvedVideos, generatingVideos] = await Promise.all([
-        this.notionService.getVideosByStatus('Approved'),
-        this.notionService.getVideosByStatus('Generating Images')
+        this.sheetsService.getVideosByStatus('Approved'),
+        this.sheetsService.getVideosByStatus('Generating Images')
       ]);
       
       const allVideosToProcess = [...approvedVideos, ...generatingVideos];
