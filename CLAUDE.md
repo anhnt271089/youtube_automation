@@ -113,7 +113,10 @@ node test-single-run.js all                       # Run all services once
 node test-single-run.js single-video <url>        # Process specific video
 node test-single-run.js new-videos               # Process new videos
 node test-single-run.js approved-scripts         # Process approved scripts
-node test-single-run.js video-generation         # Run video generation
+node test-single-run.js ready-for-review         # Process ready for review videos
+node test-single-run.js error-videos             # Test error recovery system
+
+# Note: Video generation is handled manually outside the automated flow
 
 # Manual workflow testing
 node -e "
@@ -162,14 +165,15 @@ WorkflowService (Central Orchestrator)
 5. **Approval**: Auto-approval or manual review workflow via Telegram notifications
 6. **Generation**: AI image creation (DALL-E 3, 16:9 format), consistent styling, thumbnail generation
 7. **Storage**: Assets uploaded to Digital Ocean Spaces with CDN delivery
-8. **Assembly**: Video creation using FFmpeg with text overlays (optional)
-9. **Delivery**: Final assets accessible via CDN URLs with cost tracking
+8. **Completion**: Automated workflow ends - ready for manual voice generation and video assembly
+9. **Voice Processing**: Manual voice generation using optimized scripts (Voice Status checkbox tracking)
+10. **Final Assembly**: Manual video creation with voice and images (handled outside the system)
 
 ### Key Design Patterns
 
 #### Cron-Based Automation
-- Multiple scheduled jobs run at different intervals (10-20 minutes)
-- Each job processes different workflow stages independently
+- Multiple scheduled jobs run at different intervals (10-15 minutes)
+- Each job processes different workflow stages independently (video generation removed from automation)
 - **Enhanced Resume Capability**: Automatically handles interrupted workflows in any processing state
 - Graceful shutdown handling with SIGINT/SIGTERM signals
 
@@ -177,14 +181,60 @@ WorkflowService (Central Orchestrator)
 - Comprehensive logging with Winston (logs/ directory)
 - Telegram notifications with VideoID format (VID-XX - Video Title)
 - Per-video error tracking with retry mechanisms
-- **Smart Resume**: Videos stuck in "Processing", "Generating Images", or "Generating Final Video" are automatically resumed
+- **Smart Resume**: Videos stuck in "Processing" or "Generating Images" are automatically resumed
 - Status tracking in Notion database
+- **Automated Error Recovery**: Complete retry system with exponential backoff
+  - **Retry Schedule**: 1h → 2h → 4h → 8h cooldown between attempts
+  - **Max Retries**: 3 attempts before permanent skip
+  - **Smart Reset**: Videos reset to appropriate processing stage based on error location
+  - **Cron Automation**: Automatic retry processing every 2 hours
+  - **Manual Override**: Force retry capability for immediate testing
+  - **Error Tracking Fields**: 5 dedicated fields in Notion for complete error monitoring:
+    - 🤖 Error Message (detailed error description)
+    - 🤖 Error Stage (processing stage where error occurred)
+    - 🤖 Error Time (timestamp of error occurrence)
+    - 🤖 Retry Count (number of retry attempts made)
+    - 🤖 Last Retry Time (timestamp of most recent retry)
+  - **Telegram Integration**: Retry notifications with attempt count and cooldown info
 
 #### State Management
 - Notion database serves as primary state store with unique VideoID (VID-XX format)
-- Processing status: 'New' → 'Processing' → 'Script Generated' → 'Approved' → 'Video Generated' → 'Completed'
+- **Main Automation Status**: 'New' → 'Processing' → 'Script Separated' → 'Approved' → 'Generating Images' → 'Completed'
+- **Voice Generation Status**: Auto-populated workflow tracking for voice generation phase
+  - 'Not Ready' → 'Not Started' (auto-triggered when Script Separated)
+  - 'Not Started' → 'In Progress' → 'Completed' → 'Need Changes' (manual transitions)
+- **Video Editing Status**: Auto-populated workflow tracking for video editing phase
+  - 'Not Ready' → 'Not Started' (auto-triggered when Automation = 'Completed' AND Voice = 'Completed')
+  - 'Not Started' → 'In Progress' → 'First Draft' → 'Completed' → 'Published' (manual transitions)
+- **Legacy Voice Status**: Separate checkbox field for backward compatibility (still supported)
 - **Intelligent Recovery**: System detects and resumes interrupted workflows at correct stage
+- **Auto-Population Logic**: Status transitions happen automatically without user intervention
 - Manual approval gates prevent automated progression (optional auto-approval available)
+
+### Workflow Status Auto-Population
+
+The system automatically manages Voice Generation Status and Video Editing Status transitions to provide clear workflow progression indicators without requiring manual status updates.
+
+#### Voice Generation Status Auto-Population
+- **Trigger**: When main automation reaches "Script Separated" status
+- **Transition**: "Not Ready" → "Not Started"
+- **Logic**: Indicates that script is ready for voice generation workflow
+- **Manual Control**: Users manually progress through: "Not Started" → "In Progress" → "Completed" → "Need Changes"
+
+#### Video Editing Status Auto-Population  
+- **Trigger**: When BOTH conditions are met:
+  1. Main automation status = "Completed" (automation workflow finished)
+  2. Voice Generation Status = "Completed" (voice generation finished)
+- **Transition**: "Not Ready" → "Not Started"
+- **Logic**: Ensures video editing only begins after both automation and voice generation are complete
+- **Manual Control**: Users manually progress through: "Not Started" → "In Progress" → "First Draft" → "Completed" → "Published"
+
+#### Implementation Details
+- Status updates happen seamlessly during normal workflow processing
+- No user intervention required for auto-population triggers
+- System checks current status before updating to prevent overwriting manual changes
+- Logging provides visibility into automatic status transitions
+- Backward compatible with existing workflows and legacy Voice Status checkbox
 
 ## Configuration Requirements
 
@@ -209,33 +259,72 @@ The system requires extensive API integration. Copy `.env.example` to `.env` and
 **Video Identification:**
 Videos are identified using Notion's unique ID property that generates user-friendly VideoIDs in VID-XX format (VID-40, VID-41, etc.). This provides clean identification for Telegram notifications while maintaining Notion's internal page ID system for API operations.
 
-**Manual Input Required:**
-- `YouTube URL` (URL): Source video URL - **ONLY FIELD YOU NEED TO INPUT**
-- `Script Approved` (Checkbox): Manual approval flag for script processing
+**🔧 INPUT SECTION - Manual Input Required:**
+- `🔧 YouTube URL` (URL): Source video URL - **ONLY FIELD YOU NEED TO INPUT**
+- `🔧 Script Approved` (Checkbox): Manual approval flag for script processing
 
-**Auto-Populated Fields (Read-Only - 🔒 Prefix):**
+**🤖 AUTOMATION SECTION - Auto-Populated Fields (Read-Only):**
 - `ID` (Unique ID): Auto-generated VideoID in VID-XX format (VID-40, VID-41...)
-- `🔒 Title` (Title): Video title (extracted from YouTube)
-- `🔒 Status` (Select): Workflow state tracking (defaults to 'New')
-  - Options: 'New', 'Processing', 'Script Generated', 'Approved', 'Generating Images', 'Video Generated', 'Generating Final Video', 'Completed', 'Error'
-- `🔒 Channel` (Text): YouTube channel name (extracted from YouTube)
-- `🔒 YouTube Video ID` (Text): YouTube video ID (extracted from URL)
-- `🔒 Duration` (Text): Video duration (extracted from YouTube)
-- `🔒 View Count` (Number): Video view count (extracted from YouTube)
-- `🔒 Published Date` (Date): Video publish date (extracted from YouTube)
-- `🔒 Optimized Title` (Text): AI-generated title (GPT-4o-mini)
-- `🔒 Optimized Description` (Text): AI-generated description (GPT-4o-mini)
-- `🔒 Keywords` (Multi-select): SEO keywords (AI-generated)
-- `🔒 Total Sentences` (Number): Script sentence count (for breakdown tracking)
-- `🔒 Completed Sentences` (Number): Progress tracking for image generation
-- `🔒 Thumbnail` (URL): Generated thumbnail URLs (DALL-E 3, Digital Ocean CDN)
-- `🔒 New Thumbnail Prompt` (Text): AI-generated thumbnail prompts
-- `🔒 Sentence Status` (Select): Script processing state
-- `🔒 Created Time` (Created time): Auto-populated by Notion
-- `🔒 Last Edited Time` (Last edited time): Auto-populated by Notion
+- `🤖 Title` (Title): Video title (extracted from YouTube)
+- `🤖 Status` (Select): Main automation workflow state tracking (defaults to 'New')
+  - Options: 'New', 'Processing', 'Script Separated', 'Approved', 'Generating Images', 'Completed', 'Error'
+- `🤖 Channel` (Text): YouTube channel name (extracted from YouTube)
+- `🤖 YouTube Video ID` (Text): YouTube video ID (extracted from URL)
+- `🤖 Duration` (Text): Video duration (extracted from YouTube)
+- `🤖 View Count` (Number): Video view count (extracted from YouTube)
+- `🤖 Published Date` (Date): Video publish date (extracted from YouTube)
+- `🤖 Optimized Title` (Text): AI-generated title (GPT-4o-mini)
+- `🤖 Optimized Description` (Text): AI-generated description (GPT-4o-mini)
+- `🤖 Keywords` (Multi-select): SEO keywords (AI-generated)
+- `🤖 Total Sentences` (Number): Script sentence count (for breakdown tracking)
+- `🤖 Completed Sentences` (Number): Progress tracking for image generation
+- `🤖 Thumbnail` (URL): Generated thumbnail URLs (DALL-E 3, Digital Ocean CDN)
+- `🤖 New Thumbnail Prompt` (Text): AI-generated thumbnail prompts
+- `🤖 Sentence Status` (Select): Script processing state
+- `🤖 Voice Generation Status` (Select): Voice generation workflow tracking (auto-populated)
+  - Default: 'Not Ready' → Auto-updates to 'Not Started' when Status = 'Script Separated'
+  - Options: 'Not Ready', 'Not Started', 'In Progress', 'Completed', 'Need Changes'
+- `🤖 Video Editing Status` (Select): Video editing workflow tracking (auto-populated)
+  - Default: 'Not Ready' → Auto-updates to 'Not Started' when Status = 'Completed' AND Voice Generation Status = 'Completed'
+  - Options: 'Not Ready', 'Not Started', 'In Progress', 'First Draft', 'Completed', 'Published'
+- `🤖 Created Time` (Created time): Auto-populated by Notion
+- `🤖 Last Edited Time` (Last edited time): Auto-populated by Notion
 
-**User Input Fields (No 🔒 Prefix):**
-- `Script Approved` (Checkbox): Manual approval flag (user-controlled)
+**👤 MANUAL WORKFLOW SECTION - User-Controlled Status Fields:**
+- `👤 Script Review Status` (Select): Manual script review workflow tracking
+  - Options: 'Not Started', 'Reviewing', 'Approved', 'Needs Changes', 'Rejected'
+- `👤 Voice Generation Notes` (Text): User notes for voice generation process
+- `👤 Video Editing Notes` (Text): User notes for video editing process
+- `👤 Final Status` (Select): Manual final status tracking
+  - Options: 'Draft', 'Review', 'Approved', 'Published', 'Archived'
+
+**📊 OVERVIEW SECTION - Calculated/Formula Fields:**
+- `📊 Processing Progress` (Formula): Automated progress calculation based on status
+- `📊 Days Since Created` (Formula): Days since video was added to database
+- `📊 Content Quality Score` (Formula): Quality score based on view count and duration
+- `📊 Total Processing Time` (Formula): Time from creation to completion
+
+**Legacy Fields (Backward Compatibility):**
+- `Voice Status` (Checkbox): Legacy manual flag for voice generation (still supported)
+
+#### Script Details Database Schema
+
+The system creates a dedicated "Script Details" database for each video containing sentence-level breakdown:
+
+**User-Editable Fields:**
+- `Sentence` (Title): User-editable sentence title/identifier
+
+**🤖 AUTOMATION SECTION - Auto-Populated Fields (Read-Only):**
+- `🤖 Sentence Number` (Number): Sequential sentence number
+- `🤖 Script Text` (Rich Text): The actual sentence text content
+- `🤖 Image Prompt` (Rich Text): AI-generated image prompt for the sentence
+- `🤖 Generated Image URL` (URL): Digital Ocean CDN URL of the generated image
+- `🤖 Editor Keywords` (Rich Text): Extracted keywords for editing guidance
+- `🤖 Status` (Select): Sentence processing status
+  - Options: 'Pending', 'Processing', 'Image Generated', 'Complete'
+- `🤖 Word Count` (Formula): Automatic word count of script text
+- `🤖 Created Time` (Created time): Auto-populated by Notion  
+- `🤖 Last Edited Time` (Last edited time): Auto-populated by Notion
 
 <!-- ## Development Guidelines
 
@@ -537,6 +626,8 @@ async function profiledMethod() {
 - **Cost Optimization**: Full flow cost summaries with DALL-E 2/3 savings analysis
 - **5-Layer Fallback System**: Ultimate reliability for video processing pipeline
 - **Professional Image Generation**: Enhanced prompts with lighting, composition, color palette specifications
+- **Workflow Streamlining**: Removed automated video generation - workflow now ends after image generation
+- **Voice Status Tracking**: Added Voice Status checkbox for manual voice generation progress tracking
 
 ### Production Deployment Checklist
 - [ ] All environment variables configured (including Digital Ocean Spaces)
@@ -544,7 +635,7 @@ async function profiledMethod() {
 - [ ] Notion database schema matches exactly with VideoID unique_id property
 - [ ] Digital Ocean Spaces bucket configured with proper permissions
 - [ ] Telegram bot configured and accessible with VideoID notification format
-- [ ] FFmpeg installed and accessible for video generation
+- [ ] Voice Status checkbox added to Notion database schema
 - [ ] Log directory writable with rotation policy
 - [ ] System resources adequate (CPU, memory, disk for image processing)
 - [ ] Health checks passing for all services including Digital Ocean
