@@ -79,17 +79,7 @@ class SingleRunTest {
     }
   }
 
-  async runVideoGeneration() {
-    console.log('\n🎬 Running Video Generation...');
-    try {
-      const result = await this.workflowService.processVideoGeneration();
-      console.log('Video Generation Results:', result);
-      return result;
-    } catch (error) {
-      console.error('❌ Video generation failed:', error.message);
-      return { success: false, error: error.message };
-    }
-  }
+  // Video generation removed - handled manually outside this automated flow
 
   async runTimeoutCleanup() {
     console.log('\n⏰ Running Timeout Cleanup...');
@@ -99,6 +89,30 @@ class SingleRunTest {
       return result;
     } catch (error) {
       console.error('❌ Timeout cleanup failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async runReadyForReview() {
+    console.log('\n📋 Processing Ready for Review Videos...');
+    try {
+      const result = await this.workflowService.processReadyForReview();
+      console.log('Ready for Review Processing Results:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Ready for review processing failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async runErrorVideos() {
+    console.log('\n🔄 Processing Error Videos for Retry...');
+    try {
+      const result = await this.workflowService.processErrorVideos();
+      console.log('Error Videos Processing Results:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error videos processing failed:', error.message);
       return { success: false, error: error.message };
     }
   }
@@ -122,15 +136,17 @@ class SingleRunTest {
       healthCheck: null,
       newVideos: null,
       approvedScripts: null,
-      videoGeneration: null,
+      readyForReview: null,
+      errorVideos: null,
       timeoutCleanup: null
     };
 
-    // Run each service once
+    // Run each service once (video generation handled manually outside automated flow)
     results.healthCheck = await this.runHealthCheck();
     results.newVideos = await this.runNewVideosProcessing();
     results.approvedScripts = await this.runApprovedScriptsProcessing();
-    results.videoGeneration = await this.runVideoGeneration();
+    results.readyForReview = await this.runReadyForReview();
+    results.errorVideos = await this.runErrorVideos();
     results.timeoutCleanup = await this.runTimeoutCleanup();
 
     return results;
@@ -176,12 +192,18 @@ async function main() {
         results = await testRunner.runApprovedScriptsProcessing();
         break;
         
-      case 'video-generation':
-        results = await testRunner.runVideoGeneration();
-        break;
+      // video-generation removed - handled manually outside automated flow
         
       case 'timeout-cleanup':
         results = await testRunner.runTimeoutCleanup();
+        break;
+        
+      case 'ready-for-review':
+        results = await testRunner.runReadyForReview();
+        break;
+        
+      case 'error-videos':
+        results = await testRunner.runErrorVideos();
         break;
         
       case 'single-video':
@@ -232,9 +254,12 @@ Commands:
   health                 Run health check only
   new-videos            Process new videos from Notion
   approved-scripts      Process videos with approved scripts
-  video-generation      Run video generation workflow
+  ready-for-review      Process videos ready for human review
+  error-videos          Test error recovery and retry system
   timeout-cleanup       Clean up timed out processes
   single-video <url>    Process a specific YouTube URL
+  
+Note: Video generation is handled manually outside the automated flow
 
 Examples:
   node test-single-run.js
