@@ -5,8 +5,6 @@ import TelegramService from './telegramService.js';
 import VideoService from './videoService.js';
 // import DigitalOceanService from './digitalOceanService.js';
 import { config } from '../../config/config.js';
-import fs from 'fs';
-import path from 'path';
 import logger from '../utils/logger.js';
 
 class WorkflowService {
@@ -108,9 +106,15 @@ class WorkflowService {
         const result = await this.processApprovedScript(video);
         return result;
       } else {
-        // Script exists but not approved - update status to Script Generated for manual approval
+        // Script exists but not approved - update status to Script Separated for manual approval
         logger.info(`${video.videoId}: awaiting approval`);
-        await this.notionService.updateVideoStatus(video.id, 'Script Generated');
+        await this.notionService.updateVideoStatus(video.id, 'Script Separated');
+        
+        // Auto-transition: Script Separated → Ready for Review
+        await this.notionService.autoTransitionStatus(video.id, 'Script Separated', video.scriptApproved);
+        
+        // Auto-update workflow statuses for resumed script generation
+        await this.notionService.autoUpdateWorkflowStatuses(video.id, 'Script Separated');
         
         // Send approval request
         await this.telegramService.sendScriptApprovalRequest(
@@ -175,54 +179,167 @@ class WorkflowService {
     }
   }
 
-  async processVideoGeneration() {
+  /**
+   * Process videos in "Ready for Review" status and auto-transition to "Approved" when Script Approved checkbox is checked
+   * This handles the human approval workflow step
+   */
+  async processReadyForReview() {
     try {
-      logger.info('Processing video generation...');
+      logger.info('Processing videos ready for review...');
       
-      // Process both "Video Generated" and "Generating Final Video" status to handle interrupted workflows
-      const [readyVideos, generatingVideos] = await Promise.all([
-        this.notionService.getVideosByStatus('Video Generated'),
-        this.notionService.getVideosByStatus('Generating Final Video')
-      ]);
+      const readyForReviewVideos = await this.notionService.getVideosByStatus('Ready for Review');
       
-      const allVideosToProcess = [...readyVideos, ...generatingVideos];
-      
-      if (allVideosToProcess.length === 0) {
-        logger.info('No videos ready');
-        return { success: true, processed: 0, message: 'No videos ready for generation' };
+      if (readyForReviewVideos.length === 0) {
+        logger.info('No videos ready for review');
+        return { success: true, processed: 0, message: 'No videos ready for review' };
       }
 
-      logger.info(`Found ${readyVideos.length} ready videos and ${generatingVideos.length} interrupted video generation to handle`);
+      logger.info(`Found ${readyForReviewVideos.length} videos ready for review`);
       let processedCount = 0;
       
-      for (const video of allVideosToProcess) {
+      for (const video of readyForReviewVideos) {
         try {
-          if (video.status === 'Generating Final Video') {
-            logger.info(`Resuming final video generation for: ${video.videoId} - ${video.title}`);
+          // Check if Script Approved checkbox has been checked
+          if (video.scriptApproved === true) {
+            logger.info(`${video.videoId}: Script approved, transitioning to Approved status`);
+            
+            // Auto-transition: Ready for Review → Approved
+            const transition = await this.notionService.autoTransitionStatus(
+              video.id, 
+              'Ready for Review', 
+              true
+            );
+            
+            if (transition.transitioned) {
+              processedCount++;
+              logger.info(`${video.videoId}: ${transition.fromStatus} → ${transition.toStatus}`);
+              
+              // Send notification about approval
+              await this.telegramService.sendMessage(
+                `✅ <b>Script Approved</b>\n\n🎬 ${video.title}\n📋 Status: ${transition.toStatus}\n🚀 Ready for image generation`
+              );
+            }
+          } else {
+            logger.debug(`${video.videoId}: Still awaiting human approval`);
           }
-          await this.generateFinalVideo(video);
-          processedCount++;
+          
         } catch (error) {
-          logger.error(`Error generating video for ${video.videoId} - ${video.title}:`, error);
-          await this.handleVideoError(video, error, 'Video Generation');
+          logger.error(`Error processing ready for review video ${video.videoId}:`, error);
         }
       }
-
-      logger.info('Video generation processing completed');
+      
       return { 
         success: true, 
         processed: processedCount, 
-        total: allVideosToProcess.length,
-        breakdown: {
-          readyVideos: readyVideos.length,
-          resumedGeneration: generatingVideos.length
-        }
+        total: readyForReviewVideos.length,
+        message: `Processed ${processedCount}/${readyForReviewVideos.length} ready for review videos` 
       };
+      
     } catch (error) {
-      logger.error('Error in processVideoGeneration:', error);
-      return { success: false, error: error.message };
+      logger.error('Error in processReadyForReview:', error);
+      throw error;
     }
   }
+
+  /**
+   * Process videos in Error status for retry logic
+   * Automatically retries failed videos after a cooldown period with exponential backoff
+   */
+  async processErrorVideos() {
+    try {
+      logger.info('Processing error videos for retry...');
+      
+      const errorVideos = await this.notionService.getVideosByStatus('Error');
+      
+      if (errorVideos.length === 0) {
+        logger.info('No error videos to retry');
+        return { success: true, processed: 0, message: 'No error videos to retry' };
+      }
+
+      logger.info(`Found ${errorVideos.length} error videos`);
+      let processedCount = 0;
+      let retriedCount = 0;
+      
+      for (const video of errorVideos) {
+        try {
+          const retryCount = video.retryCount || 0;
+          const maxRetries = 3;
+          
+          // Calculate exponential backoff cooldown (1h, 4h, 12h)
+          const cooldownHours = Math.pow(2, retryCount) * 1; // 1, 2, 4, 8 hours
+          const errorTime = new Date(video.errorTime || video.createdTime);
+          const cooldownEnd = new Date(errorTime.getTime() + (cooldownHours * 60 * 60 * 1000));
+          const now = new Date();
+          
+          // Check if still in cooldown period
+          if (now < cooldownEnd) {
+            const remainingMinutes = Math.ceil((cooldownEnd - now) / (60 * 1000));
+            logger.debug(`${video.videoId}: Still in cooldown (${remainingMinutes}min remaining)`);
+            processedCount++;
+            continue;
+          }
+          
+          // Check if max retries exceeded
+          if (retryCount >= maxRetries) {
+            logger.warn(`${video.videoId}: Max retries exceeded (${retryCount}/${maxRetries}), skipping`);
+            processedCount++;
+            continue;
+          }
+          
+          logger.info(`${video.videoId}: Retrying (attempt ${retryCount + 1}/${maxRetries}) after ${cooldownHours}h cooldown`);
+          
+          // Reset status based on where the error occurred
+          let resetStatus = 'New';
+          if (video.errorStage === 'Script Processing') {
+            resetStatus = 'Script Separated'; // Retry from script processing
+          } else if (video.errorStage === 'Initial Processing') {
+            resetStatus = 'New'; // Retry from beginning
+          }
+          
+          // Reset video to appropriate status for retry
+          await this.notionService.updateVideoStatus(video.id, resetStatus, {
+            retryCount: retryCount + 1,
+            lastRetryTime: new Date().toISOString(),
+            errorMessage: null, // Clear previous error
+            errorStage: null,
+            errorTime: null
+          });
+          
+          retriedCount++;
+          logger.info(`${video.videoId}: Reset to ${resetStatus} for retry ${retryCount + 1}`);
+          
+          // Send retry notification
+          await this.telegramService.sendMessage(
+            '🔄 <b>Retry Attempt</b>\n\n' +
+            `🎬 ${video.title}\n` +
+            `📊 Attempt: ${retryCount + 1}/${maxRetries}\n` +
+            `⏰ After: ${cooldownHours}h cooldown\n` +
+            `🔄 Reset to: ${resetStatus}`
+          );
+          
+        } catch (error) {
+          logger.error(`Error processing retry for video ${video.videoId}:`, error);
+        }
+        
+        processedCount++;
+      }
+      
+      return { 
+        success: true, 
+        processed: processedCount, 
+        retried: retriedCount,
+        total: errorVideos.length,
+        message: `Processed ${processedCount}/${errorVideos.length} error videos, retried ${retriedCount}` 
+      };
+      
+    } catch (error) {
+      logger.error('Error in processErrorVideos:', error);
+      throw error;
+    }
+  }
+
+  // Video generation removed from automated workflow
+  // Manual video generation will be handled outside this system
 
   async processNewUrl(youtubeUrl) {
     try {
@@ -338,7 +455,13 @@ class WorkflowService {
         keywords: enhancedContent.keywords.primaryKeywords
       };
 
-      await this.notionService.updateVideoStatus(notionPageId, 'Script Generated', notionUpdateData);
+      await this.notionService.updateVideoStatus(notionPageId, 'Script Separated', notionUpdateData);
+
+      // Auto-transition: Script Separated → Ready for Review
+      await this.notionService.autoTransitionStatus(notionPageId, 'Script Separated', false);
+
+      // Auto-update workflow statuses after script generation
+      await this.notionService.autoUpdateWorkflowStatuses(notionPageId, 'Script Separated');
 
       // Check if auto-approval is enabled
       if (config.app.autoApproveScripts) {
@@ -419,7 +542,7 @@ class WorkflowService {
       const folderName = `videos/${videoInfo.videoId || videoInfo.id}`;
       
       await this.telegramService.sendMessage(
-        '✅ <b>Image Generation Completed</b>\n\n' +
+        '✅ <b>Processing Completed</b>\n\n' +
         `🎬 ${videoDisplayId} - ${videoInfo.title}\n` +
         `📁 Folder: ${folderName}\n` +
         `🎨 Images Generated: ${generatedImages.length}\n` +
@@ -433,6 +556,7 @@ class WorkflowService {
             .join('\n')
         }\n\n` +
         `💡 <i>Total processing cost for this video: $${costSummary.totalCost.toFixed(4)}</i>\n` +
+        '📝 <i>Ready for voice generation - check Voice Status when complete</i>\n' +
         `🔗 [View Record](https://notion.so/${videoInfo.id.replace(/-/g, '')})`
       );
 
@@ -445,7 +569,8 @@ class WorkflowService {
           const thumbnailUpload = await this.aiService.downloadAndUploadImage(
             thumbnailResult.url,
             thumbnailFileName,
-            videoInfo.videoId || videoInfo.id
+            videoInfo.videoId || videoInfo.id,
+            'thumbnails'
           );
           
           await this.telegramService.sendMessage(
@@ -464,8 +589,8 @@ class WorkflowService {
         }
       }
 
-      // Update status to Video Generated with enhanced metadata
-      await this.notionService.updateVideoStatus(videoInfo.id, 'Video Generated', {
+      // Update status to Completed with enhanced metadata (workflow ends here)
+      await this.notionService.updateVideoStatus(videoInfo.id, 'Completed', {
         imagesGenerated: generatedImages.length,
         imageStyle: enhancedContent.videoStyle?.style,
         totalCost: costSummary.totalCost,
@@ -474,6 +599,10 @@ class WorkflowService {
         thumbnailUrl: thumbnailResult?.url,
         processingCompletedAt: new Date().toISOString()
       });
+
+      // Auto-update workflow statuses after automation completion
+      // Note: Video Editing Status will only update if Voice Generation Status is "Completed"
+      await this.notionService.autoUpdateWorkflowStatuses(videoInfo.id, 'Completed', videoInfo.voiceGenerationStatus);
 
       logger.info(`Script processing completed for: ${videoInfo.title} (${generatedImages.length} images, $${costSummary.totalCost.toFixed(4)})`);
       
@@ -491,78 +620,15 @@ class WorkflowService {
     }
   }
 
-  async generateFinalVideo(videoInfo) {
-    try {
-      logger.info(`Generating final video for: ${videoInfo.title}`);
-
-      await this.notionService.updateVideoStatus(videoInfo.id, 'Generating Final Video');
-
-      const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
-      // Set the proper VideoID (VID-XX format) for Digital Ocean operations
-      videoData.videoId = videoInfo.videoId || videoInfo.id;
-      
-      const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
-
-      // Get existing image paths from previous processing step
-      let existingImagePaths = null;
-      try {
-        // Try to get image paths from the previous step's temp files
-        const tempDir = './temp';
-        if (fs.existsSync(tempDir)) {
-          const imageFiles = fs.readdirSync(tempDir).filter(file => file.includes('image_') && file.endsWith('.png'));
-          if (imageFiles.length > 0) {
-            existingImagePaths = imageFiles.map(file => path.join(tempDir, file));
-          }
-        }
-      } catch (error) {
-        logger.warn('Could not find existing image paths, will regenerate:', error.message);
-      }
-      
-      const videoResult = await this.videoService.createCompleteVideo(
-        videoData,
-        enhancedContent,
-        this.aiService,
-        existingImagePaths
-      );
-
-      // Mark as completed (final video is stored locally in output/ directory)
-      await this.notionService.updateVideoStatus(videoInfo.id, 'Completed', {
-        finalVideoPath: videoResult.videoPath,
-        processingCompleted: new Date().toISOString()
-      });
-
-      // Get complete cost summary for final message
-      const finalCostSummary = this.aiService.getCostSummary();
-      const videoDisplayId = videoInfo.videoId || videoInfo.id.replace(/-/g, ''); // Use proper VideoID (VID-XX) or fallback
-      
-      await this.telegramService.sendVideoCompleted(
-        { 
-          ...videoData, 
-          optimizedTitle: enhancedContent.optimizedTitles.recommended,
-          recordId: videoDisplayId,
-          displayTitle: `${videoDisplayId} - ${videoData.title}`,
-          costSummary: finalCostSummary
-        },
-        'Local Output Directory',
-        videoResult.videoPath
-      );
-
-      this.stats.successful++;
-      logger.info(`Video generation completed for: ${videoInfo.title}`);
-      
-      return { videoResult };
-    } catch (error) {
-      logger.error('Error in generateFinalVideo:', error);
-      throw error;
-    }
-  }
+  // generateFinalVideo method removed - video generation is now manual
 
   async handleVideoError(video, error, stage) {
     try {
-      await this.notionService.updateVideoStatus(video.id, 'Failed', {
+      await this.notionService.updateVideoStatus(video.id, 'Error', {
         errorMessage: error.message,
         errorStage: stage,
-        errorTime: new Date().toISOString()
+        errorTime: new Date().toISOString(),
+        retryCount: (video.retryCount || 0) + 1
       });
 
       await this.telegramService.sendError(
@@ -580,7 +646,7 @@ class WorkflowService {
 
   async processTimeouts() {
     try {
-      const pendingApprovals = await this.notionService.getVideosByStatus('Script Generated');
+      const pendingApprovals = await this.notionService.getVideosByStatus('Script Separated');
       const timeoutThreshold = 24 * 60 * 60 * 1000; // 24 hours
       let processedCount = 0;
       
@@ -612,7 +678,7 @@ class WorkflowService {
         this.notionService.getVideosByStatus('Pending'),
         this.notionService.getVideosByStatus('Processing'),
         this.notionService.getVideosByStatus('Completed'),
-        this.notionService.getVideosByStatus('Failed')
+        this.notionService.getVideosByStatus('Error')
       ]);
 
       const stats = {
@@ -704,7 +770,7 @@ class WorkflowService {
         // Update status to Processing
         await this.notionService.updateVideoStatus(notionPageId, 'Processing');
         
-        // Auto-populate Notion entry with YouTube data (populate 🔒 fields)
+        // Auto-populate Notion entry with YouTube data (populate 🤖 fields)
         await this.notionService.autoPopulateVideoData(notionPageId, videoData);
         
         // Process the video

@@ -73,6 +73,21 @@ class YouTubeAutomation {
         name: 'newVideoProcessor'
       }));
 
+      // Process videos ready for review every 12 minutes
+      this.jobs.set('readyForReview', cron.schedule('*/12 * * * *', async () => {
+        if (!this.isRunning) return;
+        
+        try {
+          logger.info('Processing videos ready for review...');
+          await this.workflowService.processReadyForReview();
+        } catch (error) {
+          logger.error('Error in scheduled ready for review processing:', error);
+        }
+      }, {
+        ...cronOptions,
+        name: 'reviewProcessor'
+      }));
+
       // Process approved scripts every 15 minutes
       this.jobs.set('approvedScripts', cron.schedule('*/15 * * * *', async () => {
         if (!this.isRunning) return;
@@ -88,20 +103,23 @@ class YouTubeAutomation {
         name: 'scriptProcessor'
       }));
 
-      // Process video generation every 20 minutes
-      this.jobs.set('videoGeneration', cron.schedule('*/20 * * * *', async () => {
+      // Process error videos for retry every 2 hours
+      this.jobs.set('errorVideos', cron.schedule('0 */2 * * *', async () => {
         if (!this.isRunning) return;
         
         try {
-          logger.info('Generating videos...');
-          await this.workflowService.processVideoGeneration();
+          logger.info('Processing error videos for retry...');
+          await this.workflowService.processErrorVideos();
         } catch (error) {
-          logger.error('Error in scheduled video generation:', error);
+          logger.error('Error in scheduled error video processing:', error);
         }
       }, {
         ...cronOptions,
-        name: 'videoGenerator'
+        name: 'errorProcessor'
       }));
+
+      // Video generation removed from automated workflow
+      // Users will now manually handle video generation after voice processing
 
       // Check for approval timeouts every hour
       this.jobs.set('timeouts', cron.schedule('0 * * * *', async () => {
@@ -109,7 +127,7 @@ class YouTubeAutomation {
         
         try {
           logger.info('Checking approval timeouts...');
-          await this.workflowService.processApprovalTimeouts();
+          await this.workflowService.processTimeouts();
         } catch (error) {
           logger.error('Error checking approval timeouts:', error);
         }
@@ -227,6 +245,16 @@ class YouTubeAutomation {
     }
   }
 
+  async forceProcessReadyForReview() {
+    try {
+      logger.info('Force processing videos ready for review...');
+      return await this.workflowService.processReadyForReview();
+    } catch (error) {
+      logger.error('Error in force processing ready for review:', error);
+      throw error;
+    }
+  }
+
   async forceProcessApprovedScripts() {
     try {
       logger.info('Force processing scripts...');
@@ -237,15 +265,18 @@ class YouTubeAutomation {
     }
   }
 
-  async forceGenerateVideos() {
+  async forceProcessErrorVideos() {
     try {
-      logger.info('Force generating videos...');
-      return await this.workflowService.processVideoGeneration();
+      logger.info('Force processing error videos for retry...');
+      return await this.workflowService.processErrorVideos();
     } catch (error) {
-      logger.error('Error in force video generation:', error);
+      logger.error('Error in force processing error videos:', error);
       throw error;
     }
   }
+
+  // Video generation removed from automated workflow
+  // Manual video generation will be handled outside this system
 
   getSystemStatus() {
     return {

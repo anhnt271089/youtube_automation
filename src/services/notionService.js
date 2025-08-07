@@ -12,43 +12,48 @@ class NotionService {
     
     // Define protected properties that cannot be edited by users
     this.protectedMainDbProperties = new Set([
-      '🔒 Title', 
-      '🔒 Status',
-      '🔒 Channel',
-      '🔒 Duration',
-      '🔒 View Count',
-      '🔒 Published Date',
-      '🔒 YouTube Video ID',
-      '🔒 Optimized Title',
-      '🔒 Optimized Description',
-      '🔒 Keywords',
-      '🔒 Total Sentences',
-      '🔒 Completed Sentences',
-      '🔒 Thumbnail',
-      '🔒 New Thumbnail Prompt',
-      '🔒 Sentence Status',
-      '🔒 Drive Folder',
-      '🔒 Created Time',
-      '🔒 Last Edited Time'
+      '🤖 Title', 
+      '🤖 Status',
+      '🤖 Channel',
+      '🤖 Duration',
+      '🤖 View Count',
+      '🤖 Published Date',
+      '🤖 YouTube Video ID',
+      '🤖 Optimized Title',
+      '🤖 Optimized Description',
+      '🤖 Keywords',
+      '🤖 Total Sentences',
+      '🤖 Completed Sentences',
+      '🤖 Thumbnail',
+      '🤖 New Thumbnail Prompt',
+      '🤖 Sentence Status',
+      '🤖 Drive Folder',
+      '🤖 Voice Generation Status',
+      '🤖 Video Editing Status',
+      '🤖 Created Time',
+      '🤖 Last Edited Time'
     ]);
     
     // Protected properties in video detail databases
     this.protectedDetailDbProperties = new Set([
-      '🔒 Sentence Number',
-      '🔒 Script Text', 
-      '🔒 Image Prompt',
-      '🔒 Generated Image URL',
-      '🔒 Editor Keywords',
-      '🔒 Status',
-      '🔒 Word Count',
-      '🔒 Created Time',
-      '🔒 Last Edited Time'
+      '🤖 Sentence Number',
+      '🤖 Script Text', 
+      '🤖 Image Prompt',
+      '🤖 Generated Image URL',
+      '🤖 Editor Keywords',
+      '🤖 Status',
+      '🤖 Word Count',
+      '🤖 Created Time',
+      '🤖 Last Edited Time'
     ]);
     
     // Allowed user-editable properties
     this.allowedMainDbProperties = new Set([
-      'YouTube URL',
-      'Script Approved'
+      '🔧 YouTube URL',
+      '🔧 Script Approved',
+      '👤 Voice Generation Notes',
+      '👤 Video Editing Notes',
+      '👤 Final Status'
     ]);
     
     // Allowed properties in detail databases
@@ -251,7 +256,7 @@ class NotionService {
   async createVideoEntry(videoData) {
     try {
       const properties = {
-        '🔒 Title': {
+        '🤖 Title': {
           title: [
             {
               text: {
@@ -260,15 +265,25 @@ class NotionService {
             }
           ]
         },
-        'YouTube URL': {
+        '🔧 YouTube URL': {
           url: videoData.originalUrl
         },
-        '🔒 Status': {
+        '🤖 Status': {
           select: {
             name: 'New'
           }
         },
-        '🔒 Channel': {
+        '🤖 Voice Generation Status': {
+          select: {
+            name: 'Not Started'
+          }
+        },
+        '🤖 Video Editing Status': {
+          select: {
+            name: 'Not Started'
+          }
+        },
+        '🤖 Channel': {
           rich_text: [
             {
               text: {
@@ -277,7 +292,7 @@ class NotionService {
             }
           ]
         },
-        '🔒 Duration': {
+        '🤖 Duration': {
           rich_text: [
             {
               text: {
@@ -286,15 +301,15 @@ class NotionService {
             }
           ]
         },
-        '🔒 View Count': {
+        '🤖 View Count': {
           number: parseInt(videoData.viewCount) || 0
         },
-        '🔒 Published Date': {
+        '🤖 Published Date': {
           date: {
             start: videoData.publishedAt
           }
         },
-        '🔒 YouTube Video ID': {
+        '🤖 YouTube Video ID': {
           rich_text: [
             {
               text: {
@@ -324,7 +339,7 @@ class NotionService {
 
       // Only add Status property if status is provided and not null/undefined
       if (status !== null && status !== undefined && status !== '') {
-        properties['🔒 Status'] = {
+        properties['🤖 Status'] = {
           select: {
             name: status
           }
@@ -332,7 +347,7 @@ class NotionService {
       }
 
       if (additionalData.optimizedTitle) {
-        properties['🔒 Optimized Title'] = {
+        properties['🤖 Optimized Title'] = {
           rich_text: [
             {
               text: {
@@ -344,7 +359,7 @@ class NotionService {
       }
 
       if (additionalData.optimizedDescription) {
-        properties['🔒 Optimized Description'] = {
+        properties['🤖 Optimized Description'] = {
           rich_text: [
             {
               text: {
@@ -356,37 +371,40 @@ class NotionService {
       }
 
       if (additionalData.keywords) {
-        properties['🔒 Keywords'] = {
+        properties['🤖 Keywords'] = {
           multi_select: additionalData.keywords.slice(0, 10).map(keyword => ({ name: keyword }))
         };
       }
 
       if (additionalData.scriptApproved !== undefined) {
-        properties['Script Approved'] = {
+        properties['🔧 Script Approved'] = {
           checkbox: additionalData.scriptApproved
         };
       }
 
+      // Voice Status is now handled by Voice Generation Status select field
+      // Keeping for backward compatibility but not updating anything
+
       if (additionalData.totalSentences !== undefined) {
-        properties['🔒 Total Sentences'] = {
+        properties['🤖 Total Sentences'] = {
           number: additionalData.totalSentences
         };
       }
 
       if (additionalData.completedSentences !== undefined) {
-        properties['🔒 Completed Sentences'] = {
+        properties['🤖 Completed Sentences'] = {
           number: additionalData.completedSentences
         };
       }
 
       if (additionalData.thumbnail) {
-        properties['🔒 Thumbnail'] = {
+        properties['🤖 Thumbnail'] = {
           url: additionalData.thumbnail
         };
       }
 
       if (additionalData.thumbnailPrompt) {
-        properties['🔒 New Thumbnail Prompt'] = {
+        properties['🤖 New Thumbnail Prompt'] = {
           rich_text: [
             {
               text: {
@@ -398,10 +416,73 @@ class NotionService {
       }
 
       if (additionalData.scriptStatus) {
-        properties['🔒 Sentence Status'] = {
+        properties['🤖 Sentence Status'] = {
           select: {
             name: additionalData.scriptStatus
           }
+        };
+      }
+
+      if (additionalData.voiceGenerationStatus !== undefined) {
+        properties['🤖 Voice Generation Status'] = {
+          select: {
+            name: additionalData.voiceGenerationStatus
+          }
+        };
+      }
+
+      if (additionalData.videoEditingStatus !== undefined) {
+        properties['🤖 Video Editing Status'] = {
+          select: {
+            name: additionalData.videoEditingStatus
+          }
+        };
+      }
+
+      // Error tracking fields for retry logic
+      if (additionalData.errorMessage !== undefined) {
+        properties['🤖 Error Message'] = {
+          rich_text: [
+            {
+              text: {
+                content: additionalData.errorMessage || ''
+              }
+            }
+          ]
+        };
+      }
+
+      if (additionalData.errorStage !== undefined) {
+        properties['🤖 Error Stage'] = {
+          rich_text: [
+            {
+              text: {
+                content: additionalData.errorStage || ''
+              }
+            }
+          ]
+        };
+      }
+
+      if (additionalData.errorTime !== undefined) {
+        properties['🤖 Error Time'] = {
+          date: additionalData.errorTime ? {
+            start: additionalData.errorTime
+          } : null
+        };
+      }
+
+      if (additionalData.retryCount !== undefined) {
+        properties['🤖 Retry Count'] = {
+          number: additionalData.retryCount || 0
+        };
+      }
+
+      if (additionalData.lastRetryTime !== undefined) {
+        properties['🤖 Last Retry Time'] = {
+          date: additionalData.lastRetryTime ? {
+            start: additionalData.lastRetryTime
+          } : null
         };
       }
 
@@ -420,12 +501,64 @@ class NotionService {
     }
   }
 
+  /**
+   * Auto-transition status based on workflow rules
+   * 1. Script Separated → Ready for Review (automatic)
+   * 2. Ready for Review → Approved (when Script Approved checkbox is checked)
+   * @param {string} pageId - Notion page ID
+   * @param {string} currentStatus - Current status of the video
+   * @param {boolean} scriptApproved - Whether Script Approved checkbox is checked
+   * @returns {Promise<Object>} - Transition result
+   */
+  async autoTransitionStatus(pageId, currentStatus, scriptApproved = false) {
+    try {
+      let newStatus = null;
+      let transitionReason = '';
+
+      // Rule 1: Auto-transition Script Separated → Ready for Review
+      if (currentStatus === 'Script Separated') {
+        newStatus = 'Ready for Review';
+        transitionReason = 'Auto-transition: Script breakdown completed, ready for human review';
+        logger.info(`Auto-transitioning status: Script Separated → Ready for Review for page: ${pageId}`);
+      }
+      
+      // Rule 2: Auto-transition Ready for Review → Approved when Script Approved is checked
+      else if (currentStatus === 'Ready for Review' && scriptApproved === true) {
+        newStatus = 'Approved';
+        transitionReason = 'Auto-transition: Script Approved checkbox checked by human reviewer';
+        logger.info(`Auto-transitioning status: Ready for Review → Approved for page: ${pageId}`);
+      }
+
+      // Apply the transition if needed
+      if (newStatus) {
+        await this.updateVideoStatus(pageId, newStatus);
+        
+        return {
+          transitioned: true,
+          fromStatus: currentStatus,
+          toStatus: newStatus,
+          reason: transitionReason
+        };
+      }
+
+      return {
+        transitioned: false,
+        currentStatus: currentStatus,
+        reason: 'No auto-transition rules matched current state'
+      };
+
+    } catch (error) {
+      logger.error('Error in auto-transition status:', error);
+      throw error;
+    }
+  }
+
   async getVideosByStatus(status) {
     try {
       const response = await this.notion.databases.query({
         database_id: this.databaseId,
         filter: {
-          property: '🔒 Status',
+          property: '🤖 Status',
           select: {
             equals: status
           }
@@ -441,26 +574,36 @@ class NotionService {
           id: page.id, // Keep the Notion page ID for internal operations
           videoId: videoId, // Use formatted VideoID (VID-XX) for display
           uniqueIdNumber: uniqueIdData?.number, // Store the raw number for reference
-          title: page.properties['🔒 Title']?.title[0]?.text?.content || '',
-          youtubeUrl: page.properties['YouTube URL']?.url || '',
-          youtubeVideoId: page.properties['🔒 YouTube Video ID']?.rich_text[0]?.text?.content || '',
-          status: page.properties['🔒 Status']?.select?.name || '',
-          scriptApproved: page.properties['Script Approved']?.checkbox || false,
+          title: page.properties['🤖 Title']?.title[0]?.text?.content || '',
+          youtubeUrl: page.properties['🔧 YouTube URL']?.url || '',
+          youtubeVideoId: page.properties['🤖 YouTube Video ID']?.rich_text[0]?.text?.content || '',
+          status: page.properties['🤖 Status']?.select?.name || '',
+          scriptApproved: page.properties['🔧 Script Approved']?.checkbox || false,
+          // Legacy voiceStatus field - now use voiceGenerationStatus
+          voiceStatus: false,
           // Missing critical fields that should be populated by autoPopulateVideoData
-          channel: page.properties['🔒 Channel']?.rich_text[0]?.text?.content || '',
-          duration: page.properties['🔒 Duration']?.rich_text[0]?.text?.content || '',
-          viewCount: page.properties['🔒 View Count']?.number || 0,
-          publishedDate: page.properties['🔒 Published Date']?.date?.start || '',
+          channel: page.properties['🤖 Channel']?.rich_text[0]?.text?.content || '',
+          duration: page.properties['🤖 Duration']?.rich_text[0]?.text?.content || '',
+          viewCount: page.properties['🤖 View Count']?.number || 0,
+          publishedDate: page.properties['🤖 Published Date']?.date?.start || '',
           // AI-generated content fields
-          optimizedTitle: page.properties['🔒 Optimized Title']?.rich_text[0]?.text?.content || '',
-          optimizedDescription: page.properties['🔒 Optimized Description']?.rich_text[0]?.text?.content || '',
-          keywords: page.properties['🔒 Keywords']?.multi_select?.map(option => option.name) || [],
+          optimizedTitle: page.properties['🤖 Optimized Title']?.rich_text[0]?.text?.content || '',
+          optimizedDescription: page.properties['🤖 Optimized Description']?.rich_text[0]?.text?.content || '',
+          keywords: page.properties['🤖 Keywords']?.multi_select?.map(option => option.name) || [],
           // Script processing fields
-          totalSentences: page.properties['🔒 Total Sentences']?.number || 0,
-          completedSentences: page.properties['🔒 Completed Sentences']?.number || 0,
-          thumbnail: page.properties['🔒 Thumbnail']?.url || '',
-          thumbnailPrompt: page.properties['🔒 New Thumbnail Prompt']?.rich_text[0]?.text?.content || '',
-          scriptStatus: page.properties['🔒 Sentence Status']?.select?.name || '',
+          totalSentences: page.properties['🤖 Total Sentences']?.number || 0,
+          completedSentences: page.properties['🤖 Completed Sentences']?.number || 0,
+          thumbnail: page.properties['🤖 Thumbnail']?.url || '',
+          thumbnailPrompt: page.properties['🤖 New Thumbnail Prompt']?.rich_text[0]?.text?.content || '',
+          scriptStatus: page.properties['🤖 Sentence Status']?.select?.name || '',
+          voiceGenerationStatus: page.properties['🤖 Voice Generation Status']?.select?.name || 'Not Started',
+          videoEditingStatus: page.properties['🤖 Video Editing Status']?.select?.name || 'Not Started',
+          // Error tracking fields for retry logic
+          errorMessage: page.properties['🤖 Error Message']?.rich_text[0]?.text?.content || '',
+          errorStage: page.properties['🤖 Error Stage']?.rich_text[0]?.text?.content || '',
+          errorTime: page.properties['🤖 Error Time']?.date?.start || '',
+          retryCount: page.properties['🤖 Retry Count']?.number || 0,
+          lastRetryTime: page.properties['🤖 Last Retry Time']?.date?.start || '',
           createdTime: page.created_time
         };
       });
@@ -482,7 +625,7 @@ class NotionService {
   async addVideoUrl(url) {
     try {
       const properties = {
-        '🔒 Title': {
+        '🤖 Title': {
           title: [
             {
               text: {
@@ -491,12 +634,22 @@ class NotionService {
             }
           ]
         },
-        'YouTube URL': {
+        '🔧 YouTube URL': {
           url: url
         },
-        '🔒 Status': {
+        '🤖 Status': {
           select: {
             name: 'New'
+          }
+        },
+        '🤖 Voice Generation Status': {
+          select: {
+            name: 'Not Started'
+          }
+        },
+        '🤖 Video Editing Status': {
+          select: {
+            name: 'Not Started'
           }
         }
       };
@@ -517,7 +670,7 @@ class NotionService {
   async autoPopulateVideoData(pageId, youtubeData) {
     try {
       const properties = {
-        '🔒 Title': {
+        '🤖 Title': {
           title: [
             {
               text: {
@@ -526,7 +679,7 @@ class NotionService {
             }
           ]
         },
-        '🔒 Channel': {
+        '🤖 Channel': {
           rich_text: [
             {
               text: {
@@ -535,7 +688,7 @@ class NotionService {
             }
           ]
         },
-        '🔒 Duration': {
+        '🤖 Duration': {
           rich_text: [
             {
               text: {
@@ -544,15 +697,15 @@ class NotionService {
             }
           ]
         },
-        '🔒 View Count': {
+        '🤖 View Count': {
           number: parseInt(youtubeData.viewCount) || 0
         },
-        '🔒 Published Date': {
+        '🤖 Published Date': {
           date: {
             start: youtubeData.publishedAt || new Date().toISOString().split('T')[0]
           }
         },
-        '🔒 YouTube Video ID': {
+        '🤖 YouTube Video ID': {
           rich_text: [
             {
               text: {
@@ -561,7 +714,7 @@ class NotionService {
             }
           ]
         },
-        '🔒 Status': {
+        '🤖 Status': {
           select: {
             name: 'Processing'
           }
@@ -588,6 +741,37 @@ class NotionService {
       return true;
     } catch (error) {
       logger.error('Error approving script:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * DEPRECATED: Auto-updates are no longer used for Voice Generation Status and Video Editing Status
+   * These fields are now manual (👤) and require human control for proper workflow management
+   * This method is kept for backward compatibility but no longer performs updates
+   * @param {string} pageId - Notion page ID
+   * @param {string} automationStatus - Current automation status
+   * @param {string} currentVoiceStatus - Current voice generation status
+   * @param {string} currentVideoEditingStatus - Current video editing status
+   * @returns {Promise<Object>} - Status information (no updates performed)
+   */
+  async autoUpdateWorkflowStatuses(pageId, automationStatus, currentVoiceStatus = 'Not Ready', currentVideoEditingStatus = 'Not Ready') {
+    try {
+      logger.info(`Skipping auto-update for ${pageId}: Voice and Video Editing statuses are now manual (👤)`);
+      
+      // Voice Generation Status and Video Editing Status are now manual fields
+      // Users must update these manually through the Notion interface
+      
+      return {
+        updated: false,
+        voiceStatusUpdated: false,
+        videoEditingStatusUpdated: false,
+        newVoiceStatus: currentVoiceStatus,
+        newVideoEditingStatus: currentVideoEditingStatus,
+        note: 'Voice Generation Status and Video Editing Status are now manual fields (👤)'
+      };
+    } catch (error) {
+      logger.error('Error in deprecated autoUpdateWorkflowStatuses:', error);
       throw error;
     }
   }
@@ -1040,26 +1224,26 @@ class NotionService {
       // Create database properties schema with optimized configuration and protection indicators
       const properties = {
         'Sentence': {
-          title: {} // Only user-editable field (no 🔒 prefix)
+          title: {} // Only user-editable field (no 🤖 prefix)
         },
-        '🔒 Sentence Number': {
+        '🤖 Sentence Number': {
           number: {
             format: 'number'
           }
         },
-        '🔒 Script Text': {
+        '🤖 Script Text': {
           rich_text: {}
         },
-        '🔒 Image Prompt': {
+        '🤖 Image Prompt': {
           rich_text: {}
         },
-        '🔒 Generated Image URL': {
+        '🤖 Generated Image URL': {
           url: {}
         },
-        '🔒 Editor Keywords': {
+        '🤖 Editor Keywords': {
           rich_text: {}
         },
-        '🔒 Status': {
+        '🤖 Status': {
           select: {
             options: [
               { name: 'Pending', color: 'gray' },
@@ -1069,15 +1253,15 @@ class NotionService {
             ]
           }
         },
-        '🔒 Word Count': {
+        '🤖 Word Count': {
           formula: {
-            expression: 'length(prop("🔒 Script Text"))'  // Updated to reference the new property name
+            expression: 'length(prop("🤖 Script Text"))'  // Updated to reference the new property name
           }
         },
-        '🔒 Created Time': {
+        '🤖 Created Time': {
           created_time: {}
         },
-        '🔒 Last Edited Time': {
+        '🤖 Last Edited Time': {
           last_edited_time: {}
         }
       };
@@ -1121,7 +1305,7 @@ class NotionService {
     try {
       // First get the video title for database naming
       const videoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
-      const videoTitle = videoPage.properties['🔒 Title']?.title[0]?.text?.content || 'Unknown Video';
+      const videoTitle = videoPage.properties['🤖 Title']?.title[0]?.text?.content || 'Unknown Video';
       
       logger.info(`Creating script breakdown for video: ${videoTitle}`);
       
@@ -1149,10 +1333,10 @@ class NotionService {
               }
             ]
           },
-          '🔒 Sentence Number': {
+          '🤖 Sentence Number': {
             number: sentenceNumber
           },
-          '🔒 Script Text': {
+          '🤖 Script Text': {
             rich_text: [
               {
                 text: {
@@ -1161,7 +1345,7 @@ class NotionService {
               }
             ]
           },
-          '🔒 Image Prompt': {
+          '🤖 Image Prompt': {
             rich_text: [
               {
                 text: {
@@ -1170,7 +1354,7 @@ class NotionService {
               }
             ]
           },
-          '🔒 Editor Keywords': {
+          '🤖 Editor Keywords': {
             rich_text: [
               {
                 text: {
@@ -1179,7 +1363,7 @@ class NotionService {
               }
             ]
           },
-          '🔒 Status': {
+          '🤖 Status': {
             select: {
               name: 'Pending'
             }
@@ -1205,7 +1389,7 @@ class NotionService {
 
       // Verify the script status was updated successfully
       const updatedVideoPage = await this.notion.pages.retrieve({ page_id: videoPageId });
-      const scriptStatus = updatedVideoPage.properties['🔒 Sentence Status']?.select?.name;
+      const scriptStatus = updatedVideoPage.properties['🤖 Sentence Status']?.select?.name;
       
       if (scriptStatus === 'Script Created') {
         logger.info(`Successfully updated script status to: ${scriptStatus}`);
@@ -1245,7 +1429,7 @@ class NotionService {
       }
 
       const updateProperties = {
-        '🔒 Status': {
+        '🤖 Status': {
           select: {
             name: status
           }
@@ -1254,7 +1438,7 @@ class NotionService {
 
       if (imageUrl) {
         logger.info(`Adding image URL to sentence ${sentenceNumber}: ${imageUrl.substring(0, 50)}...`);
-        updateProperties['🔒 Generated Image URL'] = {
+        updateProperties['🤖 Generated Image URL'] = {
           url: imageUrl
         };
       }
@@ -1303,7 +1487,7 @@ class NotionService {
       const response = await this.notion.databases.query({
         database_id: scriptDatabaseId,
         filter: {
-          property: '🔒 Sentence Number',
+          property: '🤖 Sentence Number',
           number: {
             equals: sentenceNumber
           }
@@ -1317,12 +1501,12 @@ class NotionService {
       const page = response.results[0];
       return {
         id: page.id,
-        sentenceNumber: page.properties['🔒 Sentence Number']?.number || 0,
-        scriptText: page.properties['🔒 Script Text']?.rich_text[0]?.text?.content || '',
-        imagePrompt: page.properties['🔒 Image Prompt']?.rich_text[0]?.text?.content || '',
-        imageUrl: page.properties['🔒 Generated Image URL']?.url || '',
-        editorKeywords: page.properties['🔒 Editor Keywords']?.rich_text[0]?.text?.content || '',
-        status: page.properties['🔒 Status']?.select?.name || 'Pending'
+        sentenceNumber: page.properties['🤖 Sentence Number']?.number || 0,
+        scriptText: page.properties['🤖 Script Text']?.rich_text[0]?.text?.content || '',
+        imagePrompt: page.properties['🤖 Image Prompt']?.rich_text[0]?.text?.content || '',
+        imageUrl: page.properties['🤖 Generated Image URL']?.url || '',
+        editorKeywords: page.properties['🤖 Editor Keywords']?.rich_text[0]?.text?.content || '',
+        status: page.properties['🤖 Status']?.select?.name || 'Pending'
       };
       
     } catch (error) {
@@ -1382,7 +1566,7 @@ class NotionService {
         database_id: scriptDatabaseId,
         sorts: [
           {
-            property: '🔒 Sentence Number',
+            property: '🤖 Sentence Number',
             direction: 'ascending'
           }
         ]
@@ -1392,13 +1576,13 @@ class NotionService {
 
       return response.results.map(page => ({
         id: page.id,
-        sentenceNumber: page.properties['🔒 Sentence Number']?.number || 0,
-        scriptText: page.properties['🔒 Script Text']?.rich_text[0]?.text?.content || '',
-        imagePrompt: page.properties['🔒 Image Prompt']?.rich_text[0]?.text?.content || '',
-        imageUrl: page.properties['🔒 Generated Image URL']?.url || '',
-        editorKeywords: page.properties['🔒 Editor Keywords']?.rich_text[0]?.text?.content || '',
-        status: page.properties['🔒 Status']?.select?.name || 'Pending',
-        wordCount: page.properties['🔒 Word Count']?.formula?.number || 0,
+        sentenceNumber: page.properties['🤖 Sentence Number']?.number || 0,
+        scriptText: page.properties['🤖 Script Text']?.rich_text[0]?.text?.content || '',
+        imagePrompt: page.properties['🤖 Image Prompt']?.rich_text[0]?.text?.content || '',
+        imageUrl: page.properties['🤖 Generated Image URL']?.url || '',
+        editorKeywords: page.properties['🤖 Editor Keywords']?.rich_text[0]?.text?.content || '',
+        status: page.properties['🤖 Status']?.select?.name || 'Pending',
+        wordCount: page.properties['🤖 Word Count']?.formula?.number || 0,
         createdTime: page.created_time
       }));
       
