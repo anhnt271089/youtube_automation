@@ -10,6 +10,7 @@ import YouTubeService from '../src/services/youtubeService.js';
 import NotionService from '../src/services/notionService.js';
 import TelegramService from '../src/services/telegramService.js';
 import AIService from '../src/services/aiService.js';
+import DigitalOceanService from '../src/services/digitalOceanService.js';
 import logger from '../src/utils/logger.js';
 
 class HealthChecker {
@@ -19,7 +20,8 @@ class HealthChecker {
       'YouTube': new YouTubeService(),
       'Notion': new NotionService(),
       'Telegram': new TelegramService(),
-      'AI': new AIService()
+      'AI': new AIService(),
+      'Digital Ocean': new DigitalOceanService()
     };
   }
 

@@ -1,4 +1,13 @@
-import AWS from 'aws-sdk';
+import { 
+  S3Client, 
+  PutObjectCommand, 
+  ListObjectsV2Command, 
+  DeleteObjectCommand, 
+  HeadBucketCommand, 
+  HeadObjectCommand 
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 import fs from 'fs';
@@ -6,14 +15,15 @@ import path from 'path';
 
 class DigitalOceanService {
   constructor() {
-    // Configure AWS SDK to work with Digital Ocean Spaces
-    this.s3 = new AWS.S3({
-      endpoint: config.digitalOcean.endpoint,
-      accessKeyId: config.digitalOcean.accessKey,
-      secretAccessKey: config.digitalOcean.secretKey,
+    // Configure AWS SDK v3 to work with Digital Ocean Spaces
+    this.s3Client = new S3Client({
+      endpoint: `https://${config.digitalOcean.endpoint}`,
+      credentials: {
+        accessKeyId: config.digitalOcean.accessKey,
+        secretAccessKey: config.digitalOcean.secretKey,
+      },
       region: config.digitalOcean.region,
-      s3ForcePathStyle: false, // Configures to use subdomain/virtual calling format
-      signatureVersion: 'v4'
+      forcePathStyle: false, // Configures to use subdomain/virtual calling format
     });
     
     this.bucketName = config.digitalOcean.bucketName;
@@ -43,7 +53,7 @@ class DigitalOceanService {
 
       const key = `${folder}/${fileName}`;
       
-      const uploadParams = {
+      const uploadCommand = new PutObjectCommand({
         Bucket: this.bucketName,
         Key: key,
         Body: imageBuffer,
@@ -54,20 +64,21 @@ class DigitalOceanService {
           'uploaded-by': 'youtube-automation',
           'upload-date': new Date().toISOString()
         }
-      };
+      });
 
-      logger.info(`Uploading image to DO Spaces: ${key}`);
-      const result = await this.s3.upload(uploadParams).promise();
+      logger.info(`DO upload: ${key}`);
+      const result = await this.s3Client.send(uploadCommand);
       
-      // Generate CDN URL if available
+      // Generate URLs (AWS SDK v3 doesn't return Location, construct it manually)
+      const baseUrl = `https://${this.bucketName}.${config.digitalOcean.region}.digitaloceanspaces.com/${key}`;
       const cdnUrl = this.cdnUrl ? 
         `${this.cdnUrl}/${key}` : 
-        result.Location;
+        baseUrl;
 
-      logger.info(`Image uploaded successfully: ${cdnUrl}`);
+      logger.info(`DO image: ${cdnUrl}`);
       
       return {
-        url: result.Location,
+        url: baseUrl,
         cdnUrl: cdnUrl,
         key: key,
         etag: result.ETag
@@ -90,7 +101,7 @@ class DigitalOceanService {
       const fileBuffer = fs.readFileSync(filePath);
       const key = `${folder}/${fileName}`;
       
-      const uploadParams = {
+      const uploadCommand = new PutObjectCommand({
         Bucket: this.bucketName,
         Key: key,
         Body: fileBuffer,
@@ -101,19 +112,21 @@ class DigitalOceanService {
           'uploaded-by': 'youtube-automation',
           'upload-date': new Date().toISOString()
         }
-      };
+      });
 
-      logger.info(`Uploading video to DO Spaces: ${key}`);
-      const result = await this.s3.upload(uploadParams).promise();
+      logger.info(`DO video upload: ${key}`);
+      const result = await this.s3Client.send(uploadCommand);
       
+      // Generate URLs (AWS SDK v3 doesn't return Location, construct it manually)
+      const baseUrl = `https://${this.bucketName}.${config.digitalOcean.region}.digitaloceanspaces.com/${key}`;
       const cdnUrl = this.cdnUrl ? 
         `${this.cdnUrl}/${key}` : 
-        result.Location;
+        baseUrl;
 
-      logger.info(`Video uploaded successfully: ${cdnUrl}`);
+      logger.info(`DO video: ${cdnUrl}`);
       
       return {
-        url: result.Location,
+        url: baseUrl,
         cdnUrl: cdnUrl,
         key: key,
         etag: result.ETag
@@ -140,20 +153,22 @@ class DigitalOceanService {
       for (const subfolder of subfolders) {
         const placeholderKey = `${folderPath}/${subfolder}/.placeholder`;
         
-        await this.s3.putObject({
+        const putCommand = new PutObjectCommand({
           Bucket: this.bucketName,
           Key: placeholderKey,
           Body: '',
           ACL: 'public-read',
           ContentType: 'text/plain'
-        }).promise();
+        });
+        
+        await this.s3Client.send(putCommand);
         
         folderUrls[subfolder] = this.cdnUrl ? 
           `${this.cdnUrl}/${folderPath}/${subfolder}/` : 
           `https://${this.bucketName}.${config.digitalOcean.region}.digitaloceanspaces.com/${folderPath}/${subfolder}/`;
       }
 
-      logger.info(`Created folder structure for video ${videoId}`);
+      logger.info(`DO folders: ${videoId}`);
       
       return {
         folderPath,
@@ -172,12 +187,12 @@ class DigitalOceanService {
    */
   async listFiles(folderPath) {
     try {
-      const params = {
+      const listCommand = new ListObjectsV2Command({
         Bucket: this.bucketName,
         Prefix: folderPath.endsWith('/') ? folderPath : `${folderPath}/`
-      };
+      });
 
-      const result = await this.s3.listObjectsV2(params).promise();
+      const result = await this.s3Client.send(listCommand);
       
       return result.Contents.map(item => ({
         key: item.Key,
@@ -200,12 +215,14 @@ class DigitalOceanService {
    */
   async deleteFile(key) {
     try {
-      await this.s3.deleteObject({
+      const deleteCommand = new DeleteObjectCommand({
         Bucket: this.bucketName,
         Key: key
-      }).promise();
+      });
       
-      logger.info(`Deleted file: ${key}`);
+      await this.s3Client.send(deleteCommand);
+      
+      logger.info(`DO deleted: ${key}`);
       return true;
     } catch (error) {
       logger.error('Error deleting file from Digital Ocean Spaces:', error);
@@ -221,13 +238,12 @@ class DigitalOceanService {
    */
   async getPresignedUrl(key, expiresIn = 3600) {
     try {
-      const params = {
+      const getObjectCommand = new GetObjectCommand({
         Bucket: this.bucketName,
-        Key: key,
-        Expires: expiresIn
-      };
+        Key: key
+      });
 
-      return await this.s3.getSignedUrlPromise('getObject', params);
+      return await getSignedUrl(this.s3Client, getObjectCommand, { expiresIn });
     } catch (error) {
       logger.error('Error generating presigned URL:', error);
       throw error;
@@ -241,10 +257,12 @@ class DigitalOceanService {
    */
   async getFileMetadata(key) {
     try {
-      const result = await this.s3.headObject({
+      const headCommand = new HeadObjectCommand({
         Bucket: this.bucketName,
         Key: key
-      }).promise();
+      });
+      
+      const result = await this.s3Client.send(headCommand);
       
       return {
         contentType: result.ContentType,
@@ -265,8 +283,9 @@ class DigitalOceanService {
    */
   async healthCheck() {
     try {
-      await this.s3.headBucket({ Bucket: this.bucketName }).promise();
-      logger.info('Digital Ocean Spaces health check passed');
+      const headBucketCommand = new HeadBucketCommand({ Bucket: this.bucketName });
+      await this.s3Client.send(headBucketCommand);
+      logger.info('DO health check passed');
       return true;
     } catch (error) {
       logger.error('Digital Ocean Spaces health check failed:', error);
@@ -280,8 +299,8 @@ class DigitalOceanService {
    */
   async getStorageStats() {
     try {
-      const params = { Bucket: this.bucketName };
-      const result = await this.s3.listObjectsV2(params).promise();
+      const listCommand = new ListObjectsV2Command({ Bucket: this.bucketName });
+      const result = await this.s3Client.send(listCommand);
       
       const stats = {
         totalFiles: result.Contents.length,
