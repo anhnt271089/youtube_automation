@@ -771,7 +771,7 @@ Create a detailed prompt for generating this thumbnail image.`;
           });
           
           // Download and upload to Digital Ocean Spaces
-          const fileName = `${videoId}_image_${String(i + 1).padStart(3, '0')}.png`;
+          const fileName = `${videoId.replace(/-/g, '_')}_image_${String(i + 1).padStart(3, '0')}.jpg`;
           const uploadResult = await this.downloadAndUploadImage(
             imageResult.url,
             fileName,

@@ -268,6 +268,9 @@ class WorkflowService {
         displayTitle: `${videoDisplayId} - ${videoData.title}`
       });
 
+      // Set the proper VideoID (VID-XX format) for Digital Ocean operations
+      videoData.videoId = videoDisplayId;
+      
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
 
       await this.telegramService.sendScriptGenerated(
@@ -437,7 +440,7 @@ class WorkflowService {
       const thumbnailResult = enhancedContent.thumbnail;
       if (thumbnailResult) {
         // Upload thumbnail to Digital Ocean if not already done
-        const thumbnailFileName = `${videoInfo.videoId || videoInfo.id}_thumbnail.png`;
+        const thumbnailFileName = `${(videoInfo.videoId || videoInfo.id).replace(/-/g, '_')}_thumbnail.jpg`;
         try {
           const thumbnailUpload = await this.aiService.downloadAndUploadImage(
             thumbnailResult.url,
@@ -495,6 +498,9 @@ class WorkflowService {
       await this.notionService.updateVideoStatus(videoInfo.id, 'Generating Final Video');
 
       const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
+      // Set the proper VideoID (VID-XX format) for Digital Ocean operations
+      videoData.videoId = videoInfo.videoId || videoInfo.id;
+      
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
 
       // Get existing image paths from previous processing step
