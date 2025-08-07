@@ -31,7 +31,7 @@ class TelegramService {
   }
 
   async sendScriptGenerated(videoTitle, _scriptPreview) {
-    const message = `✍️ <b>Script Generated</b>\n\n🎬 ${videoTitle}\n✅ Ready for approval`;
+    const message = `✍️ <b>Script Separated</b>\n\n🎬 ${videoTitle}\n✅ Ready for approval`;
     return await this.sendMessage(message);
   }
 
