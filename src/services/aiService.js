@@ -33,7 +33,7 @@ class AIService {
       'dall-e-3-hd': 0.08 // HD quality
     };
     
-    // Enhanced style templates for professional video content (BeyondBeing-inspired)
+    // Enhanced style templates for professional video content
     this.styleTemplates = {
       'minimalist': 'clean minimalist design with sophisticated color palette, modern geometric elements, premium aesthetic with subtle gradients, professional lighting, space for text overlay, high-contrast elements',
       'realistic': 'cinematic photorealistic style with dramatic lighting, professional composition, rich textures, depth of field, premium quality aesthetics, inspiring and motivational mood',
@@ -53,7 +53,6 @@ You are a professional YouTube content creator and scriptwriter. Transform the f
 
 Original Video Information:
 - Title: ${videoMetadata.title}
-- Channel: ${videoMetadata.channelTitle}
 - Description: ${videoMetadata.description?.substring(0, 500)}
 
 Original Transcript:
@@ -105,7 +104,6 @@ ${script}
 
 Original Video Data:
 - Title: ${originalMetadata.title}
-- Channel: ${originalMetadata.channelTitle}
 - Original Description: ${originalMetadata.description?.substring(0, 300)}
 
 Keywords to include: ${keywords.join(', ')}
@@ -201,7 +199,6 @@ Return 5 title options, each on a new line, numbered 1-5.`;
 Perform keyword research for a YouTube video based on the following content:
 
 Video Content: ${videoContent.substring(0, 800)}
-Niche/Category: ${niche}
 
 Generate:
 1. 10 primary keywords (high search volume, relevant)
@@ -319,7 +316,6 @@ Return the sentences as a JSON array of strings, like this:
 Analyze the following video content and select the most appropriate visual style:
 
 Title: ${metadata.title}
-Channel: ${metadata.channelTitle}
 Script Preview: ${script.substring(0, 500)}...
 
 Available styles:
@@ -364,11 +360,11 @@ Return only the style name (one word) that best matches this content.`;
       };
     } catch (error) {
       logger.error('Error selecting video style:', error);
-      // Default fallback to BeyondBeing style for better visual appeal
+      // Default fallback to professional style for better visual appeal
       return {
-        style: 'beyondbeing',
-        template: this.styleTemplates.beyondbeing,
-        description: 'Default BeyondBeing inspirational style'
+        style: 'professional',
+        template: this.styleTemplates.professional || this.styleTemplates.beyondbeing,
+        description: 'Default professional inspirational style'
       };
     }
   }
@@ -685,7 +681,7 @@ ENGAGEMENT OPTIMIZATION:
 17. Clean typography areas that don't compete with the main visual elements
 18. Subtle texture and gradient work for premium feel without visual clutter
 
-STYLE CHARACTERISTICS (BeyondBeing Aesthetic):
+STYLE CHARACTERISTICS (Professional Aesthetic):
 - Clean, inspirational design with modern sophistication
 - Uplifting color psychology with calming yet energizing tones
 - Professional quality that conveys expertise and trustworthiness  
@@ -693,7 +689,7 @@ STYLE CHARACTERISTICS (BeyondBeing Aesthetic):
 - Contemporary motivational imagery that feels aspirational
 - Premium finish that reflects high-value content
 
-Generate a detailed DALL-E prompt that creates this professional, BeyondBeing-style thumbnail.`;
+Generate a detailed DALL-E prompt that creates this professional-style thumbnail.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -850,7 +846,7 @@ Generate a detailed DALL-E prompt that creates this professional, BeyondBeing-st
       const videoId = videoData.videoId || videoData.id;
       
       const [keywordData, attractiveScript] = await Promise.all([
-        this.performKeywordResearch(videoData.transcriptText, videoData.channelTitle),
+        this.performKeywordResearch(videoData.transcriptText),
         this.generateAttractiveScript(videoData.transcriptText, videoData)
       ]);
 
