@@ -647,7 +647,7 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
 
   async generateThumbnail(videoTitle, script, options = {}) {
     try {
-      const { style = 'eye-catching', videoId, videoStyle } = options;
+      const { videoId, videoStyle } = options;
       
       // Use consistent style if provided
       const styleTemplate = videoStyle?.template || 'eye-catching and clickable design';
@@ -740,9 +740,10 @@ Generate a detailed DALL-E prompt that creates this professional, BeyondBeing-st
    * @param {string} imageUrl - URL of the image to download
    * @param {string} fileName - Name for the uploaded file
    * @param {string} videoId - Video identifier for folder organization
+   * @param {string} folderType - Type of folder ('images' or 'thumbnails')
    * @returns {Promise<{url: string, cdnUrl: string}>}
    */
-  async downloadAndUploadImage(imageUrl, fileName, videoId) {
+  async downloadAndUploadImage(imageUrl, fileName, videoId, folderType = 'images') {
     try {
       // Download image
       const response = await axios.get(imageUrl, {
@@ -752,17 +753,17 @@ Generate a detailed DALL-E prompt that creates this professional, BeyondBeing-st
       
       const imageBuffer = Buffer.from(response.data);
       
-      // Upload to Digital Ocean Spaces
+      // Upload to Digital Ocean Spaces with correct folder
       const uploadResult = await this.digitalOceanService.uploadImage(
         imageBuffer,
         fileName,
-        `videos/${videoId}/images`
+        `videos/${videoId}/${folderType}`
       );
       
-      logger.info(`Image uploaded to DO Spaces: ${uploadResult.cdnUrl}`);
+      logger.info(`DO ${folderType}: ${uploadResult.cdnUrl}`);
       return uploadResult;
     } catch (error) {
-      logger.error('Error downloading and uploading image:', error);
+      logger.error(`Error downloading and uploading ${folderType}:`, error);
       throw error;
     }
   }
