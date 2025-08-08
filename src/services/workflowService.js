@@ -138,7 +138,7 @@ class WorkflowService {
 
   async processNewVideos() {
     try {
-      logger.info('Processing new videos...');
+      logger.info('🆕 Processing new videos...');
       
       // Process both "New" and "Processing" status videos to handle interrupted workflows
       const [newVideos, processingVideos] = await Promise.all([
@@ -149,18 +149,18 @@ class WorkflowService {
       const allVideosToProcess = [...newVideos, ...processingVideos];
       
       if (allVideosToProcess.length === 0) {
-        logger.info('No videos to process');
+        logger.info('🆕 No videos to process');
         return { success: true, processed: 0, message: 'No videos to process' };
       }
 
-      logger.info(`Found ${newVideos.length} new + ${processingVideos.length} resuming`);
+      logger.info(`🆕 Found ${newVideos.length} new + ${processingVideos.length} resuming`);
       let processedCount = 0;
 
       for (const video of allVideosToProcess) {
         try {
           // For processing videos, continue from where they left off
           if (video.status === 'Processing') {
-            logger.info(`Resuming ${video.videoId}`);
+            logger.info(`🔄 Resuming ${video.videoId}`);
             await this.resumeVideoProcessing(video);
           } else {
             // Normal processing for new videos
@@ -173,7 +173,7 @@ class WorkflowService {
         }
       }
 
-      logger.info('New videos completed');
+      logger.info('🆕 New videos completed');
       return { 
         success: true, 
         processed: processedCount, 
@@ -191,7 +191,7 @@ class WorkflowService {
 
   async resumeVideoProcessing(video) {
     try {
-      logger.info(`Resuming ${video.videoId}`);
+      logger.info(`🔄 Resuming ${video.videoId}`);
       
       // Get complete video data from YouTube
       const videoData = await this.youtubeService.getCompleteVideoData(video.youtubeUrl);
@@ -250,7 +250,7 @@ class WorkflowService {
 
   async processApprovedScripts() {
     try {
-      logger.info('Processing approved scripts...');
+      logger.info('✅ Processing approved scripts...');
       
       // Process both "Approved" and "Generating Images" status videos to handle interrupted workflows
       const [approvedVideos, generatingVideos] = await Promise.all([
@@ -261,17 +261,17 @@ class WorkflowService {
       const allVideosToProcess = [...approvedVideos, ...generatingVideos];
       
       if (allVideosToProcess.length === 0) {
-        logger.info('No approved scripts to process');
+        logger.info('✅ No approved scripts to process');
         return { success: true, processed: 0, message: 'No approved scripts to process' };
       }
 
-      logger.info(`Found ${approvedVideos.length} approved + ${generatingVideos.length} generating`);
+      logger.info(`✅ Found ${approvedVideos.length} approved + ${generatingVideos.length} generating`);
       let processedCount = 0;
       
       for (const video of allVideosToProcess) {
         try {
           if (video.status === 'Generating Images') {
-            logger.info(`Resuming ${video.videoId}`);
+            logger.info(`🔄 Resuming ${video.videoId}`);
           }
           await this.processApprovedScript(video);
           processedCount++;
@@ -281,7 +281,7 @@ class WorkflowService {
         }
       }
 
-      logger.info('Scripts completed');
+      logger.info('✅ Scripts completed');
       return { 
         success: true, 
         processed: processedCount, 
@@ -303,16 +303,16 @@ class WorkflowService {
    */
   async processReadyForReview() {
     try {
-      logger.info('Processing videos ready for review...');
+      logger.info('👀 Processing videos ready for review...');
       
       const readyForReviewVideos = await this.getVideosByStatus('Ready for Review');
       
       if (readyForReviewVideos.length === 0) {
-        logger.info('No videos ready for review');
+        logger.info('👀 No videos ready for review');
         return { success: true, processed: 0, message: 'No videos ready for review' };
       }
 
-      logger.info(`Found ${readyForReviewVideos.length} videos ready for review`);
+      logger.info(`👀 Found ${readyForReviewVideos.length} videos ready for review`);
       let processedCount = 0;
       
       for (const video of readyForReviewVideos) {
@@ -365,16 +365,16 @@ class WorkflowService {
    */
   async processErrorVideos() {
     try {
-      logger.info('Processing error videos for retry...');
+      logger.info('🔄 Processing error videos for retry...');
       
       const errorVideos = await this.getVideosByStatus('Error');
       
       if (errorVideos.length === 0) {
-        logger.info('No error videos to retry');
+        logger.info('🔄 No error videos to retry');
         return { success: true, processed: 0, message: 'No error videos to retry' };
       }
 
-      logger.info(`Found ${errorVideos.length} error videos`);
+      logger.info(`🔄 Found ${errorVideos.length} error videos`);
       let processedCount = 0;
       let retriedCount = 0;
       
@@ -461,7 +461,7 @@ class WorkflowService {
 
   async processNewUrl(youtubeUrl) {
     try {
-      logger.info(`New URL: ${youtubeUrl}`);
+      logger.info(`🎬 New URL: ${youtubeUrl}`);
       
       // Step 1: Extract YouTube data first
       const videoData = await this.youtubeService.getCompleteVideoData(youtubeUrl);
@@ -630,7 +630,7 @@ class WorkflowService {
         );
       }
 
-      logger.info(`Initial processing completed for: ${videoData.title}`);
+      logger.info(`🎬 Initial processing completed for: ${videoData.title}`);
       this.stats.totalProcessed++;
       
       return {
@@ -647,7 +647,7 @@ class WorkflowService {
 
   async processApprovedScript(videoInfo) {
     try {
-      logger.info(`Approved: ${videoInfo.title}`);
+      logger.info(`🎨 Approved: ${videoInfo.title}`);
 
       const videoDisplayId = videoInfo.videoId;
       
@@ -788,7 +788,7 @@ class WorkflowService {
       // Note: Video Editing Status will only update if Voice Generation Status is "Completed"
       await this.autoUpdateWorkflowStatuses(videoInfo.videoId, 'Completed', videoInfo.voiceGenerationStatus);
 
-      logger.info(`Script processing completed for: ${videoInfo.title} (${generatedImages.length} images, $${costSummary.totalCost.toFixed(4)})`);
+      logger.info(`🎨 Script processing completed for: ${videoInfo.title} (${generatedImages.length} images, $${costSummary.totalCost.toFixed(4)})`);
       
       return { 
         videoData, 
@@ -957,7 +957,7 @@ class WorkflowService {
 
   async processSingleVideo(video) {
     try {
-      logger.info(`Single video: ${video.title || video.youtubeUrl}`);
+      logger.info(`🎯 Single video: ${video.title || video.youtubeUrl}`);
       
       let videoData;
       
@@ -1048,7 +1048,7 @@ class WorkflowService {
    */
   async processStatusChanges() {
     try {
-      logger.info('Starting status change monitoring workflow...');
+      logger.info('📊 Starting status change monitoring workflow...');
       
       const result = await this.statusMonitorService.monitorStatusChanges();
       
