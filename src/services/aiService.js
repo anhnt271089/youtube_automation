@@ -119,7 +119,7 @@ Focus on preserving the essence while enabling development and enhancement.`;
     }
   }
 
-  async generateAttractiveScript(originalTranscript, videoMetadata, contextAnalysis = null) {
+  async generateAttractiveScript(originalTranscript, videoMetadata, contextAnalysis = null, keywordData = null) {
     try {
       // Perform context analysis if not provided (for regeneration scenarios)
       let context = contextAnalysis;
@@ -128,7 +128,7 @@ Focus on preserving the essence while enabling development and enhancement.`;
       }
 
       const prompt = `
-You are a professional YouTube content creator and scriptwriter. Transform the following video transcript into a more engaging, attractive script for a 2-3 minute video.
+You are a viral YouTube content strategist and scriptwriter with expertise in algorithm optimization and audience psychology. Transform the original video into breakthrough content that maximizes engagement and viral potential.
 
 CONTEXT ANALYSIS:
 - Original Script Intent: ${context.originalScriptIntent}
@@ -145,31 +145,144 @@ Original Video Information:
 - Title: ${videoMetadata.title}
 - Description: ${videoMetadata.description?.substring(0, 500)}
 
-Original Transcript:
+Original Transcript (Use as inspiration only):
 ${originalTranscript}
 
-REGENERATION INSTRUCTIONS:
-1. PRESERVE: Same audience, same vibe, same intent
-2. DEVELOP: Expand ideas, improve flow, enhance engagement
-3. MAINTAIN: Original hook style, call-to-action approach
-4. ENHANCE: Better transitions, clearer messaging
+${keywordData ? `
+SEO KEYWORD INTEGRATION STRATEGY:
+- Primary Keywords (integrate 2-3 naturally): ${keywordData.primaryKeywords?.join(', ') || 'N/A'}
+- Long-tail Keywords (address problems): ${keywordData.longTailKeywords?.slice(0, 5).join(', ') || 'N/A'}
+- Question Keywords (answer directly): ${keywordData.questionKeywords?.slice(0, 3).join(', ') || 'N/A'}
+- Semantic Keywords (natural mentions): ${keywordData.semanticKeywords?.slice(0, 4).join(', ') || 'N/A'}
 
-CONSTRAINTS:
-- Keep same video style/format
-- Maintain original content pillars
-- Preserve audience-specific language
-- Develop rather than replace core concepts
+SEO OPTIMIZATION REQUIREMENTS:
+✅ Integrate primary keywords naturally throughout script (2-3% density)
+✅ Address long-tail keyword problems within narrative structure
+✅ Answer question keywords directly for voice search optimization
+✅ Include semantic terms for comprehensive topical coverage
+✅ Balance SEO integration with viral psychological triggers
+✅ Ensure keywords flow naturally without compromising engagement
+` : ''}
 
-REQUIREMENTS:
-1. Keep the core message and information intact
-2. Make it more engaging and conversational
-3. Add hooks and compelling transitions
-4. Optimize for 2-3 minute duration
-5. Include clear call-to-actions
-6. Make it suitable for short-form content
-7. Enhance flow while preserving original intent
+VIRAL CONTENT TRANSFORMATION FRAMEWORK:
 
-Return only the improved script without any additional commentary.`;
+🎯 ADVANCED HOOK ARCHITECTURE (First 3-5 seconds - CRITICAL for algorithm):
+- Multi-Layered Pattern Interrupt: Break expectations + create curiosity + establish stakes
+- Nested Curiosity Gaps: "The thing everyone gets wrong about X that even experts miss..."
+- Authority Challenge Hooks: "I've been doing X for 10 years, but this changed everything..."
+- Identity Disruption: "If you think you're a [identity], this will shock you..."
+- Future Pacing with Specificity: "30 days from now, you'll thank yourself for the next 3 minutes..."
+- Embedded Commands: "As you watch this, you'll discover..." / "Notice how this changes..."
+
+📈 ADVANCED ALGORITHM OPTIMIZATION STRATEGIES:
+- Multi-Point Retention Engineering: Hooks at 5s, 15s, 30s, 60s, 2min marks
+- Advanced Comment Bait: Strategic controversial statements + opinion triggers
+- Rewatch Architecture: Dense information layers + callback references
+- Session Extension: "What to watch next" integration + series connectivity
+- Share Psychology: "You need to see this" moments + social validation triggers
+- Engagement Signal Timing: Specific pause points and interaction prompts
+
+🧠 ADVANCED PSYCHOLOGICAL ENGAGEMENT TRIGGERS:
+- Layered Social Proof: Peer validation + expert authority + community belonging
+- Cognitive Scarcity: Information exclusivity + time sensitivity + opportunity cost
+- Multi-Dimensional Authority: Experience + data + results + testimonials
+- Strategic Reciprocity: Value-first approach + exclusive insights + actionable takeaways
+- Identity Alignment: "People like you who..." + aspirational identity + transformation
+- Advanced FOMO: Consequences of inaction + competitive disadvantage + missed opportunities
+- Pre-Suasion Priming: Environmental setup + cognitive ease + receptive state creation
+
+📊 ADVANCED NARRATIVE STRUCTURE FOR MAXIMUM RETENTION:
+
+HERO'S JOURNEY INTEGRATION:
+- Ordinary World Hook (0-10s): Current state + pattern interrupt + curiosity gap
+- Call to Adventure (10-20s): Challenge presentation + pain amplification + stakes
+- Refusal/Hesitation (20-30s): Common objections + fear addressing + hope injection
+- Mentor Introduction (30-45s): Authority establishment + social proof + trust building
+- Crossing Threshold (45s-1:30m): Action commitment + method introduction + value delivery
+- Trials & Solutions (1:30-2m): Obstacles + breakthrough moments + transformation evidence
+- Return with Elixir (2-2:30m): Results demonstration + social validation + success proof
+- Master CTA (2:30-3m): Multi-layered conversion + session extension + community invitation
+
+RETENTION CHECKPOINTS:
+- 5s: Micro-hook + emotional trigger
+- 15s: Value confirmation + algorithm signal
+- 30s: First "aha moment" + engagement prompt
+- 60s: Major transformation tease + retention hook
+- 2m: Evidence/proof + social validation
+
+🚀 ADVANCED VIRALITY MULTIPLIERS:
+- Quotable Moments: Memorable one-liners + screenshot-worthy insights + social media gold
+- Strategic Controversy: Safe polarizing statements + opinion triggers + discussion catalysts  
+- Value Density: Actionable takeaways + save-worthy content + tutorial elements
+- Surprise Elements: Unexpected revelations + humor integration + pattern breaks
+- Universal Connection: Shared experiences + emotional resonance + relatability factors
+- Cognitive Ease + Effort: Familiar concepts explained simply + dense value layers
+- Social Currency: Status-enhancing information + conversation starters + community building
+
+🎭 ADVANCED LANGUAGE PATTERN OPTIMIZATION:
+
+EMBEDDED COMMAND STRUCTURES:
+- "As you continue watching, you'll discover..."
+- "The more you think about this, the clearer it becomes..."
+- "Notice how this changes your perspective on..."
+- "You might find yourself wondering..."
+
+POWER WORD HIERARCHIES:
+- Tier 1 (Attention): "Breakthrough," "Revolutionary," "Forbidden," "Secret," "Exclusive"
+- Tier 2 (Urgency): "Before it's too late," "Limited time," "Disappearing," "Final chance"
+- Tier 3 (Authority): "Proven," "Research shows," "Experts agree," "Studies reveal," "Data confirms"
+- Tier 4 (Transformation): "Transform," "Breakthrough," "Unlock," "Discover," "Master"
+
+COGNITIVE LOAD MANAGEMENT:
+- Information Chunking: Break complex concepts into 3-4 digestible pieces
+- Progressive Disclosure: Layer complexity gradually throughout narrative
+- Mental Models: Create clear frameworks using familiar-to-unfamiliar progression
+- Elaborative Encoding: Connect new information to existing viewer knowledge
+
+EMOTIONAL PROGRESSION MAPPING:
+Curiosity → Concern → Hope → Excitement → Determination → Satisfaction → Action
+Each transition requires specific trigger words and narrative bridges.
+
+CREATIVE TRANSFORMATION REQUIREMENTS:
+✅ Preserve core audience and value proposition while amplifying engagement
+✅ Create completely new stories, examples, and analogies with emotional resonance
+✅ Build Hero's Journey narrative structure with retention checkpoints
+✅ Design multi-layered hooks with embedded commands and authority positioning
+✅ Craft advanced language patterns using psychological triggers and NLP techniques
+✅ Include strategic comment-baiting and discussion catalyst elements
+✅ Structure for maximum algorithm performance with retention engineering
+✅ Integrate social currency and shareable moments throughout narrative
+
+ENHANCED PERFORMANCE TARGETS:
+- 95%+ retention at 15 seconds (algorithm boost threshold)
+- 15%+ click-through rate potential (viral threshold)
+- 3%+ comment rate in first hour (engagement signal strength)
+- 8%+ share probability through social currency integration
+- Strong session duration with next-video connectivity
+- Average watch time >75% for algorithm preference
+- Subscriber conversion rate >2% for growth optimization
+
+MASTER SCRIPT CREATION DIRECTIVE:
+
+Create a breakthrough script using the ADVANCED FRAMEWORK above that serves the same audience but has 10x higher viral potential. Your script must demonstrate:
+
+🎯 HOOK MASTERY: Multi-layered opening with pattern interrupt + curiosity gap + embedded command
+📚 NARRATIVE ARCHITECTURE: Hero's Journey structure with retention checkpoints every 15 seconds  
+🧠 PSYCHOLOGICAL DEPTH: Advanced triggers including pre-suasion, social proof layering, identity alignment
+🎭 LINGUISTIC EXCELLENCE: Power word hierarchies, embedded commands, emotional progression mapping
+📈 ALGORITHM OPTIMIZATION: Specific retention engineering with comment bait and share triggers
+🚀 VIRAL MULTIPLICATION: Social currency, quotable moments, discussion catalysts integrated naturally
+
+CRITICAL SUCCESS FACTORS:
+- Each sentence must serve a specific psychological or algorithmic purpose
+- Include specific retention hooks at 5s, 15s, 30s, 60s, and 2m marks
+- Embed natural comment-baiting questions and controversial (but safe) statements
+- Create at least 3 shareable/quotable moments throughout the narrative
+- Build emotional progression from curiosity to action with smooth transitions
+- Integrate authority establishment, social proof, and identity alignment seamlessly
+- End with multi-layered CTA including next action, community invitation, and session extension
+
+Return only the breakthrough script - no commentary, explanations, or meta-information.`;
 
       const completion = await this.anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
@@ -193,24 +306,62 @@ Return only the improved script without any additional commentary.`;
       // Fallback to OpenAI
       try {
         const fallbackPrompt = `
-You are a professional YouTube content creator and scriptwriter. Transform the following video transcript into a more engaging, attractive script for a 2-3 minute video.
+You are an advanced YouTube scriptwriter and viral content strategist specializing in algorithm optimization and audience psychology. Transform the original content into a breakthrough script with superior engagement potential.
 
 Original Video Information:
 - Title: ${videoMetadata.title}
 - Description: ${videoMetadata.description?.substring(0, 500)}
 
-Original Transcript:
+Original Transcript (Use as inspiration only):
 ${originalTranscript}
 
-Requirements:
-1. Keep the core message and information intact
-2. Make it more engaging and conversational
-3. Add hooks and compelling transitions
-4. Optimize for 2-3 minute duration
-5. Include clear call-to-actions
-6. Make it suitable for short-form content
+${keywordData ? `
+SEO KEYWORD INTEGRATION STRATEGY:
+- Primary Keywords (integrate 2-3 naturally): ${keywordData.primaryKeywords?.join(', ') || 'N/A'}
+- Long-tail Keywords (address problems): ${keywordData.longTailKeywords?.slice(0, 5).join(', ') || 'N/A'}
+- Question Keywords (answer directly): ${keywordData.questionKeywords?.slice(0, 3).join(', ') || 'N/A'}
+- Semantic Keywords (natural mentions): ${keywordData.semanticKeywords?.slice(0, 4).join(', ') || 'N/A'}
 
-Return only the improved script without any additional commentary.`;
+IMPORTANT: Integrate these keywords naturally throughout the script while maintaining engagement.
+` : ''}
+
+ADVANCED SCRIPT ARCHITECTURE:
+
+🎯 HOOK REQUIREMENTS (0-10s):
+- Pattern interrupt that breaks viewer expectations immediately
+- Multi-layered curiosity gap: "The thing about X that even experts miss..."
+- Authority challenge: "I've been doing this for years, but this changed everything..."
+- Future pacing: "By the end of this video, you'll..."
+
+📚 NARRATIVE STRUCTURE (Hero's Journey Integration):
+- Current State Problem (0-15s): Identify with viewer's frustration
+- Challenge Introduction (15-30s): Present the obstacle or opportunity
+- Authority & Social Proof (30-45s): Establish credibility with evidence
+- Method/Solution (45s-1:30m): Deliver core value with actionable insights
+- Transformation Evidence (1:30-2m): Show results and proof
+- Strong CTA (2-2:30m): Multiple action steps and community invitation
+
+🧠 PSYCHOLOGICAL OPTIMIZATION:
+- Embed social proof throughout (not just one section)
+- Use identity language: "People who are serious about X..."
+- Create cognitive ease with familiar-to-unfamiliar progression
+- Include strategic controversy: safe polarizing statements for discussion
+- Build emotional progression: Curiosity → Hope → Excitement → Action
+
+📈 ALGORITHM SIGNALS:
+- Retention hooks at 15s, 30s, 60s marks
+- Comment-baiting questions integrated naturally
+- Rewatchability through dense information layers
+- Share triggers: quotable moments and social currency
+- Session extension setup for next videos
+
+🎭 LANGUAGE PATTERNS:
+- Power words: "Breakthrough," "Secret," "Proven," "Exclusive"
+- Embedded commands: "As you watch this, notice how..."
+- Progressive disclosure of complexity
+- Emotional trigger words aligned with transformation
+
+Create a breakthrough script that demonstrates these advanced techniques while serving the same audience. Focus on maximum engagement, retention, and viral potential. Return only the script without commentary.`;
 
         const fallbackCompletion = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
@@ -241,26 +392,72 @@ Return only the improved script without any additional commentary.`;
 
   async generateOptimizedDescription(script, originalMetadata, keywords = []) {
     try {
+      // Organize keywords by priority and type
+      const primaryKeywords = keywords.slice(0, 4);
+      const secondaryKeywords = keywords.slice(4, 8);
+      const hashtagKeywords = keywords.slice(0, 6);
+      
       const prompt = `
-Create a completely NEW and original YouTube video description for a brand new video based on this enhanced script content:
+Create a completely NEW and original YouTube video description optimized for SEO and engagement based on this enhanced script content:
 
 Enhanced Script Content:
 ${script}
 
-Keywords to include naturally: ${keywords.join(', ')}
+SEO KEYWORD STRATEGY:
+Primary Keywords (must include naturally): ${primaryKeywords.join(', ')}
+Secondary Keywords (sprinkle throughout): ${secondaryKeywords.join(', ')}
+Hashtag Keywords: ${hashtagKeywords.join(', ')}
+All Keywords Available: ${keywords.join(', ')}
 
-Requirements:
-1. Create a compelling, ORIGINAL description that represents this as a completely NEW video for a new channel
-2. DO NOT reference or mention the original video, channel, or content
-3. Write as if this is the first time this content is being presented
-4. Include a brief engaging summary of the video content from the script
-5. Add relevant hashtags (5-10) that match the enhanced script themes
-6. Include a call-to-action for engagement and growth
-7. Keep it under 1000 characters for optimal engagement
-8. Make it SEO-friendly with natural keyword integration
-9. Focus on the value and insights this NEW video provides
+ADVANCED SEO DESCRIPTION REQUIREMENTS:
 
-Return only the completely original optimized description for the new video.`;
+1. HOOK SECTION (First 125 characters):
+   - Include primary keyword within first sentence
+   - Create compelling hook that encourages "Show More" clicks
+   - Front-load most important information
+
+2. VALUE PROPOSITION (Characters 125-400):
+   - Clearly explain what viewer will learn/gain
+   - Include 2-3 primary keywords naturally
+   - Address viewer pain points or desires
+   - Use benefit-driven language
+
+3. CONTENT OUTLINE (Characters 400-700):
+   - Brief breakdown of key points covered
+   - Include secondary keywords contextually
+   - Use bullet points or numbered list for scannability
+   - Mention specific takeaways or results
+
+4. ENGAGEMENT & SEO SECTION (Characters 700-900):
+   - Strong call-to-action for likes, comments, subscribes
+   - Ask engaging question to drive comments
+   - Include keyword variations and semantic terms
+   - Add social proof elements if applicable
+
+5. HASHTAG OPTIMIZATION (Final section):
+   - 8-12 strategic hashtags mixing trending and niche terms
+   - Include branded hashtags if applicable
+   - Balance broad (#productivity) with specific (#workfromhomeproductivity)
+   - Use mix of keyword-based and topical hashtags
+
+SEO OPTIMIZATION REQUIREMENTS:
+✅ Keyword density: 2-3% for primary keywords (natural integration)
+✅ Semantic keywords: Include related terms and synonyms
+✅ Question integration: Include 1-2 questions with target keywords
+✅ User intent alignment: Match description to search intent
+✅ Featured snippet optimization: Structure for potential snippet capture
+✅ Call-to-action with keywords: "Learn more about [keyword]"
+✅ Accessibility: Clear structure, easy to scan
+✅ Mobile optimization: Front-load important information
+
+CONTENT STRATEGY:
+- Write as if this is completely original content for a new channel
+- Focus on unique value proposition and fresh insights
+- Use conversational, engaging tone that builds connection
+- Include urgency or scarcity elements where appropriate
+- Emphasize transformation or results viewer will achieve
+
+Return the complete SEO-optimized description ready for YouTube upload.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -290,21 +487,75 @@ Return only the completely original optimized description for the new video.`;
 
   async generateOptimizedTitle(script, originalTitle, keywords = []) {
     try {
+      // Separate keywords by type for better targeting
+      const primaryKeywords = keywords.slice(0, 3); // Most important keywords
+      const longTailKeywords = keywords.slice(3, 6); // More specific terms
+      
       const prompt = `
-Create 5 optimized YouTube video titles based on the following:
+You are a viral YouTube title optimization expert with proven track record of 15%+ CTR titles. Create 5 high-converting titles based SPECIFICALLY on this new generated script content with advanced SEO keyword integration.
 
-Original Title: ${originalTitle}
-Script Content: ${script.substring(0, 500)}...
-Keywords: ${keywords.join(', ')}
+SCRIPT ANALYSIS:
+Original Reference Title: ${originalTitle}
+NEW GENERATED SCRIPT CONTENT: ${script.substring(0, 800)}...
 
-Requirements:
-1. Titles should be attention-grabbing and clickable
-2. Include relevant keywords naturally
-3. Keep titles under 60 characters for full visibility
-4. Make them emotional and compelling
-5. Ensure they accurately represent the content
+KEYWORD STRATEGY:
+Primary Keywords (must include 1-2): ${primaryKeywords.join(', ')}
+Long-tail Keywords (natural integration): ${longTailKeywords.join(', ')}
+All Available Keywords: ${keywords.join(', ')}
 
-Return 5 title options, each on a new line, numbered 1-5.`;
+VIRAL TITLE FRAMEWORK:
+
+🎯 PSYCHOLOGICAL TRIGGERS (Use 2-3 per title):
+- Curiosity Gap: "The [X] Nobody Talks About"
+- Social Proof: "Everyone's Doing [X] Wrong"
+- Urgency/Scarcity: "Before It's Too Late"
+- Authority: "Experts Don't Want You to Know"
+- Personal Stakes: "This Will Change Your [X]"
+- Pattern Interrupt: "Stop [Common Action]"
+- Results Preview: "How I [Achievement] in [Timeframe]"
+- Controversy: "Unpopular Opinion About [X]"
+
+📊 CTR OPTIMIZATION STRATEGIES:
+- Emotional Power Words: "Shocking", "Secret", "Mistake", "Warning", "Reveal"
+- Numbers & Specificity: Exact timeframes, percentages, quantities
+- Questions That Demand Answers: "Why Does [X] Always [Y]?"
+- Before/After Implications: "From [Bad State] to [Good State]"
+- Exclusive Information: "Inside Look", "Behind Scenes", "Never Told"
+
+🧠 ALGORITHM & SEO OPTIMIZATION:
+- Mobile-First: 50-60 characters for full mobile visibility
+- Keyword Integration: Include 1-2 primary keywords naturally (not forced)
+- Semantic Variations: Use related terms and synonyms
+- Search Intent Alignment: Match title to user search intent
+- Click-Through Magnets: Words that make scrolling impossible
+- Avoid Clickbait: Promise exactly what the script delivers
+- Thumbnail Synergy: Title complements visual elements
+
+📈 PERFORMANCE TARGETING:
+- 12%+ CTR potential (viral threshold)
+- High relevance to script content
+- Search discovery optimization
+- Suggested video algorithm appeal
+- Cross-demographic appeal when appropriate
+
+TITLE CREATION RULES:
+✅ Based 100% on NEW script content, not original video
+✅ Promise value that script actually delivers
+✅ Include psychological trigger from framework above
+✅ Optimize for mobile viewing (character limits)
+✅ Create irresistible curiosity or desire
+✅ Target high-intent keywords from script
+✅ Appeal to specific audience pain points/desires from content
+✅ Avoid generic/overused phrases
+
+ANALYZE THE SCRIPT FIRST:
+- What's the core transformation/value?
+- What specific problem does it solve?
+- What's the unique angle or approach?
+- What results/outcomes are promised?
+- What emotions does it target?
+
+Create 5 distinct title options optimized for maximum CTR based on the NEW script content. Each title should use different psychological triggers and approaches. Return as numbered list 1-5.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -323,13 +574,45 @@ Return 5 title options, each on a new line, numbered 1-5.`;
       });
 
       const titleOptions = completion.choices[0].message.content.trim();
-      const titles = titleOptions.split('\n').map(title => title.replace(/^\d+\.\s*/, '').trim());
       
-      logger.info('Titles generated');
+      // Enhanced parsing to extract only the actual titles
+      const lines = titleOptions.split('\n');
+      const titles = [];
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        
+        // Skip empty lines, intro text, and formatting
+        if (!trimmed || 
+            trimmed.toLowerCase().includes('here are') ||
+            trimmed.toLowerCase().includes('optimized') ||
+            trimmed.toLowerCase().includes('based on') ||
+            trimmed.toLowerCase().includes('psychological triggers') ||
+            trimmed.startsWith('*') ||
+            trimmed.startsWith('(') ||
+            trimmed.length < 10) {
+          continue;
+        }
+        
+        // Clean up the title - remove numbering, quotes, and extra formatting
+        const cleanTitle = trimmed
+          .replace(/^\d+\.\s*/, '') // Remove numbering
+          .replace(/^\**"?/, '') // Remove leading stars and quotes
+          .replace(/"?\**$/, '') // Remove trailing quotes and stars
+          .replace(/\*\*/g, '') // Remove bold markdown
+          .trim();
+        
+        // Only add if it looks like a proper title (not empty and reasonable length)
+        if (cleanTitle && cleanTitle.length >= 10 && cleanTitle.length <= 200) {
+          titles.push(cleanTitle);
+        }
+      }
+      
+      logger.info(`Extracted ${titles.length} clean titles from AI response`);
       
       return {
-        options: titles,
-        recommended: titles[0]
+        options: titles.slice(0, 5), // Limit to 5 titles max
+        recommended: titles[0] || 'Optimized Title'
       };
     } catch (error) {
       logger.error('Error generating optimized titles:', error);
@@ -340,22 +623,106 @@ Return 5 title options, each on a new line, numbered 1-5.`;
   async performKeywordResearch(videoContent, _niche = '') {
     try {
       const prompt = `
-Perform keyword research for a YouTube video based on the following content:
+Perform comprehensive SEO and YouTube algorithm-optimized keyword research for a YouTube video based on the following content:
 
-Video Content: ${videoContent.substring(0, 800)}
+Video Content: ${videoContent.substring(0, 1200)}
+Niche Context: ${_niche || 'General Content'}
 
-Generate:
-1. 10 primary keywords (high search volume, relevant)
-2. 10 long-tail keywords (more specific, less competition)
-3. 5 trending hashtags
-4. 5 related topics for content expansion
+ADVANCED KEYWORD RESEARCH REQUIREMENTS:
+
+Generate a comprehensive keyword strategy including:
+
+1. PRIMARY KEYWORDS (8-12): High search volume, directly relevant, mixed competition levels
+   - Focus on main topic and core concepts
+   - Include both broad and specific terms
+   - Consider search intent alignment
+
+2. LONG-TAIL KEYWORDS (12-15): Specific phrases, lower competition, higher conversion potential
+   - 3-6 word phrases with clear intent
+   - Problem-solving focused terms
+   - How-to and question-based variations
+
+3. SEMANTIC KEYWORDS (8-10): LSI terms and related concepts
+   - Synonyms and variations of primary terms
+   - Contextually related words
+   - Industry-specific terminology
+
+4. QUESTION KEYWORDS (6-8): Voice search and featured snippet optimization
+   - How, what, why, when, where questions
+   - Natural language patterns
+   - FAQ-style queries
+
+5. TRENDING HASHTAGS (6-8): Current social trends and discoverability
+   - Mix of evergreen and trending tags
+   - Platform-specific trends
+   - Niche community tags
+
+6. COMPETITIVE KEYWORDS (5-7): Gap opportunities and alternatives
+   - Underserved keyword opportunities
+   - Alternative angles to popular terms
+   - Emerging trend keywords
+
+7. RELATED TOPICS (8-10): Content expansion and topical authority
+   - Adjacent topics for future content
+   - Subtopics within main theme
+   - Cross-referenced subjects
+
+8. YOUTUBE SEARCH KEYWORDS (6-8): Optimized specifically for YouTube search discovery
+   - Keywords that perform well in YouTube search results
+   - Video-focused search terms
+   - Platform-specific user language
+
+9. BROWSE FEED KEYWORDS (5-7): Optimized for YouTube's suggested/browse features
+   - Keywords that trigger algorithm recommendations
+   - Related video suggestions optimization
+   - Cross-video discovery terms
+
+10. SHORTS OPTIMIZED KEYWORDS (5-8): Specific for YouTube Shorts algorithm
+    - #Shorts feed optimization terms
+    - Vertical video format considerations
+    - Mobile-first consumption patterns
+
+11. ALGORITHM BOOST KEYWORDS (4-6): Keywords that trigger YouTube algorithm promotion
+    - High engagement trigger words
+    - Algorithm signal boosters
+    - Performance optimization terms
+
+12. RETENTION KEYWORDS (4-6): Keywords that improve watch time and session duration
+    - Watch time extending terms
+    - Binge-worthy content indicators
+    - Session optimization phrases
+
+13. ENGAGEMENT TRIGGER KEYWORDS (4-6): Keywords that drive comments, likes, and shares
+    - Community engagement starters
+    - Discussion trigger phrases
+    - Social interaction boosters
+
+KEYWORD SELECTION CRITERIA:
+✅ Search intent alignment (informational, transactional, navigational)
+✅ YouTube-specific optimization (video-focused terms)
+✅ Algorithm performance consideration (CTR, retention, engagement)
+✅ Audience language and terminology
+✅ Semantic relevance and context
+✅ Competition level diversity (high, medium, low)
+✅ Commercial viability where applicable
+✅ Mobile-first optimization
+✅ Cross-platform discoverability
 
 Format the response as JSON with the following structure:
 {
   "primaryKeywords": [],
   "longTailKeywords": [],
+  "semanticKeywords": [],
+  "questionKeywords": [],
   "trendingHashtags": [],
-  "relatedTopics": []
+  "competitiveKeywords": [],
+  "relatedTopics": [],
+  "youtubeSearchKeywords": [],
+  "browseFeedKeywords": [],
+  "shortsOptimizedKeywords": [],
+  "algorithmBoostKeywords": [],
+  "retentionKeywords": [],
+  "engagementTriggerKeywords": []
 }`;
 
       const completion = await this.openai.chat.completions.create({
@@ -363,14 +730,14 @@ Format the response as JSON with the following structure:
         messages: [
           {
             role: 'system',
-            content: 'You are a YouTube SEO and keyword research specialist.'
+            content: 'You are a YouTube SEO and keyword research specialist with deep expertise in YouTube algorithm optimization, content discovery, and viewer engagement strategies.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        max_tokens: 600,
+        max_tokens: 1000,
         temperature: 0.5
       });
 
@@ -392,8 +759,17 @@ Format the response as JSON with the following structure:
       return {
         primaryKeywords: [],
         longTailKeywords: [],
+        semanticKeywords: [],
+        questionKeywords: [],
         trendingHashtags: [],
-        relatedTopics: []
+        competitiveKeywords: [],
+        relatedTopics: [],
+        youtubeSearchKeywords: [],
+        browseFeedKeywords: [],
+        shortsOptimizedKeywords: [],
+        algorithmBoostKeywords: [],
+        retentionKeywords: [],
+        engagementTriggerKeywords: []
       };
     }
   }
@@ -982,21 +1358,49 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
     }
   }
 
-  async enhanceContentWithAI(videoData) {
+  async enhanceContentWithAI(videoData, metadataService = null) {
     try {
       logger.info('AI enhancement...');
       
       // Initialize cost tracking for this video
       const videoId = videoData.videoId || videoData.id;
       
-      const [keywordData, attractiveScript] = await Promise.all([
-        this.performKeywordResearch(videoData.transcriptText),
-        this.generateAttractiveScript(videoData.transcriptText, videoData)
-      ]);
+      // Use reliable metadata if service available for enhanced context
+      let enhancedVideoData = videoData;
+      if (metadataService && videoId) {
+        try {
+          const reliableMetadata = await metadataService.getReliableVideoMetadata(videoId);
+          // Merge reliable metadata with workflow data, prioritizing reliable metadata for core fields
+          enhancedVideoData = {
+            ...videoData,
+            title: reliableMetadata.title || videoData.title,
+            description: reliableMetadata.description || videoData.description,
+            channelTitle: reliableMetadata.channelTitle || videoData.channelTitle,
+            duration: reliableMetadata.duration || videoData.duration,
+            youtubeUrl: reliableMetadata.youtubeUrl || videoData.youtubeUrl,
+            transcriptText: videoData.transcriptText || reliableMetadata.transcriptText // Keep workflow transcript if available
+          };
+          logger.info(`Using reliable metadata context for AI enhancement of ${videoId}`);
+        } catch (metadataError) {
+          logger.warn(`Could not retrieve reliable metadata for AI context ${videoId}:`, metadataError);
+          // Continue with original videoData
+        }
+      }
+      
+      // First perform keyword research using enhanced context
+      const keywordData = await this.performKeywordResearch(enhancedVideoData.transcriptText || enhancedVideoData.title);
+      
+      // Then generate script with SEO keyword integration using enhanced context
+      const attractiveScript = await this.generateAttractiveScript(
+        enhancedVideoData.transcriptText || enhancedVideoData.title, 
+        enhancedVideoData, 
+        null, // contextAnalysis - let function perform it
+        keywordData // Pass keyword data for SEO integration
+      );
 
       const [optimizedDescription, optimizedTitles] = await Promise.all([
-        this.generateOptimizedDescription(attractiveScript, videoData, keywordData.primaryKeywords),
-        this.generateOptimizedTitle(attractiveScript, videoData.title, keywordData.primaryKeywords)
+        this.generateOptimizedDescription(attractiveScript, enhancedVideoData, keywordData.primaryKeywords),
+        this.generateOptimizedTitle(attractiveScript, enhancedVideoData.title, keywordData.primaryKeywords)
       ]);
 
       // Only generate script breakdown if enabled
@@ -1013,7 +1417,7 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
         logger.info('Script breakdown enabled - generating prompts and keywords');
         
         [imagePromptsData, editorKeywords] = await Promise.all([
-          this.generateImagePrompts(scriptSentences, null, videoData),
+          this.generateImagePrompts(scriptSentences, null, enhancedVideoData),
           this.generateEditorKeywords(scriptSentences)
         ]);
       }
@@ -1081,6 +1485,168 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
       costSavingsVsDallE3: this.costTracker.imagesGenerated * 
         (this.imagePricing['dall-e-3'] - this.imagePricing[config.app.imageModel])
     };
+  }
+
+  async generateThumbnailSuggestions(videoData, scriptContent) {
+    try {
+      logger.info('Generating thumbnail suggestions', { videoId: videoData.videoId });
+      
+      const prompt = `
+You are an elite YouTube thumbnail scientist with expertise in neurological design triggers and 20%+ CTR optimization. Create two scientifically-optimized thumbnail concepts using advanced design psychology and viral performance data.
+
+🔬 SCIENTIFIC ANALYSIS FRAMEWORK:
+
+VIDEO DATA PROCESSING:
+- Title: ${videoData.title || 'YouTube Video'}
+- Channel: ${videoData.channelTitle || 'YouTube Channel'}  
+- Script Content: ${scriptContent?.substring(0, 500) || 'No script available'}...
+
+🧠 NEUROLOGICAL DESIGN TRIGGERS:
+
+AMYGDALA ACTIVATION (Fight/Flight Response):
+- Threat Detection: Visual elements that suggest danger or urgency
+- Survival Instincts: Scarcity, competition, time-sensitive information
+- Social Hierarchy: Status symbols, authority indicators, success markers
+- Pattern Recognition: Familiar faces, unexpected elements, cognitive dissonance
+
+DOPAMINE OPTIMIZATION (Reward Anticipation):
+- Curiosity Gaps: Incomplete information that demands resolution
+- Progress Indicators: Before/after, step-by-step, transformation evidence
+- Social Validation: Crowd psychology, peer approval, belonging signals
+- Achievement Symbols: Success metrics, rankings, exclusive access
+
+COGNITIVE LOAD MANAGEMENT:
+- Information Hierarchy: 3-second comprehension maximum
+- Visual Weight Distribution: Golden ratio composition (1.618:1)
+- Attention Pathway: Z-pattern for Western audiences, F-pattern for scanning
+- Memory Anchoring: Distinctive elements that stick in memory
+
+📱 MOBILE-FIRST SCIENTIFIC OPTIMIZATION (85% of views):
+
+VIEWING ENVIRONMENT CALCULATIONS:
+- Screen Size: 5.5" average mobile display
+- Viewing Distance: 12-16 inches from face
+- Thumbnail Size: 1280x720px rendered at 320x180px
+- Critical Zone: Central 60% of thumbnail area
+- Finger Scrolling: 0.3-second attention window
+
+READABILITY MATHEMATICS:
+- Text Size: Minimum 36px font (equivalent to 9pt at arm's length)
+- Contrast Ratio: 8:1 minimum for AAA accessibility compliance
+- Color Temperature: Warm colors (3000K-4000K) for emotional engagement
+- Saturation Levels: 75-85% for mobile screen optimization
+- Edge Detection: 2px minimum stroke weight for definition
+
+🎯 ALGORITHM PERFORMANCE SCIENCE:
+
+YOUTUBE RANKING FACTORS (Weighted):
+- Click-Through Rate (35%): Primary ranking signal
+- Watch Time Correlation (25%): Thumbnail-content alignment  
+- Audience Retention (20%): First 15-second hook effectiveness
+- Engagement Velocity (15%): Comments/likes in first hour
+- Session Duration (5%): Keeping viewers on platform
+
+COMPETITIVE ANALYSIS INTEGRATION:
+- Feed Differentiation: Stand out in 4x3 suggested video grid
+- Thumbnail Fatigue: Avoid oversaturated visual patterns
+- Seasonal Optimization: Color psychology for current trends
+- Cross-Demographic Appeal: Universal emotional triggers
+
+STYLE 1: NEUROLOGICAL VIRAL ENGAGEMENT
+Scientific CTR Target: 18-22%
+
+ADVANCED COMPOSITION SCIENCE:
+- Golden Ratio Positioning: Face at 1.618 intersection points
+- Rule of Thirds Plus: 9-grid with fibonacci spiral overlay
+- Visual Weight Distribution: 60% focal subject, 40% supporting elements
+- Eye Movement Mapping: Entry point → focal point → text → exit action
+
+COLOR PSYCHOLOGY PRECISION:
+- Primary Emotional Trigger: #FF4757 (Red-Orange, urgency activation)
+- Secondary Attention Grab: #2ED573 (Green, positive association)  
+- Accent Highlight: #FFD700 (Gold, premium/value indicator)
+- Background Foundation: #1E1E1E (Dark, maximum contrast)
+
+TYPOGRAPHY SCIENTIFIC HIERARCHY:
+- Level 1 (Main Hook): 48-56px, Bold Sans-Serif, 100% width maximum
+- Level 2 (Supporting): 32-36px, Medium weight, 70% width maximum  
+- Level 3 (Details): 24-28px, Regular weight, accent color only
+
+FACIAL PSYCHOLOGY MAPPING:
+- Expression Analysis: Micro-expressions matching target emotion
+- Gaze Direction: 15-degree angle toward text area for guidance
+- Facial Proportion: Eyes occupy 8-12% of total thumbnail area
+- Emotion Intensity: 7-8/10 scale for maximum mirror neuron activation
+
+STYLE 2: SCIENTIFIC AUTHORITY OPTIMIZATION  
+Scientific CTR Target: 14-17%
+
+CREDIBILITY VISUAL SYSTEM:
+- Trust Signal Density: 3-4 authority indicators maximum
+- Professional Color Temperature: Cool blues (5000K-6500K)
+- Information Hierarchy: Grid-based with clear content blocks
+- Whitespace Psychology: 35-45% negative space for premium perception
+
+ADVANCED AUTHORITY MARKERS:
+- Statistical Visualization: Charts, graphs, data representations
+- Certification Symbols: Badges, checkmarks, verification indicators
+- Professional Photography: High-resolution, studio-quality imagery
+- Brand Integration: Consistent logo placement and color harmony
+
+COLOR SCIENCE FOR TRUST:
+- Primary Authority: #2C5AA0 (Deep Blue, expertise/stability)
+- Secondary Credibility: #F8F9FA (Off-white, cleanliness/clarity)
+- Success Accent: #28A745 (Green, positive results/growth)
+- Warning/Attention: #FFC107 (Amber, important information)
+
+PERFORMANCE PREDICTION MODELING:
+
+CTR CALCULATION FACTORS:
+- Emotional Intensity × Color Contrast × Facial Recognition = Base CTR
+- Text Readability × Mobile Optimization × Feed Differentiation = Multiplier
+- Authority Signals × Trust Indicators × Value Proposition = Credibility Score
+
+SCIENTIFIC TESTING FRAMEWORK:
+- A/B Variables: Face vs No-Face, Text Heavy vs Minimal, Color Variations
+- Performance Metrics: CTR, Watch Time, Retention, Engagement Rate
+- Optimization Cycles: 72-hour testing windows with statistical significance
+- Success Benchmarks: >15% CTR for viral potential, >12% for sustainable growth
+
+IMPLEMENTATION SPECIFICATIONS:
+
+For each thumbnail concept, provide:
+1. **Neurological Strategy**: Specific brain trigger and expected response
+2. **Scientific Color Formula**: Hex codes with psychological reasoning and contrast calculations
+3. **Mathematical Typography**: Font sizes, weights, positioning with golden ratio coordinates  
+4. **Facial Psychology Analysis**: Expression mapping and mirror neuron activation strategy
+5. **Mobile Optimization Data**: Readability tests, contrast ratios, and viewing environment specs
+6. **Performance Prediction**: Expected CTR range with confidence intervals
+7. **A/B Testing Protocol**: Specific variables to test and success metrics
+8. **Algorithm Optimization**: YouTube ranking signal optimization strategy
+
+Create two thumbnail concepts that represent the absolute pinnacle of scientific design psychology and viral performance optimization.`;
+
+      // Use Claude Sonnet as primary provider for creative tasks
+      const message = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        temperature: 0.7,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      });
+      
+      logger.info('Thumbnail suggestions generated successfully (Claude)');
+      return message.content[0].text;
+      
+    } catch (error) {
+      logger.error('Error generating thumbnail suggestions:', error);
+      return `THUMBNAIL SUGGESTION ERROR: Unable to generate thumbnail suggestions. Please create thumbnails manually.
+      
+Style 1: Emotional/Dramatic - Use bright colors, close-up faces, and emotional expressions
+Style 2: Professional/Clean - Use minimal design, clear typography, and visual metaphors`;
+    }
   }
 
   async healthCheck() {

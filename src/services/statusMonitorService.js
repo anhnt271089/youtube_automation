@@ -134,6 +134,12 @@ class StatusMonitorService {
             logger.info(`${videoId}: Script marked as Needs Changes, triggering regeneration`);
             await this.handleScriptNeedsChanges(videoId, title, detailWorkbookUrl);
           }
+          
+          // Handle "Approved" status - set Voice Generation Status to "Not Started"
+          if (changeInfo.new === 'Approved') {
+            logger.info(`${videoId}: Script approved, setting Voice Generation Status to Not Started`);
+            await this.sheetsService.updateVideoField(videoId, 'voiceGenerationStatus', 'Not Started');
+          }
           break;
 
         default:
@@ -161,6 +167,9 @@ class StatusMonitorService {
       
       // 3. Reset Script Approved to "Pending"
       await this.googleSheetsService.updateVideoField(videoId, 'scriptApproved', 'Pending');
+      
+      // 4. Mark video as being regenerated for voice script force recreation
+      await this.googleSheetsService.updateVideoField(videoId, 'isRegenerating', 'true');
       
       // 4. Send Telegram notification about script regeneration
       await this.telegramService.sendScriptRegenerationStarted(

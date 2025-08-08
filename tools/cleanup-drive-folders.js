@@ -1,61 +1,33 @@
-import GoogleDriveService from './src/services/googleDriveService.js';
+import GoogleSheetsService from '../src/services/googleSheetsService.js';
+import logger from '../src/utils/logger.js';
 
 async function cleanupDriveFolders() {
+  console.log('🧹 Starting Drive Folder Cleanup Tool...\n');
+  
   try {
-    const googleDriveService = new GoogleDriveService();
+    const sheetsService = new GoogleSheetsService();
     
-    console.log('🧹 Starting Google Drive cleanup...');
-    console.log('Videos root folder ID: 1MJGPWS57rPDWWaeRU-hm7C-EeCTSiN_Y');
+    // Run the cleanup process
+    const result = await sheetsService.cleanupDuplicateDriveFolders();
     
-    // Get all contents in the videos folder
-    const contents = await googleDriveService.getFolderContents('1MJGPWS57rPDWWaeRU-hm7C-EeCTSiN_Y');
+    console.log('\n✅ Cleanup completed successfully!');
+    console.log(`📊 Summary:`);
+    console.log(`   • Groups processed: ${result.processedCount}`);
+    console.log(`   • Duplicate folders cleaned: ${result.cleanedCount}`);
     
-    if (contents.length === 0) {
-      console.log('✅ Videos folder is already empty');
-      return;
-    }
-    
-    console.log(`\nFound ${contents.length} items to delete:`);
-    contents.forEach((item, index) => {
-      const type = item.mimeType === 'application/vnd.google-apps.folder' ? '📁' : '📄';
-      console.log(`${index + 1}. ${type} ${item.name} (ID: ${item.id})`);
-    });
-    
-    console.log('\n🗑️ Deleting items...');
-    
-    // Delete all items
-    for (const item of contents) {
-      try {
-        await googleDriveService.drive.files.delete({
-          fileId: item.id
-        });
-        
-        const type = item.mimeType === 'application/vnd.google-apps.folder' ? '📁' : '📄';
-        console.log(`✅ Deleted ${type} ${item.name}`);
-      } catch (deleteError) {
-        console.error(`❌ Failed to delete ${item.name}:`, deleteError.message);
-      }
-    }
-    
-    // Verify cleanup
-    console.log('\n🔍 Verifying cleanup...');
-    const remainingContents = await googleDriveService.getFolderContents('1MJGPWS57rPDWWaeRU-hm7C-EeCTSiN_Y');
-    
-    if (remainingContents.length === 0) {
-      console.log('✅ Cleanup successful - videos folder is now empty');
+    if (result.cleanedCount === 0) {
+      console.log('\n🎉 No cleanup needed - your Drive folders are already optimized!');
     } else {
-      console.log(`⚠️ Cleanup incomplete - ${remainingContents.length} items remain:`);
-      remainingContents.forEach((item, index) => {
-        console.log(`${index + 1}. ${item.name} (ID: ${item.id})`);
-      });
+      console.log(`\n🎉 Successfully cleaned up ${result.cleanedCount} duplicate folders!`);
+      console.log('   📝 Master sheet URLs have been updated to point to the correct folders');
     }
     
-    return remainingContents.length === 0;
+    return result;
     
   } catch (error) {
-    console.error('❌ Error during cleanup:', error.message);
-    if (error.code) console.error('Error code:', error.code);
-    throw error;
+    console.error('❌ Cleanup failed:', error.message);
+    logger.error('Drive folder cleanup error:', error);
+    process.exit(1);
   }
 }
 

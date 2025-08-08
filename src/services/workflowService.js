@@ -5,6 +5,7 @@ import AIService from './aiService.js';
 import TelegramService from './telegramService.js';
 import VideoService from './videoService.js';
 import StatusMonitorService from './statusMonitorService.js';
+import MetadataService from './metadataService.js';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 
@@ -18,6 +19,12 @@ class WorkflowService {
     this.videoService = new VideoService();
     this.statusMonitorService = new StatusMonitorService();
     
+    // Initialize MetadataService with service dependencies for fallback
+    this.metadataService = new MetadataService(this.sheetsService, this.youtubeService);
+    
+    // Metadata cache for workflow efficiency
+    this.metadataCache = new Map();
+    
     this.processingQueue = new Map();
     this.stats = {
       totalProcessed: 0,
@@ -25,6 +32,86 @@ class WorkflowService {
       failed: 0,
       pending: 0
     };
+  }
+
+  /**
+   * Get reliable video metadata using bulletproof MetadataService
+   * This prevents workflow failures due to human modifications of Google Sheets
+   */
+  async getReliableVideoMetadata(videoId, useCache = true) {
+    try {
+      // Check cache first for performance
+      if (useCache && this.metadataCache.has(videoId)) {
+        const cached = this.metadataCache.get(videoId);
+        // Cache valid for 5 minutes to balance performance vs freshness
+        if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+          logger.debug(`Using cached metadata for ${videoId}`);
+          return cached.metadata;
+        }
+      }
+
+      // Get reliable metadata from MetadataService
+      const metadata = await this.metadataService.getReliableVideoMetadata(videoId);
+      
+      // Cache for performance
+      this.metadataCache.set(videoId, {
+        metadata,
+        timestamp: Date.now()
+      });
+
+      logger.info(`Retrieved reliable metadata for ${videoId}: "${metadata.title}"`);
+      return metadata;
+
+    } catch (error) {
+      logger.error(`Failed to get reliable metadata for ${videoId}:`, error);
+      
+      // Fallback: try direct sheet access as last resort
+      try {
+        const videoRow = await this.sheetsService.findVideoRow(videoId);
+        if (videoRow && videoRow.data) {
+          const fallbackMetadata = {
+            title: videoRow.data[this.sheetsService.masterColumns.title] || 'Unknown Title',
+            youtubeUrl: videoRow.data[this.sheetsService.masterColumns.youtubeUrl],
+            videoId: videoRow.data[this.sheetsService.masterColumns.youtubeVideoId],
+            channelTitle: videoRow.data[this.sheetsService.masterColumns.channel],
+            duration: videoRow.data[this.sheetsService.masterColumns.duration]
+          };
+          logger.warn(`Using fallback sheet data for ${videoId} (reliability not guaranteed)`);
+          return fallbackMetadata;
+        }
+      } catch (fallbackError) {
+        logger.error(`Fallback sheet access also failed for ${videoId}:`, fallbackError);
+      }
+
+      // Ultimate fallback to prevent workflow crashes
+      return {
+        title: `Video ${videoId}`,
+        youtubeUrl: null,
+        videoId: null,
+        channelTitle: 'Unknown Channel',
+        duration: 'Unknown Duration'
+      };
+    }
+  }
+
+  /**
+   * Save original YouTube metadata for bulletproof retrieval
+   */
+  async saveVideoMetadata(videoId, youtubeMetadata) {
+    try {
+      await this.metadataService.saveOriginalMetadata(videoId, youtubeMetadata);
+      
+      // Update cache
+      this.metadataCache.set(videoId, {
+        metadata: youtubeMetadata,
+        timestamp: Date.now()
+      });
+      
+      logger.info(`Saved bulletproof metadata for ${videoId}`);
+    } catch (error) {
+      logger.error(`Failed to save metadata for ${videoId}:`, error);
+      // Don't throw - this is not critical for workflow continuation
+    }
   }
 
   /**
@@ -68,13 +155,39 @@ class WorkflowService {
   /**
    * Create and upload voice script file to Google Drive
    */
-  async createAndUploadVoiceScript(videoId) {
-    return this.sheetsService.createAndUploadVoiceScript(videoId);
+  async createAndUploadVoiceScript(videoId, forceRecreate = false) {
+    return this.sheetsService.createAndUploadVoiceScript(videoId, forceRecreate);
   }
 
-  async autoPopulateVideoData(videoId, _videoData) {
-    // Update video status to Processing (metadata already populated during entry creation)
-    return this.updateVideoStatus(videoId, 'Processing');
+  async autoPopulateVideoData(videoId, videoData) {
+    try {
+      logger.info(`📋 Auto-populating metadata for ${videoId}...`);
+      
+      // 1. Save reliable metadata for bulletproof system
+      await this.saveVideoMetadata(videoId, videoData);
+      
+      // 2. Update master sheet with metadata from reliable source
+      const updates = {
+        title: videoData.title || 'Title Unavailable',
+        channel: videoData.channelTitle || 'Unknown Channel', 
+        duration: videoData.duration || 'Unknown',
+        youtubeVideoId: videoData.videoId || 'Unknown',
+        viewCount: videoData.viewCount || 0,
+        publishedDate: videoData.publishedAt || new Date().toISOString()
+      };
+      
+      // Update master sheet with metadata
+      await this.updateVideoStatus(videoId, 'Processing', updates);
+      
+      logger.info(`✅ Auto-populated ${videoId}: "${videoData.title}"`);
+      return { success: true, populated: Object.keys(updates).length };
+      
+    } catch (error) {
+      logger.error(`Failed to auto-populate ${videoId}:`, error);
+      // Still update to Processing even if metadata population fails
+      await this.updateVideoStatus(videoId, 'Processing');
+      return { success: false, error: error.message };
+    }
   }
 
   async addVideoUrl(_youtubeUrl) {
@@ -84,6 +197,17 @@ class WorkflowService {
   }
 
   async createCompleteScriptStructure(videoId, title, originalTranscript, optimizedScript, scriptSentences = [], imagePrompts = [], editorKeywords = []) {
+    // Check if workbook already exists before creating
+    const videoRow = await this.sheetsService.findVideoRow(videoId);
+    if (videoRow && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]) {
+      logger.info(`Detail workbook already exists for ${videoId}, skipping creation`);
+      return {
+        originalScriptPage: { pageUrl: videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] },
+        optimizedScriptPage: { pageUrl: videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] },
+        scriptDatabase: { databaseUrl: videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] }
+      };
+    }
+
     // Create detail workbook and script breakdown
     const workbookResult = await this.sheetsService.createVideoDetailWorkbook(videoId, title);
     let scriptBreakdownResult = null;
@@ -108,8 +232,10 @@ class WorkflowService {
   async autoUpdateWorkflowStatuses(videoId, status) {
     // Update workflow statuses based on main status
     if (status === 'Script Separated') {
+      // Only set scriptApproved to Pending, not voiceGenerationStatus
+      // Voice Generation Status will be set when Script Approved = "Approved"
       return this.updateVideoStatus(videoId, null, {
-        voiceGenerationStatus: 'Not Started'
+        scriptApproved: 'Pending'
       });
     } else if (status === 'Completed') {
       return this.updateVideoStatus(videoId, null, {
@@ -228,14 +354,25 @@ class WorkflowService {
         // Auto-update workflow statuses for resumed script generation
         await this.autoUpdateWorkflowStatuses(video.videoId, 'Script Separated');
         
-        // Send approval request with Google Sheets URLs
+        // Send approval request with reliable metadata and URLs
         const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
-        const workbookUrl = video.data && video.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
-          ? video.data[this.sheetsService.masterColumns.detailWorkbookUrl]
-          : null;
+        let workbookUrl = null;
+        
+        try {
+          const videoRow = await this.sheetsService.findVideoRow(video.videoId);
+          workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+            ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+            : null;
+        } catch (error) {
+          logger.warn(`Could not retrieve workbook URL for ${video.videoId}:`, error);
+        }
+
+        // Use reliable metadata for display title
+        const reliableMetadata = await this.getReliableVideoMetadata(video.videoId);
+        const displayTitle = `${video.videoId} - ${reliableMetadata.title}`;
           
         await this.telegramService.sendScriptApprovalRequest(
-          `${video.videoId} - ${video.title}`,
+          displayTitle,
           workbookUrl,
           masterSheetUrl
         );
@@ -426,10 +563,12 @@ class WorkflowService {
           retriedCount++;
           logger.info(`${video.videoId}: Reset to ${resetStatus} for retry ${retryCount + 1}`);
           
-          // Send retry notification
+          // Send retry notification with reliable metadata
+          const retryMetadata = await this.getReliableVideoMetadata(video.videoId);
+          
           await this.telegramService.sendMessage(
             '🔄 <b>Retry Attempt</b>\n\n' +
-            `🎬 ${video.title}\n` +
+            `🎬 ${retryMetadata.title}\n` +
             `📊 Attempt: ${retryCount + 1}/${maxRetries}\n` +
             `⏰ After: ${cooldownHours}h cooldown\n` +
             `🔄 Reset to: ${resetStatus}`
@@ -488,32 +627,52 @@ class WorkflowService {
       // Generate master sheet URL for status tracking
       const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
       
+      // Save reliable metadata before processing starts
+      await this.saveVideoMetadata(videoDisplayId, videoData);
+      
+      // Use reliable metadata for Telegram notifications
+      const videoMetadata = await this.getReliableVideoMetadata(videoDisplayId);
+      
       await this.telegramService.sendVideoProcessingStarted({
         ...videoData,
+        ...videoMetadata, // Override with reliable metadata
         recordId: videoDisplayId,
-        displayTitle: `${videoDisplayId} - ${videoData.title}`
+        displayTitle: `${videoDisplayId} - ${videoMetadata.title}`
       }, masterSheetUrl);
 
       // Set the proper VideoID (VID-XX format) for Digital Ocean operations
       videoData.videoId = videoDisplayId;
       
-      const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
+      // Pass MetadataService to AIService for enhanced context reliability
+      const enhancedContent = await this.aiService.enhanceContentWithAI(videoData, this.metadataService);
 
-      // Get workbook URL from created workbook for script review
-      const videoRow = await this.sheetsService.findVideoRow(videoDisplayId);
-      const workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
-        ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
-        : null;
+      // Get workbook URL using reliable metadata to prevent workflow failures
+      let workbookUrl = null;
+      try {
+        const videoRow = await this.sheetsService.findVideoRow(videoDisplayId);
+        workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+          ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+          : null;
+      } catch (error) {
+        logger.warn(`Could not retrieve workbook URL for ${videoDisplayId}:`, error);
+        // Continue workflow without workbook URL - Telegram notifications will adapt
+      }
+      
+      // Use reliable metadata for consistent title display
+      const scriptMetadata = await this.getReliableVideoMetadata(videoDisplayId);
       
       await this.telegramService.sendScriptGenerated(
-        `${videoDisplayId} - ${videoData.title}`, 
+        `${videoDisplayId} - ${scriptMetadata.title}`, 
         enhancedContent.attractiveScript,
         workbookUrl,
         masterSheetUrl
       );
 
+      // Use reliable metadata for keyword research results
+      const keywordMetadata = await this.getReliableVideoMetadata(videoDisplayId);
+      
       await this.telegramService.sendKeywordResearchResults(
-        `${videoDisplayId} - ${videoData.title}`, 
+        `${videoDisplayId} - ${keywordMetadata.title}`, 
         enhancedContent.keywords
       );
 
@@ -615,16 +774,20 @@ class WorkflowService {
           approvedAt: new Date().toISOString()
         });
         
+        // Use reliable metadata for auto-approval notification
+        const approvalMetadata = await this.getReliableVideoMetadata(videoDisplayId);
+        
         await this.telegramService.sendMessage(
-          `✅ <b>Script Auto-Approved</b>\n\n🎬 ${videoDisplayId} - ${videoData.title}\n🤖 Automatically approved for processing`
+          `✅ <b>Script Auto-Approved</b>\n\n🎬 ${videoDisplayId} - ${approvalMetadata.title}\n🤖 Automatically approved for processing`
         );
       } else {
-        // Get URLs for approval request
+        // Get URLs for approval request with reliable metadata
         const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
         const workbookUrl = scriptStructure.originalScriptPage?.pageUrl || null;
+        const requestMetadata = await this.getReliableVideoMetadata(videoDisplayId);
         
         await this.telegramService.sendScriptApprovalRequest(
-          `${videoDisplayId} - ${videoData.title}`,
+          `${videoDisplayId} - ${requestMetadata.title}`,
           workbookUrl,
           masterSheetUrl
         );
@@ -647,7 +810,9 @@ class WorkflowService {
 
   async processApprovedScript(videoInfo) {
     try {
-      logger.info(`🎨 Approved: ${videoInfo.title}`);
+      // Use reliable metadata for processing approved scripts
+      const approvedMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
+      logger.info(`🎨 Approved: ${approvedMetadata.title}`);
 
       const videoDisplayId = videoInfo.videoId;
       
@@ -655,10 +820,12 @@ class WorkflowService {
       if (!config.app.enableImageGeneration) {
         logger.info(`Image generation disabled - skipping image generation for ${videoDisplayId}`);
         
-        // Send notification that processing is complete without images
+        // Send notification with reliable metadata
+        const completionMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
+        
         await this.telegramService.sendMessage(
           '✅ <b>Processing Completed</b> (Images Disabled)\n\n' +
-          `🎬 ${videoDisplayId} - ${videoInfo.title}\n` +
+          `🎬 ${videoDisplayId} - ${completionMetadata.title}\n` +
           '🚫 Image generation is disabled in configuration\n' +
           '📝 <i>Script is ready for voice generation</i>\n' +
           `🔗 [View Record](https://notion.so/${videoInfo.videoId.replace(/-/g, '')})`
@@ -694,7 +861,8 @@ class WorkflowService {
       }
 
       // Enhanced AI content processing with new features
-      const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
+      // Pass MetadataService to AIService for enhanced context reliability
+      const enhancedContent = await this.aiService.enhanceContentWithAI(videoData, this.metadataService);
 
       // All images are already generated and uploaded to Digital Ocean by enhanceContentWithAI
       const generatedImages = enhancedContent.generatedImages || [];
@@ -715,9 +883,12 @@ class WorkflowService {
       const costSummary = enhancedContent.costSummary;
       const folderName = `videos/${videoInfo.videoId}`;
       
+      // Use reliable metadata for completion notification
+      const finalMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
+      
       await this.telegramService.sendMessage(
         '✅ <b>Processing Completed</b>\n\n' +
-        `🎬 ${videoDisplayId} - ${videoInfo.title}\n` +
+        `🎬 ${videoDisplayId} - ${finalMetadata.title}\n` +
         `📁 Folder: ${folderName}\n` +
         `🎨 Images Generated: ${generatedImages.length}\n` +
         `🏷️ Style: ${enhancedContent.videoStyle?.style || 'Custom'}\n` +
@@ -747,25 +918,37 @@ class WorkflowService {
             'thumbnails'
           );
           
+          // Use reliable metadata for thumbnail notification
+          const thumbnailMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
+          
           await this.telegramService.sendMessage(
             '🖼️ <b>Thumbnail Generated</b>\n\n' +
-            `🎬 Video: ${videoInfo.title}\n` +
+            `🎬 Video: ${thumbnailMetadata.title}\n` +
             `🎨 Style: ${thumbnailResult.style}\n` +
             `📱 [View Thumbnail](${thumbnailUpload.cdnUrl})`
           );
         } catch (error) {
           logger.warn('Failed to upload thumbnail to Digital Ocean:', error.message);
-          // Use original URL as fallback and get relevant URLs
-          const videoRow = await this.sheetsService.findVideoRow(videoInfo.videoId);
-          const workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
-            ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
-            : null;
-          const driveFolderUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.driveFolder]
-            ? videoRow.data[this.sheetsService.masterColumns.driveFolder]
-            : null;
+          // Use original URL as fallback and get relevant URLs with reliable metadata
+          const fallbackMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
+          
+          let workbookUrl = null;
+          let driveFolderUrl = null;
+          
+          try {
+            const videoRow = await this.sheetsService.findVideoRow(videoInfo.videoId);
+            workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+              ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+              : null;
+            driveFolderUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.driveFolder]
+              ? videoRow.data[this.sheetsService.masterColumns.driveFolder]
+              : null;
+          } catch (error) {
+            logger.warn(`Could not retrieve sheet URLs for ${videoInfo.videoId}:`, error);
+          }
             
           await this.telegramService.sendThumbnailGenerated(
-            videoInfo.title,
+            fallbackMetadata.title,
             thumbnailResult.url,
             driveFolderUrl,
             workbookUrl
@@ -815,14 +998,22 @@ class WorkflowService {
         retryCount: (video.retryCount || 0) + 1
       });
 
-      // Generate URLs for error notification
+      // Get reliable metadata and URLs for error notification
+      const errorMetadata = await this.getReliableVideoMetadata(video.videoId);
       const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
-      const workbookUrl = video.data && video.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
-        ? video.data[this.sheetsService.masterColumns.detailWorkbookUrl]
-        : null;
+      
+      let workbookUrl = null;
+      try {
+        const videoRow = await this.sheetsService.findVideoRow(video.videoId);
+        workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+          ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+          : null;
+      } catch (urlError) {
+        logger.warn(`Could not retrieve workbook URL for error notification ${video.videoId}:`, urlError);
+      }
       
       await this.telegramService.sendError(
-        video.title,
+        errorMetadata.title,
         error.message,
         stage,
         masterSheetUrl,
@@ -847,13 +1038,22 @@ class WorkflowService {
         const now = new Date();
         
         if (now - createdTime > timeoutThreshold) {
-          const videoDisplayTitle = video.videoId ? `${video.videoId} - ${video.title}` : video.title;
+          // Use reliable metadata for timeout notification
+          const timeoutMetadata = await this.getReliableVideoMetadata(video.videoId);
+          const videoDisplayTitle = `${video.videoId} - ${timeoutMetadata.title}`;
           
           // Generate URLs for timeout notification
           const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
-          const workbookUrl = video.data && video.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
-            ? video.data[this.sheetsService.masterColumns.detailWorkbookUrl]
-            : null;
+          
+          let workbookUrl = null;
+          try {
+            const videoRow = await this.sheetsService.findVideoRow(video.videoId);
+            workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+              ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+              : null;
+          } catch (urlError) {
+            logger.warn(`Could not retrieve workbook URL for timeout notification ${video.videoId}:`, urlError);
+          }
           
           await this.telegramService.sendApprovalTimeout(
             videoDisplayTitle, 
@@ -1143,7 +1343,8 @@ class WorkflowService {
       ai: false,
       telegram: false,
       digitalOcean: false,
-      statusMonitor: false
+      statusMonitor: false,
+      metadata: false
     };
 
     // Test YouTube API
@@ -1192,6 +1393,14 @@ class WorkflowService {
       checks.statusMonitor = statusHealth.status === 'healthy';
     } catch (error) {
       logger.error('Status monitor service health check failed:', error);
+    }
+
+    // Test MetadataService (bulletproof metadata storage)
+    try {
+      const metadataHealth = await this.metadataService.healthCheck();
+      checks.metadata = metadataHealth.status === 'healthy';
+    } catch (error) {
+      logger.error('Metadata service health check failed:', error);
     }
 
     const overallHealth = Object.values(checks).every(check => check);

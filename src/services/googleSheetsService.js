@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 import GoogleDriveService from './googleDriveService.js';
+import AIService from './aiService.js';
 
 class GoogleSheetsService {
   constructor() {
@@ -21,6 +22,7 @@ class GoogleSheetsService {
     this.sheets = google.sheets({ version: 'v4', auth });
     this.drive = google.drive({ version: 'v3', auth });
     this.driveService = new GoogleDriveService();
+    this.aiService = new AIService();
     
     // Master sheet for video tracking
     this.masterSheetId = config.google.masterSheetId;
@@ -32,8 +34,8 @@ class GoogleSheetsService {
     this.masterColumns = {
       videoId: 0,           // A: 🤖 Video ID (VID-XXXX format)
       youtubeUrl: 1,        // B: 🔧 YouTube URL
-      title: 2,             // C: 🤖 Title
-      status: 3,            // D: 🤖 Status
+      status: 2,            // C: 🤖 Status
+      title: 3,             // D: 🤖 Title
       channel: 4,           // E: 🤖 Channel
       duration: 5,          // F: 🤖 Duration
       viewCount: 6,         // G: 🤖 View Count
@@ -45,7 +47,8 @@ class GoogleSheetsService {
       driveFolder: 12,      // M: 🤖 Drive Folder Link
       detailWorkbookUrl: 13, // N: 🤖 Detail Workbook URL
       createdTime: 14,      // O: 🤖 Created Time
-      lastEditedTime: 15    // P: 🤖 Last Edited Time
+      lastEditedTime: 15,   // P: 🤖 Last Edited Time
+      isRegenerating: 16    // Q: 🤖 Is Regenerating Flag (internal use)
     };
 
     // Detail workbook sheet structure
@@ -125,7 +128,7 @@ class GoogleSheetsService {
       const rowData = new Array(16).fill(''); // Initialize 16 columns (A-P)
       rowData[this.masterColumns.videoId] = videoId;
       rowData[this.masterColumns.youtubeUrl] = videoData.youtubeUrl;
-      rowData[this.masterColumns.title] = videoData.title || '';
+      rowData[this.masterColumns.title] = videoData.title || 'YouTube API Error - Run fix-missing-titles.js';
       rowData[this.masterColumns.status] = 'New';
       rowData[this.masterColumns.channel] = videoData.channelTitle || '';
       rowData[this.masterColumns.duration] = videoData.duration || '';
@@ -188,7 +191,7 @@ class GoogleSheetsService {
 
       // Update status
       updates.push({
-        range: `Videos!D${videoRow.rowIndex}`,
+        range: `Videos!C${videoRow.rowIndex}`,
         values: [[status]]
       });
 
@@ -403,32 +406,69 @@ END OF BACKUP - Original script preserved before regeneration`;
    */
   async createVideoDetailWorkbook(videoId, videoTitle) {
     return this.retryOperation(async () => {
-      // Create individual video folder inside the root folder
       const folderName = `(${videoId}) ${videoTitle}`;
-      const folderResponse = await this.drive.files.create({
-        resource: {
-          name: folderName,
-          mimeType: 'application/vnd.google-apps.folder',
-          parents: [config.google.videosRootFolderId]
-        }
+      let folderId;
+      let folderUrl;
+      
+      // Check if folder already exists
+      const existingFolders = await this.drive.files.list({
+        q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and parents in '${config.google.videosRootFolderId}' and trashed=false`,
+        fields: 'files(id, name, webViewLink)'
       });
 
-      const folderId = folderResponse.data.id;
-      const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
-      logger.info(`Created video folder: ${folderName} - ${folderUrl}`);
+      if (existingFolders.data.files.length > 0) {
+        // Use existing folder
+        folderId = existingFolders.data.files[0].id;
+        folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+        logger.info(`Using existing video folder: ${folderName} - ${folderUrl}`);
+      } else {
+        // Create new folder
+        const folderResponse = await this.drive.files.create({
+          resource: {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [config.google.videosRootFolderId]
+          }
+        });
 
-      // Copy template workbook with new naming format
+        folderId = folderResponse.data.id;
+        folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+        logger.info(`Created video folder: ${folderName} - ${folderUrl}`);
+      }
+
+      // Check for existing workbook before creating new one
       const workbookName = `(${videoId}) ${videoTitle} - Video Detail`;
-      const copyResponse = await this.drive.files.copy({
-        fileId: this.templateWorkbookId,
-        resource: {
-          name: workbookName,
-          parents: [folderId] // Place workbook inside the video folder
-        }
+
+      const existingWorkbooks = await this.drive.files.list({
+        q: `name='${workbookName}' and parents in '${folderId}' and trashed=false and mimeType='application/vnd.google-apps.spreadsheet'`,
+        fields: 'files(id, name, webViewLink)'
       });
 
-      const workbookId = copyResponse.data.id;
-      const workbookUrl = `https://docs.google.com/spreadsheets/d/${workbookId}`;
+      let workbookId;
+      let workbookUrl;
+
+      if (existingWorkbooks.data.files.length > 0) {
+        // Use existing workbook
+        const existingWorkbook = existingWorkbooks.data.files[0];
+        workbookId = existingWorkbook.id;
+        workbookUrl = `https://docs.google.com/spreadsheets/d/${workbookId}`;
+        
+        logger.info(`Using existing detail workbook for ${videoId}: ${workbookName}`);
+      } else {
+        // Copy template workbook with new naming format
+        const copyResponse = await this.drive.files.copy({
+          fileId: this.templateWorkbookId,
+          resource: {
+            name: workbookName,
+            parents: [folderId] // Place workbook inside the video folder
+          }
+        });
+
+        workbookId = copyResponse.data.id;
+        workbookUrl = `https://docs.google.com/spreadsheets/d/${workbookId}`;
+        
+        logger.info(`Created new detail workbook for ${videoId}: ${workbookName}`);
+      }
 
       // Update master sheet with both workbook and folder URLs
       await this.updateVideoStatus(videoId, null, {
@@ -482,17 +522,102 @@ END OF BACKUP - Original script preserved before regeneration`;
         ['Script Style', enhancedContent.videoStyle?.style || ''],
         ['Processing Date', new Date().toISOString()],
         ['', ''], // Empty row
-        ['CLEAN VOICE SCRIPT', cleanVoiceScript]
+        ['CLEAN VOICE SCRIPT', cleanVoiceScript + '\n\n(Use this clean version for voice generation - no editing instructions)']
       ];
+
+      // Add enhanced keyword research data if available
+      if (enhancedContent.keywords) {
+        const keywords = enhancedContent.keywords;
+        
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['🎯 ENHANCED KEYWORD STRATEGY', '']);
+        videoInfoData.push(['', '']); // Empty row
+        
+        // Core SEO Keywords
+        if (keywords.primaryKeywords?.length > 0) {
+          videoInfoData.push(['🔑 Primary Keywords', keywords.primaryKeywords.join(', ')]);
+        }
+        if (keywords.longTailKeywords?.length > 0) {
+          videoInfoData.push(['🎯 Long-tail Keywords', keywords.longTailKeywords.join(', ')]);
+        }
+        if (keywords.semanticKeywords?.length > 0) {
+          videoInfoData.push(['🔗 Semantic Keywords', keywords.semanticKeywords.join(', ')]);
+        }
+        
+        videoInfoData.push(['', '']); // Empty row
+        
+        // YouTube Algorithm Optimization
+        if (keywords.youtubeSearchKeywords?.length > 0) {
+          videoInfoData.push(['🔍 YouTube Search Keywords', keywords.youtubeSearchKeywords.join(', ')]);
+        }
+        if (keywords.browseFeedKeywords?.length > 0) {
+          videoInfoData.push(['📺 Browse Feed Keywords', keywords.browseFeedKeywords.join(', ')]);
+        }
+        if (keywords.shortsOptimizedKeywords?.length > 0) {
+          videoInfoData.push(['📱 Shorts Optimized Keywords', keywords.shortsOptimizedKeywords.join(', ')]);
+        }
+        
+        videoInfoData.push(['', '']); // Empty row
+        
+        // Engagement & Performance
+        if (keywords.algorithmBoostKeywords?.length > 0) {
+          videoInfoData.push(['🚀 Algorithm Boost Keywords', keywords.algorithmBoostKeywords.join(', ')]);
+        }
+        if (keywords.engagementTriggerKeywords?.length > 0) {
+          videoInfoData.push(['💬 Engagement Trigger Keywords', keywords.engagementTriggerKeywords.join(', ')]);
+        }
+        if (keywords.retentionKeywords?.length > 0) {
+          videoInfoData.push(['⏱️ Retention Keywords', keywords.retentionKeywords.join(', ')]);
+        }
+        
+        videoInfoData.push(['', '']); // Empty row
+        
+        // Discovery & Competition
+        if (keywords.questionKeywords?.length > 0) {
+          videoInfoData.push(['❓ Question Keywords', keywords.questionKeywords.join(', ')]);
+        }
+        if (keywords.competitiveKeywords?.length > 0) {
+          videoInfoData.push(['🎯 Competitive Gap Keywords', keywords.competitiveKeywords.join(', ')]);
+        }
+        if (keywords.trendingHashtags?.length > 0) {
+          videoInfoData.push(['#️⃣ Trending Hashtags', keywords.trendingHashtags.join(', ')]);
+        }
+        if (keywords.relatedTopics?.length > 0) {
+          videoInfoData.push(['📊 Related Topics', keywords.relatedTopics.join(', ')]);
+        }
+      }
 
       // Add optimized title options if available
       if (enhancedContent.optimizedTitles && enhancedContent.optimizedTitles.options) {
         videoInfoData.push(['', '']); // Empty row
-        videoInfoData.push(['OPTIMIZED TITLE OPTIONS', '']);
+        videoInfoData.push(['OPTIMIZED TITLE OPTIONS', 'Click-Through Rate Optimized Titles']);
+        videoInfoData.push(['', '']); // Empty row
         videoInfoData.push(['Recommended Title:', enhancedContent.optimizedTitles.recommended || '']);
+        videoInfoData.push(['', '']); // Empty row separator
         enhancedContent.optimizedTitles.options.forEach((title, index) => {
-          videoInfoData.push([`Option ${index + 1}:`, title || '']);
+          videoInfoData.push([`Title Option ${index + 1}`, title || '']);
         });
+      }
+
+      // Generate thumbnail suggestions
+      try {
+        const thumbnailSuggestions = await this.aiService.generateThumbnailSuggestions(
+          videoData, 
+          enhancedContent.attractiveScript
+        );
+        
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['THUMBNAIL DESIGN SUGGESTIONS', '']);
+        videoInfoData.push(['2 Different Styles for Maximum Impact:', '']);
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['Thumbnail Concepts:', thumbnailSuggestions || 'Unable to generate thumbnail suggestions']);
+      } catch (error) {
+        logger.warn(`Failed to generate thumbnail suggestions for ${videoId}:`, error.message);
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['THUMBNAIL DESIGN SUGGESTIONS', '']);
+        videoInfoData.push(['Error:', 'Unable to generate thumbnail suggestions. Please create thumbnails manually.']);
+        videoInfoData.push(['Style 1:', 'Emotional/Dramatic - Use bright colors, close-up faces, and emotional expressions']);
+        videoInfoData.push(['Style 2:', 'Professional/Clean - Use minimal design, clear typography, and visual metaphors']);
       }
 
       // Update Video Info sheet
@@ -507,9 +632,22 @@ END OF BACKUP - Original script preserved before regeneration`;
 
       // Create and upload voice script file to Google Drive
       try {
-        const voiceScriptFile = await this.createAndUploadVoiceScript(videoId);
+        // Check if this video is being regenerated (force recreate voice script)
+        const isRegenerating = videoRow.data[this.masterColumns.isRegenerating] === 'true';
+        const voiceScriptFile = await this.createAndUploadVoiceScript(videoId, isRegenerating);
+        
         if (voiceScriptFile) {
-          logger.info(`Voice script file created for ${videoId}: ${voiceScriptFile.fileName}`);
+          if (voiceScriptFile.skipped) {
+            logger.info(`Voice script already exists for ${videoId}: ${voiceScriptFile.fileName} (skipped duplicate creation)`);
+          } else {
+            logger.info(`Voice script file created for ${videoId}: ${voiceScriptFile.fileName}`);
+          }
+        }
+        
+        // Clear regeneration flag after successful voice script creation
+        if (isRegenerating) {
+          await this.updateVideoField(videoId, 'isRegenerating', '');
+          logger.info(`${videoId}: Regeneration flag cleared after voice script recreation`);
         }
       } catch (error) {
         logger.warn(`Failed to create voice script file for ${videoId}:`, error.message);
@@ -527,15 +665,15 @@ END OF BACKUP - Original script preserved before regeneration`;
         fullScriptData.push(['', '']); // Empty row
         fullScriptData.push(['OPTIMIZED SCRIPT:', enhancedContent.attractiveScript]);
         
-        // Voice Generator Section
+        // Voice Generator Section - Script text removed, available in separate file
         fullScriptData.push(['', '']); // Empty row for spacing
         fullScriptData.push(['', '']); // Extra spacing
         fullScriptData.push(['SCRIPT FOR VOICE GENERATOR', '']);
-        fullScriptData.push(['Instructions:', 'Clean transcript only - no music, no timestamps, no voiceover instructions']);
+        fullScriptData.push(['Instructions:', 'Voice script available as separate .txt file in Drive folder']);
+        fullScriptData.push(['File Location:', 'Check Drive folder for voice_script.txt file']);
         fullScriptData.push(['Voice Style:', 'Conversational, engaging, clear pronunciation']);
         fullScriptData.push(['Pacing:', 'Natural speech speed with pauses for emphasis']);
-        fullScriptData.push(['', '']); // Empty row
-        fullScriptData.push(['Script Content:', enhancedContent.attractiveScript]);
+        // Voice Script Text removed - available as separate file
       }
 
       if (fullScriptData.length > 0) {
@@ -821,7 +959,7 @@ END OF BACKUP - Original script preserved before regeneration`;
   /**
    * Generate and upload voice script file to Google Drive
    */
-  async createAndUploadVoiceScript(videoId) {
+  async createAndUploadVoiceScript(videoId, forceRecreate = false) {
     return this.retryOperation(async () => {
       const videoRow = await this.findVideoRow(videoId);
       if (!videoRow || !videoRow.data[this.masterColumns.driveFolder]) {
@@ -835,9 +973,6 @@ END OF BACKUP - Original script preserved before regeneration`;
         return null;
       }
 
-      // Get video title for header
-      const videoTitle = videoRow.data[this.masterColumns.title] || 'Unknown Title';
-
       // Extract folder ID from folder URL
       const folderUrl = videoRow.data[this.masterColumns.driveFolder];
       const folderId = folderUrl.split('/folders/')[1];
@@ -846,14 +981,34 @@ END OF BACKUP - Original script preserved before regeneration`;
         throw new Error(`Invalid drive folder URL for video: ${videoId}`);
       }
 
-      // Create text file content with enhanced formatting - one sentence per line
-      const fileContent = `=== VOICE SCRIPT ===
-Video ID: ${videoId}
-Video Title: ${videoTitle}
-Generated: ${new Date().toISOString()}
+      // Check for existing voice_script.txt file to prevent duplicates
+      if (!forceRecreate) {
+        try {
+          const existingFiles = await this.drive.files.list({
+            q: `name='voice_script.txt' and parents in '${folderId}' and trashed=false`,
+            fields: 'files(id, name, webViewLink, webContentLink)'
+          });
 
-=== SCRIPT SENTENCES ===
-${scriptSentences.map(sentence => sentence.trim()).join('\n\n')}`;
+          if (existingFiles.data.files.length > 0) {
+            const existingFile = existingFiles.data.files[0];
+            logger.info(`Voice script already exists for ${videoId}, skipping creation: ${existingFile.name}`);
+            
+            return {
+              fileId: existingFile.id,
+              fileName: existingFile.name,
+              viewLink: existingFile.webViewLink,
+              downloadLink: existingFile.webContentLink,
+              publicUrl: `https://drive.google.com/uc?id=${existingFile.id}`,
+              skipped: true
+            };
+          }
+        } catch (error) {
+          logger.warn(`Failed to check for existing voice script file for ${videoId}, proceeding with creation:`, error.message);
+        }
+      }
+
+      // Create text file content - script content only
+      const fileContent = scriptSentences.map(sentence => sentence.trim()).join('\n\n');
 
       // Upload as text file to Google Drive
       const fileMetadata = {
@@ -914,7 +1069,7 @@ ${scriptSentences.map(sentence => sentence.trim()).join('\n\n')}`;
         if (row[this.masterColumns.videoId]) {
           videosStatus.push({
             videoId: row[this.masterColumns.videoId],
-            title: row[this.masterColumns.title],
+            title: row[this.masterColumns.title] || 'Unknown Title',
             status: row[this.masterColumns.status],
             scriptApproved: row[this.masterColumns.scriptApproved],
             voiceGenerationStatus: row[this.masterColumns.voiceGenerationStatus],
@@ -991,7 +1146,7 @@ ${scriptSentences.map(sentence => sentence.trim()).join('\n\n')}`;
         if (Object.keys(manualChanges).length > 0) {
           changes.push({
             videoId: currentVideo.videoId,
-            title: currentVideo.title,
+            title: (currentVideo.title && currentVideo.title.trim()) || 'Title Unavailable',
             driveFolder: currentVideo.driveFolder,
             detailWorkbookUrl: currentVideo.detailWorkbookUrl,
             changes: manualChanges
@@ -1037,6 +1192,179 @@ ${scriptSentences.map(sentence => sentence.trim()).join('\n\n')}`;
     } catch (error) {
       return { status: 'unhealthy', service: 'GoogleSheets', error: error.message };
     }
+  }
+
+  /**
+   * Clean up duplicate Drive folders and update main sheet URLs
+   */
+  async cleanupDuplicateDriveFolders() {
+    return this.retryOperation(async () => {
+      logger.info('🧹 Starting Drive folder cleanup process...');
+      
+      // Get all videos from master sheet
+      const allVideos = await this.getAllVideos();
+      const videosByName = new Map();
+      const duplicateGroups = [];
+      let processedCount = 0;
+      let cleanedCount = 0;
+
+      // Group videos by folder name to find duplicates
+      for (const video of allVideos) {
+        if (!video.videoId || !video.title) continue;
+        
+        const folderName = `(${video.videoId}) ${video.title}`;
+        if (!videosByName.has(folderName)) {
+          videosByName.set(folderName, []);
+        }
+        videosByName.get(folderName).push(video);
+      }
+
+      // Find groups with potential duplicates
+      for (const [folderName, videos] of videosByName) {
+        if (videos.length > 1) {
+          logger.info(`🔍 Found ${videos.length} videos with folder name: ${folderName}`);
+          duplicateGroups.push({ folderName, videos });
+        }
+      }
+
+      if (duplicateGroups.length === 0) {
+        logger.info('✅ No duplicate folder groups found');
+        return { processedCount: 0, cleanedCount: 0 };
+      }
+
+      logger.info(`🔧 Found ${duplicateGroups.length} potential duplicate folder groups`);
+
+      // Check and clean each group
+      for (const group of duplicateGroups) {
+        try {
+          processedCount++;
+          logger.info(`\n🔍 Processing group ${processedCount}/${duplicateGroups.length}: ${group.folderName}`);
+          
+          // Search for actual folders in Google Drive with this name
+          const driveResponse = await this.drive.files.list({
+            q: `name='${group.folderName}' and mimeType='application/vnd.google-apps.folder' and parents in '${config.google.videosRootFolderId}' and trashed=false`,
+            fields: 'files(id, name, webViewLink, createdTime, modifiedTime)',
+            orderBy: 'createdTime desc'
+          });
+
+          const folders = driveResponse.data.files || [];
+          
+          if (folders.length > 1) {
+            logger.info(`❗ Found ${folders.length} duplicate folders in Drive for: ${group.folderName}`);
+            
+            // Keep the most recent folder (first in desc order)
+            const keepFolder = folders[0];
+            const foldersToDelete = folders.slice(1);
+            
+            logger.info(`✅ Keeping folder: ${keepFolder.id} (created: ${keepFolder.createdTime})`);
+            
+            // Delete duplicate folders
+            for (const folderToDelete of foldersToDelete) {
+              try {
+                await this.drive.files.delete({ fileId: folderToDelete.id });
+                logger.info(`🗑️ Deleted duplicate folder: ${folderToDelete.id}`);
+                cleanedCount++;
+              } catch (deleteError) {
+                logger.error(`❌ Failed to delete folder ${folderToDelete.id}:`, deleteError.message);
+              }
+            }
+
+            // Update master sheet URLs for all videos in this group
+            const correctUrl = `https://drive.google.com/drive/folders/${keepFolder.id}`;
+            
+            for (const video of group.videos) {
+              try {
+                await this.updateVideoStatus(video.videoId, null, {
+                  driveFolder: correctUrl
+                });
+                logger.info(`📝 Updated ${video.videoId} Drive folder URL`);
+              } catch (updateError) {
+                logger.error(`❌ Failed to update ${video.videoId}:`, updateError.message);
+              }
+            }
+          } else if (folders.length === 1) {
+            // Single folder exists, ensure all videos point to it
+            const correctUrl = `https://drive.google.com/drive/folders/${folders[0].id}`;
+            
+            for (const video of group.videos) {
+              const currentUrl = video.data ? video.data[this.masterColumns.driveFolder] : null;
+              if (currentUrl !== correctUrl) {
+                try {
+                  await this.updateVideoStatus(video.videoId, null, {
+                    driveFolder: correctUrl
+                  });
+                  logger.info(`📝 Updated ${video.videoId} Drive folder URL to correct one`);
+                } catch (updateError) {
+                  logger.error(`❌ Failed to update ${video.videoId}:`, updateError.message);
+                }
+              }
+            }
+          } else {
+            logger.warn(`⚠️ No folders found in Drive for: ${group.folderName}`);
+          }
+          
+        } catch (error) {
+          logger.error(`❌ Error processing group ${group.folderName}:`, error.message);
+        }
+      }
+
+      logger.info('\n🎉 Drive folder cleanup completed:');
+      logger.info(`   📊 Groups processed: ${processedCount}`);
+      logger.info(`   🗑️ Duplicate folders cleaned: ${cleanedCount}`);
+      
+      return { processedCount, cleanedCount };
+      
+    }, 'cleanupDuplicateDriveFolders');
+  }
+
+  /**
+   * Get all videos from master sheet
+   */
+  async getAllVideos() {
+    return this.retryOperation(async () => {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.masterSheetId,
+        range: 'Videos!A:P'
+      });
+
+      const values = response.data.values || [];
+      if (values.length <= 1) {
+        return [];
+      }
+
+      const videos = [];
+      const dataRows = values.slice(1); // Skip header row
+
+      for (let i = 0; i < dataRows.length; i++) {
+        const row = dataRows[i];
+        const rowIndex = i + 2; // Adjust for 1-based indexing and header row
+
+        if (row[this.masterColumns.videoId]) {
+          videos.push({
+            videoId: row[this.masterColumns.videoId],
+            youtubeUrl: row[this.masterColumns.youtubeUrl],
+            status: row[this.masterColumns.status],
+            title: row[this.masterColumns.title] || 'Unknown Title',
+            channel: row[this.masterColumns.channel],
+            duration: row[this.masterColumns.duration],
+            viewCount: row[this.masterColumns.viewCount],
+            publishedDate: row[this.masterColumns.publishedDate],
+            youtubeVideoId: row[this.masterColumns.youtubeVideoId],
+            scriptApproved: row[this.masterColumns.scriptApproved],
+            voiceGenerationStatus: row[this.masterColumns.voiceGenerationStatus],
+            videoEditingStatus: row[this.masterColumns.videoEditingStatus],
+            driveFolder: row[this.masterColumns.driveFolder],
+            detailWorkbookUrl: row[this.masterColumns.detailWorkbookUrl],
+            createdTime: row[this.masterColumns.createdTime],
+            lastEditedTime: row[this.masterColumns.lastEditedTime],
+            rowIndex: rowIndex,
+            data: row
+          });
+        }
+      }
+
+      return videos;
+    }, 'getAllVideos');
   }
 }
 

@@ -1,15 +1,15 @@
-import GoogleDriveService from './src/services/googleDriveService.js';
+import GoogleDriveService from '../src/services/googleDriveService.js';
 
 async function checkVideoStatus() {
   try {
     const googleDriveService = new GoogleDriveService();
     
     console.log('🔍 Checking current video status in master sheet...');
-    console.log('Master sheet ID: 1ZQTP566D1SwYV6vosirm3B2dlkXShO_fad8MfrXNO5w');
+    console.log('Master sheet ID: 1ZwFAUc2ijEUxulxgFxXQPx1isMSyH71-HKmhf4SoklI');
     
     // Get all data from the master sheet
     const data = await googleDriveService.getSpreadsheetData(
-      '1ZQTP566D1SwYV6vosirm3B2dlkXShO_fad8MfrXNO5w',
+      '1ZwFAUc2ijEUxulxgFxXQPx1isMSyH71-HKmhf4SoklI',
       'A:Z'
     );
     
