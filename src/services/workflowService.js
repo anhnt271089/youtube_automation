@@ -56,6 +56,20 @@ class WorkflowService {
     return this.sheetsService.updateSentenceStatus(videoId, sentenceNumber, status, imageUrl);
   }
 
+  /**
+   * Extract clean voice script from script breakdown
+   */
+  async extractCleanVoiceScript(videoId) {
+    return this.sheetsService.extractCleanVoiceScript(videoId);
+  }
+
+  /**
+   * Create and upload voice script file to Google Drive
+   */
+  async createAndUploadVoiceScript(videoId) {
+    return this.sheetsService.createAndUploadVoiceScript(videoId);
+  }
+
   async autoPopulateVideoData(videoId, videoData) {
     // Update video status to Processing (metadata already populated during entry creation)
     return this.updateVideoStatus(videoId, 'Processing');

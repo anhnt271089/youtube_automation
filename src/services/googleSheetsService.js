@@ -319,6 +319,9 @@ class GoogleSheetsService {
       const workbookUrl = videoRow.data[this.masterColumns.detailWorkbookUrl];
       const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
 
+      // Extract clean voice script from script breakdown
+      const cleanVoiceScript = await this.extractCleanVoiceScript(videoId);
+
       // Prepare video info data for the Video Info sheet
       const videoInfoData = [
         ['Video Title', videoData.title],
@@ -330,7 +333,9 @@ class GoogleSheetsService {
         ['Published Date', videoData.publishedAt || ''],
         ['', ''], // Empty row
         ['Script Style', enhancedContent.videoStyle?.style || ''],
-        ['Processing Date', new Date().toISOString()]
+        ['Processing Date', new Date().toISOString()],
+        ['', ''], // Empty row
+        ['CLEAN VOICE SCRIPT', cleanVoiceScript || enhancedContent.attractiveScript || '']
       ];
 
       // Update Video Info sheet
@@ -342,6 +347,16 @@ class GoogleSheetsService {
           values: videoInfoData
         }
       });
+
+      // Create and upload voice script file to Google Drive
+      try {
+        const voiceScriptFile = await this.createAndUploadVoiceScript(videoId);
+        if (voiceScriptFile) {
+          logger.info(`Voice script file created for ${videoId}: ${voiceScriptFile.fileName}`);
+        }
+      } catch (error) {
+        logger.warn(`Failed to create voice script file for ${videoId}:`, error.message);
+      }
 
       // Also add full scripts to separate areas with detailed sections
       const fullScriptData = [];
@@ -600,6 +615,123 @@ class GoogleSheetsService {
       logger.info(`Approved script for video: ${videoId}`);
       return true;
     }, 'approveScript');
+  }
+
+  /**
+   * Extract clean voice script from script breakdown sentences
+   */
+  async extractCleanVoiceScript(videoId) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data[this.masterColumns.detailWorkbookUrl]) {
+        logger.warn(`Detail workbook not found for video: ${videoId}`);
+        return null;
+      }
+
+      const workbookUrl = videoRow.data[this.masterColumns.detailWorkbookUrl];
+      const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
+
+      try {
+        // Get all script text from Script Breakdown sheet
+        const response = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: workbookId,
+          range: `${this.detailSheets.scriptBreakdown}!B:B` // Column B contains Script Text
+        });
+
+        const scriptTextValues = response.data.values || [];
+        
+        // Skip header row (first row) and combine all script sentences
+        const scriptSentences = scriptTextValues.slice(1)
+          .filter(row => row[0] && row[0].trim()) // Filter out empty rows
+          .map(row => row[0].trim());
+
+        if (scriptSentences.length === 0) {
+          logger.warn(`No script sentences found in breakdown for video: ${videoId}`);
+          return null;
+        }
+
+        // Join sentences with proper spacing and punctuation handling
+        const cleanScript = scriptSentences.join(' ').replace(/\s+/g, ' ').trim();
+        
+        logger.info(`Extracted clean voice script for ${videoId}: ${cleanScript.length} characters`);
+        return cleanScript;
+
+      } catch (error) {
+        logger.warn(`Could not extract script breakdown for ${videoId}:`, error.message);
+        return null;
+      }
+    }, 'extractCleanVoiceScript');
+  }
+
+  /**
+   * Generate and upload voice script file to Google Drive
+   */
+  async createAndUploadVoiceScript(videoId) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data[this.masterColumns.driveFolder]) {
+        throw new Error(`Drive folder not found for video: ${videoId}`);
+      }
+
+      // Get the clean voice script
+      const cleanVoiceScript = await this.extractCleanVoiceScript(videoId);
+      if (!cleanVoiceScript) {
+        logger.warn(`No clean voice script available for ${videoId}`);
+        return null;
+      }
+
+      // Extract folder ID from folder URL
+      const folderUrl = videoRow.data[this.masterColumns.driveFolder];
+      const folderId = folderUrl.split('/folders/')[1];
+      
+      if (!folderId) {
+        throw new Error(`Invalid drive folder URL for video: ${videoId}`);
+      }
+
+      // Create text file content with proper formatting
+      const fileContent = `CLEAN VOICE SCRIPT - ${videoId}
+Generated: ${new Date().toISOString()}
+
+${cleanVoiceScript}`;
+
+      // Upload as text file to Google Drive
+      const fileMetadata = {
+        name: 'voice_script.txt',
+        parents: [folderId]
+      };
+
+      const media = {
+        mimeType: 'text/plain',
+        body: fileContent
+      };
+
+      const response = await this.drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: 'id, name, webViewLink, webContentLink'
+      });
+
+      // Make file publicly viewable for easy access
+      await this.drive.permissions.create({
+        fileId: response.data.id,
+        resource: {
+          role: 'reader',
+          type: 'anyone'
+        }
+      });
+
+      const fileResult = {
+        fileId: response.data.id,
+        fileName: response.data.name,
+        viewLink: response.data.webViewLink,
+        downloadLink: response.data.webContentLink,
+        publicUrl: `https://drive.google.com/uc?id=${response.data.id}`
+      };
+
+      logger.info(`Created and uploaded voice script file for ${videoId}: ${fileResult.viewLink}`);
+      return fileResult;
+
+    }, 'createAndUploadVoiceScript');
   }
 
   /**
