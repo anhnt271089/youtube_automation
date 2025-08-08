@@ -1,0 +1,17 @@
+{
+  "watch": ["src/", "config/"],
+  "ignore": [
+    "logs/**/*",
+    "temp/**/*",
+    "output/**/*",
+    "node_modules/**/*",
+    "*.log",
+    "*.json.tmp",
+    "video_status_cache.json"
+  ],
+  "ext": "js,mjs,cjs",
+  "delay": "2500",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
