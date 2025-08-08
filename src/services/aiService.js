@@ -192,7 +192,7 @@ Return 5 title options, each on a new line, numbered 1-5.`;
     }
   }
 
-  async performKeywordResearch(videoContent, niche = '') {
+  async performKeywordResearch(videoContent, _niche = '') {
     try {
       const prompt = `
 Perform keyword research for a YouTube video based on the following content:

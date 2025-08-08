@@ -238,10 +238,16 @@ class WorkflowService {
         // Auto-update workflow statuses for resumed script generation
         await this.autoUpdateWorkflowStatuses(video.id, 'Script Separated');
         
-        // Send approval request
+        // Send approval request with Google Sheets URLs
+        const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
+        const workbookUrl = video.data && video.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+          ? video.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+          : null;
+          
         await this.telegramService.sendScriptApprovalRequest(
           `${video.videoId} - ${video.title}`,
-          `https://notion.so/${video.id.replace(/-/g, '')}`
+          workbookUrl,
+          masterSheetUrl
         );
         
         return { success: true, stage: 'awaiting_approval' };
@@ -489,20 +495,31 @@ class WorkflowService {
       // The videoId is already in VID-XX format from Google Sheets
       const videoDisplayId = videoId;
 
+      // Generate master sheet URL for status tracking
+      const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
+      
       await this.telegramService.sendVideoProcessingStarted({
         ...videoData,
         recordId: videoDisplayId,
         displayTitle: `${videoDisplayId} - ${videoData.title}`
-      });
+      }, masterSheetUrl);
 
       // Set the proper VideoID (VID-XX format) for Digital Ocean operations
       videoData.videoId = videoDisplayId;
       
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData);
 
+      // Get workbook URL from created workbook for script review
+      const videoRow = await this.sheetsService.findVideoRow(videoDisplayId);
+      const workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+        ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+        : null;
+      
       await this.telegramService.sendScriptGenerated(
         `${videoDisplayId} - ${videoData.title}`, 
-        enhancedContent.attractiveScript
+        enhancedContent.attractiveScript,
+        workbookUrl,
+        masterSheetUrl
       );
 
       await this.telegramService.sendKeywordResearchResults(
@@ -612,9 +629,14 @@ class WorkflowService {
           `✅ <b>Script Auto-Approved</b>\n\n🎬 ${videoDisplayId} - ${videoData.title}\n🤖 Automatically approved for processing`
         );
       } else {
+        // Get URLs for approval request
+        const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
+        const workbookUrl = scriptStructure.originalScriptPage?.pageUrl || null;
+        
         await this.telegramService.sendScriptApprovalRequest(
           `${videoDisplayId} - ${videoData.title}`,
-          scriptStructure.originalScriptPage?.pageUrl || `Video ID: ${videoDisplayId}` // Use Google Sheets workbook URL or video ID
+          workbookUrl,
+          masterSheetUrl
         );
       }
 
@@ -743,10 +765,20 @@ class WorkflowService {
           );
         } catch (error) {
           logger.warn('Failed to upload thumbnail to Digital Ocean:', error.message);
-          // Use original URL as fallback
+          // Use original URL as fallback and get relevant URLs
+          const videoRow = await this.sheetsService.findVideoRow(videoInfo.videoId);
+          const workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+            ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+            : null;
+          const driveFolderUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.driveFolder]
+            ? videoRow.data[this.sheetsService.masterColumns.driveFolder]
+            : null;
+            
           await this.telegramService.sendThumbnailGenerated(
             videoInfo.title,
-            thumbnailResult.url
+            thumbnailResult.url,
+            driveFolderUrl,
+            workbookUrl
           );
         }
       }
@@ -793,10 +825,18 @@ class WorkflowService {
         retryCount: (video.retryCount || 0) + 1
       });
 
+      // Generate URLs for error notification
+      const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
+      const workbookUrl = video.data && video.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+        ? video.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+        : null;
+      
       await this.telegramService.sendError(
         video.title,
         error.message,
-        stage
+        stage,
+        masterSheetUrl,
+        workbookUrl
       );
 
       this.stats.failed++;
@@ -818,7 +858,19 @@ class WorkflowService {
         
         if (now - createdTime > timeoutThreshold) {
           const videoDisplayTitle = video.videoId ? `${video.videoId} - ${video.title}` : video.title;
-          await this.telegramService.sendApprovalTimeout(videoDisplayTitle, 24);
+          
+          // Generate URLs for timeout notification
+          const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
+          const workbookUrl = video.data && video.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
+            ? video.data[this.sheetsService.masterColumns.detailWorkbookUrl]
+            : null;
+          
+          await this.telegramService.sendApprovalTimeout(
+            videoDisplayTitle, 
+            24, 
+            workbookUrl,
+            masterSheetUrl
+          );
           processedCount++;
           
           if (now - createdTime > timeoutThreshold * 2) { // 48 hours
