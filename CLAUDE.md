@@ -134,6 +134,7 @@ npm test               # Run Jest test suite - MUST pass before commits
 - ✅ **Image Prompts**: Generated when script breakdown enabled, even if image generation is disabled
 - ✅ **Analytics Tab**: Now populated with processing metrics and video analytics
 - ✅ **Full Script Sections**: Added comprehensive sections for Video Editor and Voice Generator workflows
+- ✅ **Voice Script Enhancement**: `voice_script.txt` now formats each sentence on a separate line for optimal voice generation
 
 **Current Working Configuration:**
 ```bash
@@ -268,6 +269,34 @@ WorkflowService (Central Orchestrator)
 - **Intelligent Recovery**: System detects and resumes interrupted workflows at correct stage
 - **Auto-Population Logic**: Status transitions happen automatically without user intervention
 - Manual approval gates prevent automated progression (optional auto-approval available)
+
+### Voice Script Enhancement (Latest Feature)
+
+**Enhanced voice_script.txt Format:**
+- Each sentence now appears on its own line with double spacing
+- Clean, readable format optimized for voice generation workflows
+- Professional header with Video ID, title, and generation timestamp
+
+**File Format Example:**
+```
+=== VOICE SCRIPT ===
+Video ID: VID-0001
+Video Title: [Video Title]
+Generated: [Timestamp]
+
+=== SCRIPT SENTENCES ===
+First sentence goes here.
+
+Second sentence goes here.
+
+Third sentence goes here.
+```
+
+**Benefits:**
+- Voice generators work better with sentence-by-sentence input
+- Easy to track progress during voice recording
+- Clean format without editing notes or technical instructions
+- Automatically uploaded to each video's Google Drive folder
 
 ### Workflow Status Auto-Population
 
