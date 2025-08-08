@@ -46,9 +46,153 @@ class AIService {
     };
   }
 
-  async generateAttractiveScript(originalTranscript, videoMetadata) {
+  /**
+   * Analyze script context for enhanced regeneration
+   * @param {string} originalScript - Original script content
+   * @param {object} videoMetadata - Video metadata
+   * @returns {Promise<object>} Context analysis
+   */
+  async analyzeScriptContext(originalScript, videoMetadata) {
     try {
       const prompt = `
+Analyze the following script to extract key contextual elements for enhanced regeneration:
+
+Original Script:
+${originalScript}
+
+Video Metadata:
+- Title: ${videoMetadata.title}
+- Description: ${videoMetadata.description?.substring(0, 300)}
+
+Perform a comprehensive CONTEXT ANALYSIS and return a JSON object with:
+
+{
+  "originalScriptIntent": "Core purpose and goal of the original content",
+  "targetAudience": "Specific audience demographic and characteristics",
+  "contentVibe": "Tone, style, and emotional approach (formal/casual/inspirational/etc)",
+  "coreMessage": "Main takeaway or key insight",
+  "hookStyle": "How the content captures attention (question/story/statistic/etc)",
+  "callToActionApproach": "Style of CTA used (direct/soft/educational/etc)",
+  "contentPillars": ["key theme 1", "key theme 2", "key theme 3"],
+  "audienceSpecificLanguage": "Language style and terminology used",
+  "videoFormat": "Content format (tutorial/story/tips/analysis/etc)"
+}
+
+Focus on preserving the essence while enabling development and enhancement.`;
+
+      const completion = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 800,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      });
+
+      let responseText = completion.content[0].text.trim();
+      
+      // Clean JSON response
+      if (responseText.startsWith('```json')) {
+        responseText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      }
+
+      const contextAnalysis = JSON.parse(responseText);
+      logger.info('Script context analyzed with Claude Sonnet');
+      
+      return contextAnalysis;
+    } catch (error) {
+      logger.error('Error analyzing script context:', error);
+      // Return fallback context
+      return {
+        originalScriptIntent: 'Engage and inform audience',
+        targetAudience: 'General viewers',
+        contentVibe: 'Conversational and engaging',
+        coreMessage: 'Value-driven content',
+        hookStyle: 'Direct approach',
+        callToActionApproach: 'Educational',
+        contentPillars: ['information', 'engagement', 'value'],
+        audienceSpecificLanguage: 'Clear and accessible',
+        videoFormat: 'Educational content'
+      };
+    }
+  }
+
+  async generateAttractiveScript(originalTranscript, videoMetadata, contextAnalysis = null) {
+    try {
+      // Perform context analysis if not provided (for regeneration scenarios)
+      let context = contextAnalysis;
+      if (!context) {
+        context = await this.analyzeScriptContext(originalTranscript, videoMetadata);
+      }
+
+      const prompt = `
+You are a professional YouTube content creator and scriptwriter. Transform the following video transcript into a more engaging, attractive script for a 2-3 minute video.
+
+CONTEXT ANALYSIS:
+- Original Script Intent: ${context.originalScriptIntent}
+- Target Audience: ${context.targetAudience}
+- Content Vibe: ${context.contentVibe}
+- Core Message: ${context.coreMessage}
+- Hook Style: ${context.hookStyle}
+- Call-to-Action Approach: ${context.callToActionApproach}
+- Content Pillars: ${context.contentPillars.join(', ')}
+- Audience Language: ${context.audienceSpecificLanguage}
+- Video Format: ${context.videoFormat}
+
+Original Video Information:
+- Title: ${videoMetadata.title}
+- Description: ${videoMetadata.description?.substring(0, 500)}
+
+Original Transcript:
+${originalTranscript}
+
+REGENERATION INSTRUCTIONS:
+1. PRESERVE: Same audience, same vibe, same intent
+2. DEVELOP: Expand ideas, improve flow, enhance engagement
+3. MAINTAIN: Original hook style, call-to-action approach
+4. ENHANCE: Better transitions, clearer messaging
+
+CONSTRAINTS:
+- Keep same video style/format
+- Maintain original content pillars
+- Preserve audience-specific language
+- Develop rather than replace core concepts
+
+REQUIREMENTS:
+1. Keep the core message and information intact
+2. Make it more engaging and conversational
+3. Add hooks and compelling transitions
+4. Optimize for 2-3 minute duration
+5. Include clear call-to-actions
+6. Make it suitable for short-form content
+7. Enhance flow while preserving original intent
+
+Return only the improved script without any additional commentary.`;
+
+      const completion = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 2000,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      });
+
+      const generatedScript = completion.content[0].text.trim();
+      logger.info('Script generated with Claude Sonnet');
+      
+      return generatedScript;
+    } catch (error) {
+      logger.error('Error generating attractive script with Claude:', error);
+      logger.info('Falling back to OpenAI GPT-4o-mini');
+      
+      // Fallback to OpenAI
+      try {
+        const fallbackPrompt = `
 You are a professional YouTube content creator and scriptwriter. Transform the following video transcript into a more engaging, attractive script for a 2-3 minute video.
 
 Original Video Information:
@@ -68,29 +212,30 @@ Requirements:
 
 Return only the improved script without any additional commentary.`;
 
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert YouTube scriptwriter specializing in creating engaging short-form content.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 1500,
-        temperature: 0.7
-      });
+        const fallbackCompletion = await this.openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert YouTube scriptwriter specializing in creating engaging short-form content.'
+            },
+            {
+              role: 'user',
+              content: fallbackPrompt
+            }
+          ],
+          max_tokens: 1500,
+          temperature: 0.7
+        });
 
-      const generatedScript = completion.choices[0].message.content.trim();
-      logger.info('Script generated');
-      
-      return generatedScript;
-    } catch (error) {
-      logger.error('Error generating attractive script:', error);
-      throw error;
+        const generatedScript = fallbackCompletion.choices[0].message.content.trim();
+        logger.info('Script generated with OpenAI fallback');
+        
+        return generatedScript;
+      } catch (fallbackError) {
+        logger.error('Both Claude and OpenAI failed for script generation:', fallbackError);
+        throw fallbackError;
+      }
     }
   }
 
@@ -940,7 +1085,28 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
 
   async healthCheck() {
     try {
-      // Test OpenAI API with a simple completion
+      // Test Claude Sonnet API first (primary)
+      try {
+        const claudeCompletion = await this.anthropic.messages.create({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 50,
+          messages: [
+            {
+              role: 'user',
+              content: 'Say "Claude Sonnet is working" if you can respond.'
+            }
+          ]
+        });
+
+        if (claudeCompletion.content && claudeCompletion.content.length > 0) {
+          logger.info('AI service health check passed (Claude Sonnet)');
+          return true;
+        }
+      } catch (claudeError) {
+        logger.warn('Claude Sonnet health check failed, trying OpenAI fallback:', claudeError.message);
+      }
+
+      // Fallback to OpenAI API
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -958,13 +1124,13 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
       });
 
       if (completion.choices && completion.choices.length > 0) {
-        logger.info('AI service health check passed');
+        logger.info('AI service health check passed (OpenAI fallback)');
         return true;
       } else {
-        throw new Error('Invalid response from OpenAI API');
+        throw new Error('Invalid response from both Claude and OpenAI APIs');
       }
     } catch (error) {
-      logger.error('AI service health check failed:', error);
+      logger.error('AI service health check failed for both providers:', error);
       throw error;
     }
   }

@@ -485,6 +485,16 @@ END OF BACKUP - Original script preserved before regeneration`;
         ['CLEAN VOICE SCRIPT', cleanVoiceScript]
       ];
 
+      // Add optimized title options if available
+      if (enhancedContent.optimizedTitles && enhancedContent.optimizedTitles.options) {
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['OPTIMIZED TITLE OPTIONS', '']);
+        videoInfoData.push(['Recommended Title:', enhancedContent.optimizedTitles.recommended || '']);
+        enhancedContent.optimizedTitles.options.forEach((title, index) => {
+          videoInfoData.push([`Option ${index + 1}:`, title || '']);
+        });
+      }
+
       // Update Video Info sheet
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: workbookId,
@@ -525,7 +535,7 @@ END OF BACKUP - Original script preserved before regeneration`;
         fullScriptData.push(['Voice Style:', 'Conversational, engaging, clear pronunciation']);
         fullScriptData.push(['Pacing:', 'Natural speech speed with pauses for emphasis']);
         fullScriptData.push(['', '']); // Empty row
-        fullScriptData.push(['CLEAN VOICE SCRIPT:', enhancedContent.attractiveScript]);
+        fullScriptData.push(['Script Content:', enhancedContent.attractiveScript]);
       }
 
       if (fullScriptData.length > 0) {
