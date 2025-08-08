@@ -36,40 +36,43 @@ Organized folder structure for storing images and assets.
 
 ### 2. Create Master Tracking Sheet
 
-Create a new Google Sheet with these columns:
+Create a new Google Sheet with these simplified, icon-only headers (A-P = 16 columns):
 
 | Column | Header | Type | Description |
 |--------|--------|------|-------------|
-| A | Video ID | Text | VID-XXXX format |
-| B | YouTube URL | URL | Source video URL |
-| C | Title | Text | Video title |
-| D | Status | Dropdown | New, Processing, Script Separated, Approved, Generating Images, Completed, Error |
-| E | Channel | Text | Source channel name |
-| F | Duration | Text | Video duration |
-| G | View Count | Number | Video views |
-| H | Published Date | Date | Video publish date |
-| I | YouTube Video ID | Text | YouTube video ID |
-| J | Optimized Title | Text | AI-generated title |
-| K | Optimized Description | Text | AI-generated description |
-| L | Keywords | Text | SEO keywords |
-| M | Total Sentences | Number | Script sentence count |
-| N | Completed Sentences | Number | Progress counter |
-| O | Thumbnail URLs | URL | Generated thumbnails |
-| P | Thumbnail Prompt | Text | AI thumbnail prompts |
-| Q | Script Approved | Checkbox | Manual approval flag |
-| R | Voice Status | Checkbox | Legacy voice status |
-| S | Voice Generation Status | Dropdown | Not Ready, Not Started, In Progress, Completed, Need Changes |
-| T | Video Editing Status | Dropdown | Not Ready, Not Started, In Progress, First Draft, Completed, Published |
-| U | Drive Folder | URL | Video folder link |
-| V | Detail Workbook URL | URL | Link to detail workbook |
-| W | Created Time | Timestamp | Auto-populated |
-| X | Last Edited Time | Timestamp | Auto-populated |
+| A | 🤖 Video ID | Text | VID-XXXX format (auto-generated) |
+| B | 🔧 YouTube URL | URL | Source video URL (user input) |
+| C | 🤖 Title | Text | Video title (auto-populated) |
+| D | 🤖 Status | Dropdown | New, Processing, Script Separated, Approved, Generating Images, Completed, Error |
+| E | 🤖 Channel | Text | Source channel name (auto-populated) |
+| F | 🤖 Duration | Text | Video duration (auto-populated) |
+| G | 🤖 View Count | Number | Video views (auto-populated) |
+| H | 🤖 Published Date | Date | Video publish date (auto-populated) |
+| I | 🤖 YouTube Video ID | Text | YouTube video ID (auto-populated) |
+| J | 👤 Script Approved | Dropdown | Pending, Approved, Needs Changes (manual) |
+| K | 👤 Voice Generation Status | Dropdown | Not Ready, Not Started, In Progress, Completed, Need Changes |
+| L | 👤 Video Editing Status | Dropdown | Not Ready, Not Started, In Progress, First Draft, Completed, Published |
+| M | 🤖 Drive Folder Link | URL | Video folder link (auto-populated) |
+| N | 🤖 Detail Workbook URL | URL | Link to detail workbook (auto-populated) |
+| O | 🤖 Created Time | Timestamp | Auto-populated creation time |
+| P | 🤖 Last Edited Time | Timestamp | Auto-populated last edit time |
+
+**Icon Meanings:**
+- 🤖 = Automatically populated by system
+- 👤 = Requires human interaction/decision  
+- 🔧 = User input required
 
 #### Master Sheet Setup:
 1. Name the sheet "Videos"
-2. Add data validation for Status, Voice Generation Status, and Video Editing Status columns
+2. Add data validation for Status (D), Script Approved (J), Voice Generation Status (K), and Video Editing Status (L) columns
 3. Set up conditional formatting for status visualization
-4. Protect auto-populated columns (C, D, E, F, G, H, I, J, K, L, M, N, O, P, W, X)
+4. Protect auto-populated columns (A, C, D, E, F, G, H, I, M, N, O, P)
+
+**Simplified Structure Benefits:**
+- Clean, professional appearance with icon-only headers
+- Reduced column count from 24 to 16 (A-P)
+- Better mobile responsiveness and readability
+- Streamlined workflow with essential data only
 
 ### 3. Create Template Workbook
 
@@ -148,7 +151,7 @@ GOOGLE_REFRESH_TOKEN=your_refresh_token
 Run the OAuth setup script to obtain tokens:
 
 ```bash
-node scripts/setup-google-oauth.js
+npm run setup-google
 ```
 
 This will:
@@ -176,6 +179,34 @@ YouTube Automation/
 │       └── Final/
 └── Archives/
 ```
+
+### 8. Create or Update Sheet Structure
+
+#### For New Installations:
+```bash
+npm run create-google-sheets
+```
+This creates both the master sheet and template workbook with the new simplified headers.
+
+#### For Existing Users (Update Headers):
+```bash
+npm run update-sheet-headers
+```
+This updates your existing master sheet to use the new simplified icon-only headers.
+
+### 9. Test Your Setup
+
+Verify everything is working correctly:
+```bash
+npm run test-sheet-headers
+```
+This comprehensive test will:
+1. Check service health
+2. Test video ID generation
+3. Create a test entry
+4. Verify column mappings
+5. Test status updates
+6. Validate the structure
 
 ## Benefits of This Setup
 
@@ -232,8 +263,9 @@ LOG_LEVEL=debug
 
 Test individual components:
 ```bash
-node scripts/test-google-sheets.js
-node scripts/test-google-drive.js
+npm run test-google      # Full Google integration test
+npm run test-sheet-headers # Test new header structure
+npm run test-google-health # Quick health check
 ```
 
 ## Security Notes

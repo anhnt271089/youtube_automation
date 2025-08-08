@@ -18,8 +18,10 @@
     "test-sheets": "node scripts/health-check.js sheets",
     "setup-google": "node scripts/setup-google-oauth.js",
     "create-google-sheets": "node scripts/create-google-sheets-structure.js",
+    "update-sheet-headers": "node scripts/update-master-sheet-headers.js",
     "test-google": "node scripts/test-google-integration.js",
     "test-google-health": "node scripts/test-google-integration.js --health",
+    "test-sheet-headers": "node test-google-sheets-headers.js",
     "refresh-google-tokens": "node scripts/setup-google-oauth.js --refresh"
   },
   "dependencies": {

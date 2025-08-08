@@ -26,24 +26,24 @@ class GoogleSheetsService {
     // Template workbook ID for creating video detail workbooks
     this.templateWorkbookId = config.google.templateWorkbookId;
     
-    // Master sheet column mapping (A=0, B=1, etc.) - Fixed voice status conflict
+    // Master sheet column mapping (A=0, B=1, etc.) - Simplified icon-only headers
     this.masterColumns = {
-      videoId: 0,           // A: 🤖 Auto: Video ID (VID-XXXX format)
-      youtubeUrl: 1,        // B: 🔧 Input: YouTube URL
-      title: 2,             // C: 🤖 Auto: Title
-      status: 3,            // D: 🤖 Auto: Status
-      channel: 4,           // E: 🤖 Auto: Channel
-      duration: 5,          // F: 🤖 Auto: Duration
-      viewCount: 6,         // G: 🤖 Auto: View Count
-      publishedDate: 7,     // H: 🤖 Auto: Published Date
-      youtubeVideoId: 8,    // I: 🤖 Auto: YouTube Video ID
-      scriptApproved: 9,    // J: 👤 Manual: Script Approved (dropdown: 'Pending', 'Approved', 'Needs Changes')
-      voiceGenerationStatus: 10, // K: 👤 Manual: Voice Generation Status
-      videoEditingStatus: 11, // L: 👤 Manual: Video Editing Status
-      driveFolder: 12,      // M: 🤖 Auto: Drive Folder Link
-      detailWorkbookUrl: 13, // N: 🤖 Auto: Detail Workbook URL
-      createdTime: 14,      // O: 🤖 Auto: Created Time
-      lastEditedTime: 15    // P: 🤖 Auto: Last Edited Time
+      videoId: 0,           // A: 🤖 Video ID (VID-XXXX format)
+      youtubeUrl: 1,        // B: 🔧 YouTube URL
+      title: 2,             // C: 🤖 Title
+      status: 3,            // D: 🤖 Status
+      channel: 4,           // E: 🤖 Channel
+      duration: 5,          // F: 🤖 Duration
+      viewCount: 6,         // G: 🤖 View Count
+      publishedDate: 7,     // H: 🤖 Published Date
+      youtubeVideoId: 8,    // I: 🤖 YouTube Video ID
+      scriptApproved: 9,    // J: 👤 Script Approved (dropdown: 'Pending', 'Approved', 'Needs Changes')
+      voiceGenerationStatus: 10, // K: 👤 Voice Generation Status
+      videoEditingStatus: 11, // L: 👤 Video Editing Status
+      driveFolder: 12,      // M: 🤖 Drive Folder Link
+      detailWorkbookUrl: 13, // N: 🤖 Detail Workbook URL
+      createdTime: 14,      // O: 🤖 Created Time
+      lastEditedTime: 15    // P: 🤖 Last Edited Time
     };
 
     // Detail workbook sheet structure

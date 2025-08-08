@@ -54,20 +54,30 @@ class GoogleSheetsCreator {
       const sheetId = response.data.sheets[0].properties.sheetId; // Get the actual sheet ID
       console.log(`   ✅ Master sheet created: ${response.data.properties.title}`);
 
-      // Set up headers
+      // Set up headers with simplified icon-only format (A-P = 16 columns)
       const headers = [
-        'Video ID', 'YouTube URL', 'Title', 'Status', 'Channel', 'Duration', 
-        'View Count', 'Published Date', 'YouTube Video ID', 'Optimized Title', 
-        'Optimized Description', 'Keywords', 'Total Sentences', 'Completed Sentences',
-        'Thumbnail URLs', 'Thumbnail Prompt', 'Script Approved', 'Voice Status',
-        'Voice Generation Status', 'Video Editing Status', 'Drive Folder', 
-        'Detail Workbook URL', 'Created Time', 'Last Edited Time'
+        '🤖 Video ID',           // A: Auto-generated VID-XXXX format
+        '🔧 YouTube URL',        // B: User input required
+        '🤖 Title',              // C: Automatically populated
+        '🤖 Status',             // D: Automatically populated 
+        '🤖 Channel',            // E: Automatically populated
+        '🤖 Duration',           // F: Automatically populated
+        '🤖 View Count',         // G: Automatically populated
+        '🤖 Published Date',     // H: Automatically populated
+        '🤖 YouTube Video ID',   // I: Automatically populated
+        '👤 Script Approved',    // J: Requires human interaction
+        '👤 Voice Generation Status', // K: Requires human interaction
+        '👤 Video Editing Status',    // L: Requires human interaction
+        '🤖 Drive Folder Link',  // M: Automatically populated
+        '🤖 Detail Workbook URL', // N: Automatically populated
+        '🤖 Created Time',       // O: Automatically populated
+        '🤖 Last Edited Time'    // P: Automatically populated
       ];
 
       // Add headers
       await this.sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: 'Videos!A1:X1',
+        range: 'Videos!A1:P1', // Updated to P (16 columns)
         valueInputOption: 'USER_ENTERED',
         resource: {
           values: [headers]
@@ -87,7 +97,7 @@ class GoogleSheetsCreator {
                   startRowIndex: 0,
                   endRowIndex: 1,
                   startColumnIndex: 0,
-                  endColumnIndex: 24
+                  endColumnIndex: 16
                 },
                 cell: {
                   userEnteredFormat: {
@@ -129,7 +139,7 @@ class GoogleSheetsCreator {
                   sheetId: sheetId,
                   dimension: 'COLUMNS',
                   startIndex: 0,
-                  endIndex: 24
+                  endIndex: 16
                 }
               }
             }
@@ -168,15 +178,38 @@ class GoogleSheetsCreator {
                 }
               }
             },
-            // Voice Generation Status validation (S column)
+            // Script Approved validation (J column - index 9)
             {
               setDataValidation: {
                 range: {
                   sheetId: sheetId,
                   startRowIndex: 1,
                   endRowIndex: 1000,
-                  startColumnIndex: 18,
-                  endColumnIndex: 19
+                  startColumnIndex: 9,
+                  endColumnIndex: 10
+                },
+                rule: {
+                  condition: {
+                    type: 'ONE_OF_LIST',
+                    values: [
+                      { userEnteredValue: 'Pending' },
+                      { userEnteredValue: 'Approved' },
+                      { userEnteredValue: 'Needs Changes' }
+                    ]
+                  },
+                  showCustomUi: true
+                }
+              }
+            },
+            // Voice Generation Status validation (K column - index 10)
+            {
+              setDataValidation: {
+                range: {
+                  sheetId: sheetId,
+                  startRowIndex: 1,
+                  endRowIndex: 1000,
+                  startColumnIndex: 10,
+                  endColumnIndex: 11
                 },
                 rule: {
                   condition: {
@@ -193,15 +226,15 @@ class GoogleSheetsCreator {
                 }
               }
             },
-            // Video Editing Status validation (T column)
+            // Video Editing Status validation (L column - index 11)
             {
               setDataValidation: {
                 range: {
                   sheetId: sheetId,
                   startRowIndex: 1,
                   endRowIndex: 1000,
-                  startColumnIndex: 19,
-                  endColumnIndex: 20
+                  startColumnIndex: 11,
+                  endColumnIndex: 12
                 },
                 rule: {
                   condition: {
