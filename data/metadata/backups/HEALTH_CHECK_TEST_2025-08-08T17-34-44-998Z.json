@@ -1,0 +1,25 @@
+{
+  "videoId": "HEALTH_CHECK_TEST",
+  "version": "1.0",
+  "createdAt": "2025-08-08T17:34:44.998Z",
+  "originalMetadata": {
+    "title": "Health Check Test Video",
+    "youtubeUrl": "https://youtube.com/watch?v=test",
+    "videoId": "test123",
+    "fetchedAt": "2025-08-08T17:34:44.998Z",
+    "checksum": "e1c9f51d8f1cc434916304eb6e0095d25e426df13771657acb2dcf2d6d565180"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-08-08T17:34:44.998Z",
+    "validationStatus": "verified",
+    "backupCreated": false
+  }
+}

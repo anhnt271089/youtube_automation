@@ -1,0 +1,81 @@
+{
+  "videoId": "VID-0001",
+  "version": "1.0",
+  "createdAt": "2025-08-08T17:08:31.341Z",
+  "originalMetadata": {
+    "videoId": "yIarDv9G7JM",
+    "title": "The Art Of Making A Plan ( That Actually Works )",
+    "description": "🧠 Want to know how to make a plan\n that actually WORKS\nIn this video, I break down the exact 3-step system that the top 1% use to turn goals into results. No fluff. Just a plan you’ll actually stick to.\n\nfor free help and knowledge 📓\n• join our telegram - https://t.me/beyondbeing11\n• join our Instagram - https://www.instagram.com/beyondbeing.in\n\n• how to make a plan that works\n• how to actually stick to your plan\n• how to break down goals into actions\n• how successful people plan\n• 3 step planning method that never fails\n\n#GoalSetting #PlanningThatWorks #selfimprovement",
+    "channelTitle": "BeyondBeing",
+    "publishedAt": "2025-07-02T12:33:00Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/yIarDv9G7JM/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/yIarDv9G7JM/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/yIarDv9G7JM/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/yIarDv9G7JM/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      }
+    },
+    "duration": "1:35",
+    "viewCount": 218674,
+    "likeCount": 17230,
+    "tags": [],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "🧠 Want to know how to make a plan  that actually WORKS In this video, I break down the exact 3-step system that the top 1% use to turn goals into results",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "Just a plan you’ll actually stick to",
+        "start": 3000,
+        "duration": 3000
+      },
+      {
+        "text": "for free help and knowledge 📓 • join our telegram -  • join our Instagram -  • how to make a plan that works • how to actually stick to your plan • how to break down goals into actions • how successful people plan • 3 step planning method that never fails #GoalSetting #PlanningThatWorks #selfimprovement",
+        "start": 6000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "🧠 Want to know how to make a plan  that actually WORKS In this video, I break down the exact 3-step system that the top 1% use to turn goals into results Just a plan you’ll actually stick to for free help and knowledge 📓 • join our telegram -  • join our Instagram -  • how to make a plan that works • how to actually stick to your plan • how to break down goals into actions • how successful people plan • 3 step planning method that never fails #GoalSetting #PlanningThatWorks #selfimprovement",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 497,
+      "segments": 3,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/yIarDv9G7JM/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=yIarDv9G7JM",
+    "fetchedAt": "2025-08-08T17:08:31.343Z",
+    "checksum": "85087ccef9178839058ee474c0398e10f0b1b559cbb4fe0b6822b1b9d16901ba"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-08-08T17:08:31.344Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}
