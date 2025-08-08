@@ -153,7 +153,7 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
     const costSummary = videoData.costSummary;
     
     let message = `
-🎉 <b>Video Processing Completed!</b>
+🤖 <b>Video Automation Flow Complete!</b>
 
 🎬 <b>Title:</b> ${title}
 📹 <b>Original:</b> ${videoData.originalUrl}
@@ -163,7 +163,11 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
 ✅ SEO description  
 ✅ Keyword research
 ✅ Generated images
-✅ Custom thumbnail`;
+✅ Voice script (ready for voice generation)
+
+👥 <b>Next Steps (Manual):</b>
+🎙️ Voice generation using provided script
+🎬 Video editing and assembly`;
 
     // Add full flow cost breakdown if available
     if (costSummary) {
@@ -311,6 +315,241 @@ Please review and approve the script to continue processing, or the video will b
     }
 
     return await this.sendMessage(message);
+  }
+
+  // New methods for manual status change notifications
+  
+  async sendVoiceGenerationStatusChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null) {
+    const formattedTitle = this.formatVideoTitle(title);
+    let statusIcon = '🎙️';
+    
+    // Add status-specific icons and context
+    switch (newStatus) {
+    case 'In Progress':
+      statusIcon = '⏳';
+      break;
+    case 'Completed':
+      statusIcon = '✅';
+      break;
+    case 'Need Changes':
+      statusIcon = '🔄';
+      break;
+    default:
+      statusIcon = '🎙️';
+    }
+    
+    let message = `${statusIcon} <b>Voice Generation Status Updated</b>
+
+🎬 <b>${videoId} - ${formattedTitle}</b>
+📊 <b>Status:</b> ${oldStatus || 'Not Set'} → ${newStatus}
+
+👤 Manual update detected`;
+
+    // Add contextual message based on status
+    if (newStatus === 'Completed') {
+      message += '\n\n🎉 Voice generation complete! Ready for video editing.';
+    } else if (newStatus === 'In Progress') {
+      message += '\n\n⚡ Voice generation in progress...';
+    } else if (newStatus === 'Need Changes') {
+      message += '\n\n🔄 Voice needs revision. Check workbook for details.';
+    }
+
+    // Add relevant links
+    const links = [];
+    if (workbookUrl) {
+      links.push(`📋 <a href="${workbookUrl}">View Script Details</a>`);
+    }
+    if (masterSheetUrl) {
+      links.push(`📊 <a href="${masterSheetUrl}">Update Other Statuses</a>`);
+    }
+    
+    if (links.length > 0) {
+      message += `\n\n${links.join('\n')}`;
+    }
+
+    return await this.sendMessage(message);
+  }
+
+  async sendVideoEditingStatusChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null, driveFolderUrl = null) {
+    const formattedTitle = this.formatVideoTitle(title);
+    let statusIcon = '🎬';
+    
+    // Add status-specific icons and context
+    switch (newStatus) {
+    case 'In Progress':
+      statusIcon = '⏳';
+      break;
+    case 'First Draft':
+      statusIcon = '📝';
+      break;
+    case 'Completed':
+      statusIcon = '✅';
+      break;
+    case 'Published':
+      statusIcon = '🚀';
+      break;
+    default:
+      statusIcon = '🎬';
+    }
+    
+    let message = `${statusIcon} <b>Video Editing Status Updated</b>
+
+🎬 <b>${videoId} - ${formattedTitle}</b>
+📊 <b>Status:</b> ${oldStatus || 'Not Set'} → ${newStatus}
+
+👤 Manual update detected`;
+
+    // Add contextual message based on status
+    if (newStatus === 'Published') {
+      message += '\n\n🚀 Video published! Great work!';
+    } else if (newStatus === 'Completed') {
+      message += '\n\n🎉 Video editing complete! Ready for publication.';
+    } else if (newStatus === 'First Draft') {
+      message += '\n\n📝 First draft ready for review.';
+    } else if (newStatus === 'In Progress') {
+      message += '\n\n⚡ Video editing in progress...';
+    }
+
+    // Add relevant links
+    const links = [];
+    if (driveFolderUrl) {
+      links.push(`📁 <a href="${driveFolderUrl}">View Assets in Drive</a>`);
+    }
+    if (workbookUrl) {
+      links.push(`📋 <a href="${workbookUrl}">View Video Details</a>`);
+    }
+    if (masterSheetUrl) {
+      links.push(`📊 <a href="${masterSheetUrl}">Update Other Statuses</a>`);
+    }
+    
+    if (links.length > 0) {
+      message += `\n\n${links.join('\n')}`;
+    }
+
+    return await this.sendMessage(message);
+  }
+
+  async sendScriptApprovedChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null) {
+    const formattedTitle = this.formatVideoTitle(title);
+    let statusIcon = '📝';
+    
+    // Add status-specific icons and context
+    switch (newStatus) {
+    case 'Approved':
+      statusIcon = '✅';
+      break;
+    case 'Needs Changes':
+      statusIcon = '🔄';
+      break;
+    case 'Pending':
+      statusIcon = '⏳';
+      break;
+    default:
+      statusIcon = '📝';
+    }
+    
+    let message = `${statusIcon} <b>Script Approval Updated</b>
+
+🎬 <b>${videoId} - ${formattedTitle}</b>
+📊 <b>Status:</b> ${oldStatus || 'Not Set'} → ${newStatus}
+
+👤 Manual update detected`;
+
+    // Add contextual message based on status
+    if (newStatus === 'Approved') {
+      message += '\n\n🎉 Script approved! Automation will continue processing.';
+    } else if (newStatus === 'Needs Changes') {
+      message += '\n\n🔄 Script needs revision. Processing paused.';
+    } else if (newStatus === 'Pending') {
+      message += '\n\n⏳ Script pending review.';
+    }
+
+    // Add relevant links
+    const links = [];
+    if (workbookUrl) {
+      links.push(`📋 <a href="${workbookUrl}">Review Script Details</a>`);
+    }
+    if (masterSheetUrl) {
+      links.push(`📊 <a href="${masterSheetUrl}">View Master Sheet</a>`);
+    }
+    
+    if (links.length > 0) {
+      message += `\n\n${links.join('\n')}`;
+    }
+
+    return await this.sendMessage(message);
+  }
+
+  /**
+   * Send notification about script regeneration started
+   */
+  async sendScriptRegenerationStarted(videoId, title, masterSheetUrl = null, workbookUrl = null) {
+    const formattedTitle = this.formatVideoTitle(title);
+    
+    let message = `🔄 <b>Script Regeneration Started</b>
+
+🎬 <b>${videoId} - ${formattedTitle}</b>
+📊 <b>Status:</b> Processing
+👤 Triggered by "Needs Changes" request
+
+🔄 <b>Action Taken:</b>
+• Main Status reset to "Processing"
+• Script Approved reset to "Pending"
+• New script generation will begin automatically
+
+⏳ <b>Next Steps:</b>
+• System will regenerate script with AI
+• New script will be populated in sheets
+• Manual review will be requested when complete`;
+
+    // Add relevant links
+    const links = [];
+    if (workbookUrl) {
+      links.push(`📋 <a href="${workbookUrl}">View Script Details</a>`);
+    }
+    if (masterSheetUrl) {
+      links.push(`📊 <a href="${masterSheetUrl}">Monitor Progress</a>`);
+    }
+    
+    if (links.length > 0) {
+      message += `\n\n${links.join('\n')}`;
+    }
+
+    return await this.sendMessage(message);
+  }
+
+  async sendStatusChangesSummary(changes) {
+    let message = `📊 <b>Multiple Status Changes Detected</b>
+
+🕒 <b>Time:</b> ${new Date().toLocaleString()}
+📋 <b>Videos Updated:</b> ${changes.length}
+
+`;
+
+    // Add summary of changes
+    changes.forEach(change => {
+      const videoLine = `🎬 <b>${change.videoId}</b> - ${this.formatVideoTitle(change.title)}`;
+      message += `${videoLine}\n`;
+      
+      Object.entries(change.changes).forEach(([field, changeInfo]) => {
+        const fieldName = this.getFieldDisplayName(field);
+        message += `   ${fieldName}: ${changeInfo.old || 'Not Set'} → ${changeInfo.new}\n`;
+      });
+      message += '\n';
+    });
+
+    message += '👤 <i>All changes detected from manual updates</i>';
+
+    return await this.sendMessage(message);
+  }
+
+  getFieldDisplayName(field) {
+    const fieldNames = {
+      scriptApproved: '📝 Script Approval',
+      voiceGenerationStatus: '🎙️ Voice Generation',
+      videoEditingStatus: '🎬 Video Editing'
+    };
+    return fieldNames[field] || field;
   }
 
   formatVideoTitle(title, maxLength = 40) {

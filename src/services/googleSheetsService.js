@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
+import GoogleDriveService from './googleDriveService.js';
 
 class GoogleSheetsService {
   constructor() {
@@ -19,6 +20,7 @@ class GoogleSheetsService {
 
     this.sheets = google.sheets({ version: 'v4', auth });
     this.drive = google.drive({ version: 'v3', auth });
+    this.driveService = new GoogleDriveService();
     
     // Master sheet for video tracking
     this.masterSheetId = config.google.masterSheetId;
@@ -225,6 +227,146 @@ class GoogleSheetsService {
       logger.info(`Updated video ${videoId} status to: ${status}`);
       return true;
     }, 'updateVideoStatus');
+  }
+
+  /**
+   * Update a specific field for a video
+   */
+  async updateVideoField(videoId, fieldName, value) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow) {
+        throw new Error(`Video not found: ${videoId}`);
+      }
+
+      if (this.masterColumns[fieldName] === undefined) {
+        throw new Error(`Unknown field: ${fieldName}`);
+      }
+
+      const column = String.fromCharCode(65 + this.masterColumns[fieldName]); // Convert to A, B, C...
+      const timestamp = new Date().toISOString();
+
+      const updates = [
+        // Update the specified field
+        {
+          range: `Videos!${column}${videoRow.rowIndex}`,
+          values: [[value]]
+        },
+        // Update last edited time
+        {
+          range: `Videos!P${videoRow.rowIndex}`, // P column for lastEditedTime
+          values: [[timestamp]]
+        }
+      ];
+
+      await this.sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: this.masterSheetId,
+        resource: {
+          valueInputOption: 'USER_ENTERED',
+          data: updates
+        }
+      });
+
+      logger.info(`Updated video ${videoId} field ${fieldName} to: ${value}`);
+      return true;
+    }, 'updateVideoField');
+  }
+
+  /**
+   * Get existing script content from Video Info sheet
+   */
+  async getExistingScriptContent(videoId) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data[this.masterColumns.detailWorkbookUrl]) {
+        throw new Error(`Detail workbook not found for video: ${videoId}`);
+      }
+
+      const workbookUrl = videoRow.data[this.masterColumns.detailWorkbookUrl];
+      const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
+
+      try {
+        // Get Video Info sheet content
+        const response = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: workbookId,
+          range: `${this.detailSheets.videoInfo}!A1:B20` // Get first 20 rows
+        });
+
+        const values = response.data.values || [];
+        let cleanVoiceScript = '';
+
+        // Find the CLEAN VOICE SCRIPT row
+        for (let i = 0; i < values.length; i++) {
+          if (values[i][0] === 'CLEAN VOICE SCRIPT' && values[i][1]) {
+            cleanVoiceScript = values[i][1];
+            break;
+          }
+        }
+
+        return {
+          cleanVoiceScript: cleanVoiceScript,
+          workbookId: workbookId
+        };
+      } catch (error) {
+        logger.warn(`Failed to get existing script content for ${videoId}:`, error.message);
+        return null;
+      }
+    }, 'getExistingScriptContent');
+  }
+
+  /**
+   * Create backup voice script file in Google Drive
+   */
+  async createBackupVoiceScript(videoId, backupFileName, scriptContent) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data[this.masterColumns.driveFolder]) {
+        throw new Error(`Drive folder not found for video: ${videoId}`);
+      }
+
+      // Get video title for header
+      const videoTitle = videoRow.data[this.masterColumns.title] || 'Unknown Title';
+      
+      // Extract folder ID from folder URL
+      const folderUrl = videoRow.data[this.masterColumns.driveFolder];
+      const folderId = folderUrl.split('/folders/')[1];
+      
+      // Create the backup file content with header
+      const timestamp = new Date().toISOString();
+      const fileContent = `BACKUP - Voice Script for ${videoTitle}
+Generated: ${timestamp}
+Video ID: ${videoId}
+Reason: Script regeneration requested
+
+========================================
+
+${scriptContent}
+
+========================================
+END OF BACKUP - Original script preserved before regeneration`;
+
+      // Create a readable stream from the content
+      const { Readable } = await import('stream');
+      const stream = new Readable();
+      stream.push(fileContent);
+      stream.push(null); // End the stream
+
+      // Upload to Google Drive in the video's folder
+      const uploadResult = await this.driveService.uploadFile(
+        stream,
+        backupFileName,
+        folderId,
+        'text/plain'
+      );
+
+      logger.info(`Backup voice script uploaded for ${videoId}: ${backupFileName}`);
+      
+      return {
+        fileName: backupFileName,
+        fileId: uploadResult.id,
+        fileUrl: uploadResult.webViewLink
+      };
+    }, 'createBackupVoiceScript');
   }
 
   /**
@@ -741,6 +883,132 @@ ${scriptSentences.map(sentence => sentence.trim()).join('\n\n')}`;
       return fileResult;
 
     }, 'createAndUploadVoiceScript');
+  }
+
+  /**
+   * Get all videos with their current status values for change monitoring
+   */
+  async getAllVideosStatus() {
+    return this.retryOperation(async () => {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.masterSheetId,
+        range: 'Videos!A:P' // Get all columns
+      });
+
+      const values = response.data.values || [];
+      const videosStatus = [];
+
+      // Skip header row (index 0)
+      for (let i = 1; i < values.length; i++) {
+        const row = values[i];
+        if (row[this.masterColumns.videoId]) {
+          videosStatus.push({
+            videoId: row[this.masterColumns.videoId],
+            title: row[this.masterColumns.title],
+            status: row[this.masterColumns.status],
+            scriptApproved: row[this.masterColumns.scriptApproved],
+            voiceGenerationStatus: row[this.masterColumns.voiceGenerationStatus],
+            videoEditingStatus: row[this.masterColumns.videoEditingStatus],
+            driveFolder: row[this.masterColumns.driveFolder],
+            detailWorkbookUrl: row[this.masterColumns.detailWorkbookUrl],
+            lastEditedTime: row[this.masterColumns.lastEditedTime]
+          });
+        }
+      }
+
+      return videosStatus;
+    }, 'getAllVideosStatus');
+  }
+
+  /**
+   * Compare current status with cached status to detect changes
+   */
+  detectStatusChanges(currentVideos, cachedVideos) {
+    const changes = [];
+    
+    // Create lookup map for cached videos
+    const cachedMap = new Map();
+    cachedVideos.forEach(video => {
+      cachedMap.set(video.videoId, video);
+    });
+
+    for (const currentVideo of currentVideos) {
+      const cachedVideo = cachedMap.get(currentVideo.videoId);
+      
+      if (!cachedVideo) {
+        // New video detected - skip since this is handled by other processes
+        continue;
+      }
+
+      // Check for changes in monitored fields
+      const changedFields = {};
+      
+      if (currentVideo.scriptApproved !== cachedVideo.scriptApproved) {
+        changedFields.scriptApproved = {
+          old: cachedVideo.scriptApproved,
+          new: currentVideo.scriptApproved
+        };
+      }
+
+      if (currentVideo.voiceGenerationStatus !== cachedVideo.voiceGenerationStatus) {
+        changedFields.voiceGenerationStatus = {
+          old: cachedVideo.voiceGenerationStatus,
+          new: currentVideo.voiceGenerationStatus
+        };
+      }
+
+      if (currentVideo.videoEditingStatus !== cachedVideo.videoEditingStatus) {
+        changedFields.videoEditingStatus = {
+          old: cachedVideo.videoEditingStatus,
+          new: currentVideo.videoEditingStatus
+        };
+      }
+
+      // Only report if there are actual changes and the change appears to be manual
+      // (Skip if it's an automated status change like 'Not Ready' -> 'Not Started')
+      if (Object.keys(changedFields).length > 0) {
+        // Filter out automated status changes
+        const manualChanges = {};
+        
+        Object.entries(changedFields).forEach(([field, change]) => {
+          // Skip automated transitions
+          if (this.isAutomatedTransition(field, change.old, change.new)) {
+            return;
+          }
+          manualChanges[field] = change;
+        });
+
+        if (Object.keys(manualChanges).length > 0) {
+          changes.push({
+            videoId: currentVideo.videoId,
+            title: currentVideo.title,
+            driveFolder: currentVideo.driveFolder,
+            detailWorkbookUrl: currentVideo.detailWorkbookUrl,
+            changes: manualChanges
+          });
+        }
+      }
+    }
+
+    return changes;
+  }
+
+  /**
+   * Check if a status change is an automated transition (should not trigger notification)
+   */
+  isAutomatedTransition(field, oldValue, newValue) {
+    // Automated Voice Generation Status transitions
+    if (field === 'voiceGenerationStatus') {
+      return (oldValue === 'Not Ready' && newValue === 'Not Started');
+    }
+
+    // Automated Video Editing Status transitions  
+    if (field === 'videoEditingStatus') {
+      return (oldValue === 'Not Ready' && newValue === 'Not Started');
+    }
+
+    // No automated transitions for scriptApproved
+    return false;
   }
 
   /**

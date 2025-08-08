@@ -174,6 +174,15 @@ node test-single-run.js new-videos               # Process new videos
 node test-single-run.js approved-scripts         # Process approved scripts
 node test-single-run.js ready-for-review         # Process ready for review videos
 node test-single-run.js error-videos             # Test error recovery system
+node test-single-run.js status-monitor           # Test status change monitoring
+node test-single-run.js cache-refresh            # Initialize status monitoring cache
+
+# Dedicated status monitoring testing
+node test-status-monitoring.js health             # Test all services health
+node test-status-monitoring.js cache-refresh      # Initialize cache with current data
+node test-status-monitoring.js monitor           # Run status monitoring once
+node test-status-monitoring.js test-notifications # Test notification methods
+node test-status-monitoring.js cache-clear       # Clear status cache
 
 # Note: Video generation is handled manually outside the automated flow
 
@@ -213,6 +222,7 @@ WorkflowService (Central Orchestrator)
 ├── GoogleDriveService   # Cloud storage for images & assets
 ├── AIService           # OpenAI/Anthropic content generation + DALL-E 3
 ├── TelegramService     # Notifications & manual approvals
+├── StatusMonitorService # Manual status change monitoring & notifications
 └── VideoService        # FFmpeg video processing & assembly
 ```
 
@@ -224,17 +234,30 @@ WorkflowService (Central Orchestrator)
 5. **Approval**: Auto-approval or manual review workflow via Telegram notifications
 6. **Generation**: AI image creation (DALL-E 3, 16:9 format), consistent styling, thumbnail generation
 7. **Storage**: Assets uploaded to Google Drive with shareable links
-8. **Completion**: Automated workflow ends - ready for manual voice generation and video assembly
-9. **Voice Processing**: Manual voice generation using optimized scripts (Voice Status checkbox tracking)
+8. **Completion**: Video automation flow complete - ready for manual voice generation and video assembly
+9. **Voice Processing**: Manual voice generation using optimized scripts (👤 Voice Generation Status selection tracking)
 10. **Final Assembly**: Manual video creation with voice and images (handled outside the system)
 
 ### Key Design Patterns
 
 #### Cron-Based Automation
-- Multiple scheduled jobs run at different intervals (10-15 minutes)
+- Multiple scheduled jobs run at different intervals (5-15 minutes)
 - Each job processes different workflow stages independently (video generation removed from automation)
 - **Enhanced Resume Capability**: Automatically handles interrupted workflows in any processing state
+- **Status Change Monitoring**: Detects manual status changes every 5 minutes and sends Telegram notifications
 - Graceful shutdown handling with SIGINT/SIGTERM signals
+
+#### Status Change Monitoring System
+- **Real-time Manual Updates**: Monitors Google Sheets for manual status changes every 5 minutes
+- **Smart Change Detection**: Distinguishes between automated system changes and human modifications
+- **Targeted Notifications**: Sends contextual Telegram alerts for different status types:
+  - 🎙️ **Voice Generation Status**: Not Started → In Progress → Completed → Need Changes
+  - 🎬 **Video Editing Status**: Not Started → In Progress → First Draft → Completed → Published
+  - 📝 **Script Approval**: Pending → Approved → Needs Changes
+- **Status Caching**: JSON file-based cache system to compare current vs. previous values
+- **Intelligent Filtering**: Ignores automated transitions (e.g., 'Not Ready' → 'Not Started')
+- **Batch Notifications**: Summary messages when multiple videos are updated simultaneously
+- **Error Recovery**: Comprehensive error handling with notification fallback
 
 #### Error Handling Strategy
 - Comprehensive logging with Winston (logs/ directory)
@@ -403,42 +426,32 @@ Videos are identified using a sequential VideoID system in VID-XX format (VID-40
 **🔧 INPUT SECTION - Manual Input Required:**
 - `A: ID` (Text): Auto-generated VideoID in VID-XX format (VID-40, VID-41...)
 - `B: 🔧 YouTube URL` (Text): Source video URL - **ONLY FIELD YOU NEED TO INPUT**
-- `C: 🔧 Script Approved` (Text): Manual approval flag for script processing (TRUE/FALSE)
 
 **🤖 AUTOMATION SECTION - Auto-Populated Columns (Read-Only):**
-- `D: 🤖 Title` (Text): Video title (extracted from YouTube)
-- `E: 🤖 Status` (Text): Main automation workflow state tracking (defaults to 'New')
+- `C: 🤖 Title` (Text): Video title (extracted from YouTube)
+- `D: 🤖 Status` (Text): Main automation workflow state tracking (defaults to 'New')
   - Values: 'New', 'Processing', 'Script Separated', 'Approved', 'Generating Images', 'Completed', 'Error'
-- `F: 🤖 Channel` (Text): YouTube channel name (extracted from YouTube)
-- `G: 🤖 YouTube Video ID` (Text): YouTube video ID (extracted from URL)
-- `H: 🤖 Duration` (Text): Video duration (extracted from YouTube)
-- `I: 🤖 View Count` (Number): Video view count (extracted from YouTube)
-- `J: 🤖 Published Date` (Date): Video publish date (extracted from YouTube)
-- `K: 🤖 Voice Generation Status` (Text): Voice generation workflow tracking (auto-populated)
-  - Default: 'Not Ready' → Auto-updates to 'Not Started' when Status = 'Script Separated'
-  - Values: 'Not Ready', 'Not Started', 'In Progress', 'Completed', 'Need Changes'
-- `L: 🤖 Video Editing Status` (Text): Video editing workflow tracking (auto-populated)
-  - Default: 'Not Ready' → Auto-updates to 'Not Started' when Status = 'Completed' AND Voice Generation Status = 'Completed'
-  - Values: 'Not Ready', 'Not Started', 'In Progress', 'First Draft', 'Completed', 'Published'
-- `M: 🤖 Created Time` (Date): Auto-populated timestamp when row is created
-- `N: 🤖 Last Edited Time` (Date): Auto-populated timestamp when row is last modified
+- `E: 🤖 Channel` (Text): YouTube channel name (extracted from YouTube)
+- `F: 🤖 Duration` (Text): Video duration (extracted from YouTube)
+- `G: 🤖 View Count` (Number): Video view count (extracted from YouTube)
+- `H: 🤖 Published Date` (Date): Video publish date (extracted from YouTube)
+- `I: 🤖 YouTube Video ID` (Text): YouTube video ID (extracted from URL)
 
 **👤 MANUAL WORKFLOW SECTION - User-Controlled Status Fields:**
-- `👤 Script Review Status` (Select): Manual script review workflow tracking
-  - Options: 'Not Started', 'Reviewing', 'Approved', 'Needs Changes', 'Rejected'
-- `👤 Voice Generation Notes` (Text): User notes for voice generation process
-- `👤 Video Editing Notes` (Text): User notes for video editing process
-- `👤 Final Status` (Select): Manual final status tracking
-  - Options: 'Draft', 'Review', 'Approved', 'Published', 'Archived'
+- `J: 👤 Script Approved` (Select): Manual script approval dropdown
+  - Options: 'Pending', 'Approved', 'Needs Changes'
+- `K: 👤 Voice Generation Status` (Select): Voice generation workflow tracking (auto-populated)
+  - Default: 'Not Ready' → Auto-updates to 'Not Started' when Status = 'Script Separated'
+  - Values: 'Not Ready', 'Not Started', 'In Progress', 'Completed', 'Need Changes'
+- `L: 👤 Video Editing Status` (Select): Video editing workflow tracking (auto-populated)
+  - Default: 'Not Ready' → Auto-updates to 'Not Started' when Status = 'Completed' AND Voice Generation Status = 'Completed'
+  - Values: 'Not Ready', 'Not Started', 'In Progress', 'First Draft', 'Completed', 'Published'
 
-**📊 OVERVIEW SECTION - Calculated/Formula Fields:**
-- `📊 Processing Progress` (Formula): Automated progress calculation based on status
-- `📊 Days Since Created` (Formula): Days since video was added to database
-- `📊 Content Quality Score` (Formula): Quality score based on view count and duration
-- `📊 Total Processing Time` (Formula): Time from creation to completion
-
-**Legacy Fields (Backward Compatibility):**
-- `Voice Status` (Checkbox): Legacy manual flag for voice generation (still supported)
+**🤖 METADATA SECTION - Auto-Populated (Read-Only):**
+- `M: 🤖 Drive Folder` (URL): Link to Google Drive folder with video assets
+- `N: 🤖 Detail Workbook URL` (URL): Link to detailed video workbook
+- `O: 🤖 Created Time` (Date): Auto-populated timestamp when row is created
+- `P: 🤖 Last Edited Time` (Date): Auto-populated timestamp when row is last modified
 
 #### Video Info Sheet Structure
 
@@ -566,6 +579,92 @@ const checkServiceHealth = async (service) => {
   }
 };
 ```
+
+## Script Regeneration Workflow ("Needs Changes" Handling)
+
+When humans set Script Approved status to "Needs Changes" in the Master Sheet, the system automatically triggers a complete script regeneration workflow.
+
+### Workflow Process
+
+1. **Status Change Detection**: The status monitoring system (`StatusMonitorService`) running every 5 minutes detects when Script Approved field changes to "Needs Changes".
+
+2. **Automatic Script Regeneration**: The system immediately:
+   - **Creates Backup**: Existing script content is backed up to Google Drive with timestamp
+   - **Resets Status**: Main automation status changes to "Processing"
+   - **Resets Approval**: Script Approved field changes to "Pending" 
+   - **Triggers Regeneration**: Video re-enters the script generation workflow
+   - **Sends Notifications**: Multiple Telegram notifications about backup and regeneration process
+
+3. **Telegram Notifications**: Three notifications are sent:
+   ```
+   🔄 Script Approval Updated
+   🎬 VID-XX - Video Title
+   📊 Status: [Previous Status] → Needs Changes
+   👤 Manual update detected
+   🔄 Script needs revision. Processing paused.
+   ```
+   
+   Followed by backup confirmation:
+   ```
+   💾 Script Backup Created
+   🎬 VID-XX - Video Title
+   📄 Backup: voice_script_backup_YYYY-MM-DDTHH-MM-SS.txt
+   🕒 Before regeneration
+   💡 Previous script version preserved
+   ```
+   
+   Then regeneration notification:
+   ```
+   🔄 Script Regeneration Started
+   🎬 VID-XX - Video Title
+   📊 Status: Processing
+   👤 Triggered by "Needs Changes" request
+
+   🔄 Action Taken:
+   • Script backup created with timestamp
+   • Main Status reset to "Processing"
+   • Script Approved reset to "Pending"
+   • New script generation will begin automatically
+
+   ⏳ Next Steps:
+   • System will regenerate script with AI
+   • New script will be populated in sheets
+   • Manual review will be requested when complete
+   ```
+
+4. **Regeneration Process**: 
+   - `processNewVideos()` picks up the video in "Processing" status
+   - Fresh AI analysis generates new script content
+   - Video Info sheet and Script Details sheet are updated with new content
+   - Video returns to "Ready for Review" with Script Approved = "Pending"
+   - New approval request is sent via Telegram
+
+### Implementation Details
+
+- **StatusMonitorService**: Handles detection and triggering in `handleScriptNeedsChanges()` with backup creation
+- **GoogleSheetsService**: Provides `updateVideoField()` for precise field updates and `createBackupVoiceScript()` for backups  
+- **TelegramService**: Provides `sendScriptRegenerationStarted()` for detailed notifications
+- **Monitoring Frequency**: 5-minute cron job ensures quick response to manual changes
+- **Backup System**: Automatic backup creation with timestamped filenames before any regeneration
+- **Error Handling**: Comprehensive error notifications if regeneration fails, with backup process isolated to prevent workflow failure
+
+### File Backup & Versioning
+
+**Backup Creation Process:**
+- **Trigger**: Automatically created before any script regeneration
+- **Location**: Same Google Drive folder as the video (`/VideoID/`)
+- **Filename**: `voice_script_backup_YYYY-MM-DDTHH-MM-SS-SSSZ.txt`
+- **Content**: Full backup with metadata header including timestamp, video ID, and reason
+- **Preservation**: Original script content preserved exactly as it was
+
+**File Handling During Regeneration:**
+- ✅ **Script Backup**: Created automatically with timestamp
+- ✅ **Version Preservation**: Previous versions kept in Drive folder
+- ✅ **Metadata Tracking**: Backup includes regeneration reason and timestamp
+- ✅ **Non-Blocking**: Backup failure doesn't prevent regeneration workflow
+- ✅ **Telegram Confirmation**: User notified when backup is successfully created
+
+This workflow ensures that script revision requests are handled automatically without manual intervention, maintaining smooth operations while allowing for human quality control and preserving all previous script versions.
 
 ## File Structure Context
 
@@ -836,7 +935,16 @@ async function profiledMethod() {
   - **Workflow Integration**: Automatically triggered during Video Info sheet population
   - **API Methods**: `extractCleanVoiceScript()` and `createAndUploadVoiceScript()` for manual usage
 - **Workflow Streamlining**: Removed automated video generation - workflow now ends after image generation
-- **Voice Status Tracking**: Added Voice Status field for manual voice generation progress tracking
+- **Voice Generation Status Tracking**: Added 👤 Voice Generation Status selection field for manual voice generation progress tracking
+- **🆕 STATUS MONITORING SYSTEM**: Comprehensive manual status change detection and notifications
+  - **Real-time Monitoring**: 5-minute cron job detects manual changes in Google Sheets
+  - **Smart Detection**: Distinguishes automated vs. human status changes using transition filtering
+  - **Contextual Notifications**: Targeted Telegram alerts with icons, status transitions, and relevant links
+  - **Multi-Status Support**: Monitors Voice Generation, Video Editing, and Script Approval status fields
+  - **Status Caching**: JSON-based cache system (temp/video_status_cache.json) for change comparison
+  - **Batch Processing**: Summary notifications when multiple videos updated simultaneously
+  - **Health Monitoring**: Integrated health checks for all monitoring components
+  - **Test Suite**: Dedicated testing commands for cache management and notification verification
 
 ### Production Deployment Checklist
 - [ ] All environment variables configured (including Google Drive and Sheets)
@@ -845,10 +953,14 @@ async function profiledMethod() {
 - [ ] Google Drive folder configured with proper service account permissions
 - [ ] Google service account has access to target Google Sheets and Drive folders
 - [ ] Telegram bot configured and accessible with VideoID notification format
-- [ ] Voice Status field added to Master Sheet schema
+- [ ] 👤 Voice Generation Status selection field added to Master Sheet schema
+- [ ] 👤 Video Editing Status selection field added to Master Sheet schema  
+- [ ] Status monitoring cache directory (temp/) writable with proper permissions
+- [ ] Status monitoring cron job enabled (every 5 minutes)
+- [ ] Status monitoring notifications tested with manual Google Sheets changes
 - [ ] Log directory writable with rotation policy
 - [ ] System resources adequate (CPU, memory, disk for image processing)
-- [ ] Health checks passing for all services including Google APIs
+- [ ] Health checks passing for all services including Google APIs and Status Monitoring
 - [ ] Error notifications working with cost summaries
 - [ ] Cost tracking and budget limits configured ($0.50 per video default)
 - [ ] Test video processing with sample URL to verify end-to-end Google integration

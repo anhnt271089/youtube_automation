@@ -4,6 +4,7 @@ import GoogleDriveService from './googleDriveService.js';
 import AIService from './aiService.js';
 import TelegramService from './telegramService.js';
 import VideoService from './videoService.js';
+import StatusMonitorService from './statusMonitorService.js';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 
@@ -15,6 +16,7 @@ class WorkflowService {
     this.aiService = new AIService();
     this.telegramService = new TelegramService();
     this.videoService = new VideoService();
+    this.statusMonitorService = new StatusMonitorService();
     
     this.processingQueue = new Map();
     this.stats = {
@@ -70,12 +72,12 @@ class WorkflowService {
     return this.sheetsService.createAndUploadVoiceScript(videoId);
   }
 
-  async autoPopulateVideoData(videoId, videoData) {
+  async autoPopulateVideoData(videoId, _videoData) {
     // Update video status to Processing (metadata already populated during entry creation)
     return this.updateVideoStatus(videoId, 'Processing');
   }
 
-  async addVideoUrl(youtubeUrl) {
+  async addVideoUrl(_youtubeUrl) {
     // This method is no longer needed since we create entries directly
     // Return a mock object to maintain compatibility
     return { id: null };
@@ -98,7 +100,7 @@ class WorkflowService {
     };
   }
 
-  async autoTransitionStatus(videoId, status, scriptApproved = false) {
+  async autoTransitionStatus(videoId, status, _scriptApproved = false) {
     // Simple status transition - Google Sheets doesn't have complex state logic
     return true;
   }
@@ -117,7 +119,7 @@ class WorkflowService {
     return true;
   }
 
-  async getVideoNavigationLinks(videoId, knownUrls = {}) {
+  async getVideoNavigationLinks(videoId, _knownUrls = {}) {
     // Return mock navigation links since Google Sheets doesn't have hierarchical structure
     return {
       originalScript: null,
@@ -132,18 +134,6 @@ class WorkflowService {
     return this.updateVideoStatus(videoId, null, {
       thumbnailUrls: urlsText
     });
-  }
-
-  async healthCheck() {
-    const sheetsHealth = await this.sheetsService.healthCheck();
-    const driveHealth = await this.driveService.testConnection();
-    return {
-      status: 'healthy',
-      services: {
-        sheets: sheetsHealth.status === 'healthy',
-        drive: !!driveHealth
-      }
-    };
   }
 
   async processNewVideos() {
@@ -970,7 +960,6 @@ class WorkflowService {
       logger.info(`Single video: ${video.title || video.youtubeUrl}`);
       
       let videoData;
-      let notionPageId;
       
       if (typeof video === 'string') {
         // It's a URL
@@ -1055,16 +1044,106 @@ class WorkflowService {
   }
 
   /**
-   * Health check including Digital Ocean Spaces
+   * Monitor manual status changes in Google Sheets and send notifications
+   */
+  async processStatusChanges() {
+    try {
+      logger.info('Starting status change monitoring workflow...');
+      
+      const result = await this.statusMonitorService.monitorStatusChanges();
+      
+      if (result.changesDetected > 0) {
+        logger.info(`Detected and notified ${result.changesDetected} manual status changes`);
+        
+        // Update processing stats
+        this.stats.totalProcessed += result.changesDetected;
+        
+        return {
+          success: true,
+          message: `Processed ${result.changesDetected} status changes`,
+          changes: result.changes
+        };
+      } else {
+        return {
+          success: true,
+          message: 'No status changes detected',
+          changes: []
+        };
+      }
+      
+    } catch (error) {
+      logger.error('Error in status monitoring workflow:', error);
+      
+      // Try to send error notification
+      try {
+        await this.telegramService.sendError(
+          'Status Monitoring System',
+          error.message,
+          'Status Change Detection'
+        );
+      } catch (notifyError) {
+        logger.error('Failed to send status monitoring error notification:', notifyError);
+      }
+      
+      return {
+        success: false,
+        message: 'Status monitoring failed',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get status monitoring statistics and cache info
+   */
+  getStatusMonitoringStats() {
+    try {
+      return this.statusMonitorService.getMonitoringStats();
+    } catch (error) {
+      logger.error('Error getting status monitoring stats:', error);
+      return {
+        error: error.message,
+        monitoringActive: false
+      };
+    }
+  }
+
+  /**
+   * Force refresh status cache (for debugging/setup)
+   */
+  async refreshStatusCache() {
+    try {
+      return await this.statusMonitorService.refreshCache();
+    } catch (error) {
+      logger.error('Error refreshing status cache:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear status cache (for debugging/reset)
+   */
+  async clearStatusCache() {
+    try {
+      return await this.statusMonitorService.clearCache();
+    } catch (error) {
+      logger.error('Error clearing status cache:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Health check including Digital Ocean Spaces and Status Monitoring
    * @returns {Promise<object>} Health check results
    */
   async healthCheck() {
     const checks = {
       youtube: false,
-      notion: false,
+      sheets: false,
       ai: false,
       telegram: false,
-      digitalOcean: false
+      digitalOcean: false,
+      statusMonitor: false
     };
 
     // Test YouTube API
@@ -1075,12 +1154,12 @@ class WorkflowService {
       logger.error('YouTube service health check failed:', error);
     }
 
-    // Test Notion API
+    // Test Google Sheets API
     try {
-      await this.healthCheck();
-      checks.notion = true;
+      const sheetsHealth = await this.sheetsService.healthCheck();
+      checks.sheets = sheetsHealth.status === 'healthy';
     } catch (error) {
-      logger.error('Notion service health check failed:', error);
+      logger.error('Google Sheets service health check failed:', error);
     }
 
     // Test AI Service
@@ -1107,13 +1186,22 @@ class WorkflowService {
       logger.error('Digital Ocean service health check failed:', error);
     }
 
+    // Test Status Monitoring Service
+    try {
+      const statusHealth = await this.statusMonitorService.healthCheck();
+      checks.statusMonitor = statusHealth.status === 'healthy';
+    } catch (error) {
+      logger.error('Status monitor service health check failed:', error);
+    }
+
     const overallHealth = Object.values(checks).every(check => check);
     
     return {
       healthy: overallHealth,
       services: checks,
       timestamp: new Date().toISOString(),
-      costSummary: this.getCostSummary()
+      costSummary: this.getCostSummary(),
+      statusMonitoring: this.getStatusMonitoringStats()
     };
   }
 }

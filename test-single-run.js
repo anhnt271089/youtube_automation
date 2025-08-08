@@ -129,6 +129,30 @@ class SingleRunTest {
     }
   }
 
+  async runStatusMonitoring() {
+    console.log('\n📊 Testing Status Change Monitoring');
+    try {
+      const result = await this.workflowService.processStatusChanges();
+      console.log('Status Monitoring Results:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Status monitoring failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async runCacheRefresh() {
+    console.log('\n🔄 Refreshing Status Cache');
+    try {
+      const result = await this.workflowService.refreshStatusCache();
+      console.log('Cache Refresh Results:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Cache refresh failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
   async runAllServices() {
     console.log('\n🔄 Running All Services Once...\n');
     
@@ -138,7 +162,8 @@ class SingleRunTest {
       approvedScripts: null,
       readyForReview: null,
       errorVideos: null,
-      timeoutCleanup: null
+      timeoutCleanup: null,
+      statusMonitoring: null
     };
 
     // Run each service once (video generation handled manually outside automated flow)
@@ -148,6 +173,7 @@ class SingleRunTest {
     results.readyForReview = await this.runReadyForReview();
     results.errorVideos = await this.runErrorVideos();
     results.timeoutCleanup = await this.runTimeoutCleanup();
+    results.statusMonitoring = await this.runStatusMonitoring();
 
     return results;
   }
@@ -206,6 +232,14 @@ async function main() {
         results = await testRunner.runErrorVideos();
         break;
         
+      case 'status-monitor':
+        results = await testRunner.runStatusMonitoring();
+        break;
+        
+      case 'cache-refresh':
+        results = await testRunner.runCacheRefresh();
+        break;
+        
       case 'single-video':
         if (!videoUrl) {
           console.error('❌ Please provide a YouTube URL for single video processing');
@@ -257,6 +291,8 @@ Commands:
   ready-for-review      Process videos ready for human review
   error-videos          Test error recovery and retry system
   timeout-cleanup       Clean up timed out processes
+  status-monitor        Test manual status change monitoring
+  cache-refresh         Initialize/refresh status monitoring cache
   single-video <url>    Process a specific YouTube URL
   
 Note: Video generation is handled manually outside the automated flow

@@ -170,6 +170,21 @@ class YouTubeAutomation {
         name: 'healthChecker'
       }));
 
+      // Monitor manual status changes in Google Sheets every 5 minutes
+      this.jobs.set('statusMonitor', cron.schedule('*/5 * * * *', async () => {
+        if (!this.isRunning) return;
+        
+        try {
+          logger.info('Monitoring status changes...');
+          await this.workflowService.processStatusChanges();
+        } catch (error) {
+          logger.error('Error in status monitoring:', error);
+        }
+      }, {
+        ...cronOptions,
+        name: 'statusMonitor'
+      }));
+
       logger.info('Cron jobs configured successfully');
     } catch (error) {
       logger.error('Error setting up cron jobs:', error);
@@ -271,6 +286,36 @@ class YouTubeAutomation {
       return await this.workflowService.processErrorVideos();
     } catch (error) {
       logger.error('Error in force processing error videos:', error);
+      throw error;
+    }
+  }
+
+  async forceProcessStatusChanges() {
+    try {
+      logger.info('Force processing status changes...');
+      return await this.workflowService.processStatusChanges();
+    } catch (error) {
+      logger.error('Error in force processing status changes:', error);
+      throw error;
+    }
+  }
+
+  async refreshStatusCache() {
+    try {
+      logger.info('Force refreshing status cache...');
+      return await this.workflowService.refreshStatusCache();
+    } catch (error) {
+      logger.error('Error refreshing status cache:', error);
+      throw error;
+    }
+  }
+
+  async clearStatusCache() {
+    try {
+      logger.info('Clearing status cache...');
+      return await this.workflowService.clearStatusCache();
+    } catch (error) {
+      logger.error('Error clearing status cache:', error);
       throw error;
     }
   }
