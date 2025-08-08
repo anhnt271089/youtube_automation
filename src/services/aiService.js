@@ -97,26 +97,25 @@ Return only the improved script without any additional commentary.`;
   async generateOptimizedDescription(script, originalMetadata, keywords = []) {
     try {
       const prompt = `
-Create an optimized YouTube video description based on the following information:
+Create a completely NEW and original YouTube video description for a brand new video based on this enhanced script content:
 
-Script Content:
+Enhanced Script Content:
 ${script}
 
-Original Video Data:
-- Title: ${originalMetadata.title}
-- Original Description: ${originalMetadata.description?.substring(0, 300)}
-
-Keywords to include: ${keywords.join(', ')}
+Keywords to include naturally: ${keywords.join(', ')}
 
 Requirements:
-1. Create a compelling description that includes relevant keywords naturally
-2. Include a brief engaging summary of the video content
-3. Add relevant hashtags (5-10)
-4. Include a call-to-action
-5. Keep it under 1000 characters for optimal engagement
-6. Make it SEO-friendly
+1. Create a compelling, ORIGINAL description that represents this as a completely NEW video for a new channel
+2. DO NOT reference or mention the original video, channel, or content
+3. Write as if this is the first time this content is being presented
+4. Include a brief engaging summary of the video content from the script
+5. Add relevant hashtags (5-10) that match the enhanced script themes
+6. Include a call-to-action for engagement and growth
+7. Keep it under 1000 characters for optimal engagement
+8. Make it SEO-friendly with natural keyword integration
+9. Focus on the value and insights this NEW video provides
 
-Return only the optimized description.`;
+Return only the completely original optimized description for the new video.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -855,25 +854,46 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
         this.generateOptimizedTitle(attractiveScript, videoData.title, keywordData.primaryKeywords)
       ]);
 
-      const scriptSentences = await this.breakdownScriptIntoSentences(attractiveScript);
+      // Only generate script breakdown if enabled
+      const scriptSentences = config.app.enableScriptBreakdown ? 
+        await this.breakdownScriptIntoSentences(attractiveScript) : [];
       
-      const [imagePromptsData, editorKeywords] = await Promise.all([
-        this.generateImagePrompts(scriptSentences, null, videoData),
-        this.generateEditorKeywords(scriptSentences)
-      ]);
-      
-      // Generate thumbnail with consistent style
-      const thumbnail = await this.generateThumbnail(
-        optimizedTitles.recommended,
-        attractiveScript,
-        { videoId, videoStyle: imagePromptsData.videoStyle }
-      );
-      
-      // Generate all images with cost control
-      const generatedImages = await this.generateVideoImages(
-        imagePromptsData.prompts,
-        videoId
-      );
+      let imagePromptsData = { prompts: [], videoStyle: null };
+      let editorKeywords = [];
+      let thumbnail = null;
+      let generatedImages = [];
+
+      // Generate image prompts and editor keywords if script breakdown is enabled
+      if (config.app.enableScriptBreakdown && scriptSentences.length > 0) {
+        logger.info('Script breakdown enabled - generating prompts and keywords');
+        
+        [imagePromptsData, editorKeywords] = await Promise.all([
+          this.generateImagePrompts(scriptSentences, null, videoData),
+          this.generateEditorKeywords(scriptSentences)
+        ]);
+      }
+
+      // Only generate actual images if image generation is enabled
+      if (config.app.enableImageGeneration) {
+        logger.info('Image generation enabled - generating thumbnail and images');
+        
+        // Generate thumbnail with consistent style
+        thumbnail = await this.generateThumbnail(
+          optimizedTitles.recommended,
+          attractiveScript,
+          { videoId, videoStyle: imagePromptsData.videoStyle }
+        );
+        
+        // Generate all images with cost control (only if we have prompts)
+        if (imagePromptsData.prompts && imagePromptsData.prompts.length > 0) {
+          generatedImages = await this.generateVideoImages(
+            imagePromptsData.prompts,
+            videoId
+          );
+        }
+      } else {
+        logger.info('Image generation disabled - skipping actual image generation');
+      }
 
       logger.info('AI content enhancement completed successfully');
       

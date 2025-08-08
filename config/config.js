@@ -20,6 +20,7 @@ export const config = {
     masterSheetId: process.env.GOOGLE_MASTER_SHEET_ID,
     templateWorkbookId: process.env.GOOGLE_TEMPLATE_WORKBOOK_ID,
     driveFolderId: process.env.GOOGLE_DRIVE_FOLDER_ID,
+    videosRootFolderId: process.env.GOOGLE_VIDEOS_ROOT_FOLDER_ID,
     
     // Legacy Service Account (for backwards compatibility)
     clientEmail: process.env.GOOGLE_CLIENT_EMAIL,
@@ -60,6 +61,9 @@ export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     logLevel: process.env.LOG_LEVEL || 'info',
     concurrentWorkers: parseInt(process.env.CONCURRENT_WORKERS) || 4,
+    // Image generation toggle settings (default: false to save costs)
+    enableImageGeneration: process.env.ENABLE_IMAGE_GENERATION === 'true', // Default false
+    enableScriptBreakdown: process.env.ENABLE_SCRIPT_BREAKDOWN === 'true', // Default false
     imageGenerationLimit: parseInt(process.env.IMAGE_GENERATION_LIMIT) || 0, // 0 = no limit
     autoApproveScripts: process.env.AUTO_APPROVE_SCRIPTS === 'true', // Default false
     // Timezone configuration for cron jobs
@@ -77,17 +81,35 @@ export const config = {
 export const validateConfig = () => {
   const required = [
     'YOUTUBE_API_KEY',
-    'NOTION_TOKEN',
-    'NOTION_DATABASE_ID',
-    // Note: NOTION_VIDEO_DETAILS_DATABASE_ID removed - we create per-video databases dynamically
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET', 
+    'GOOGLE_ACCESS_TOKEN',
+    'GOOGLE_REFRESH_TOKEN',
+    'GOOGLE_MASTER_SHEET_ID',
+    'GOOGLE_TEMPLATE_WORKBOOK_ID',
+    'GOOGLE_VIDEOS_ROOT_FOLDER_ID',
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID'
   ];
 
+  // Optional but recommended
+  const recommended = [
+    'OPENAI_API_KEY', // For AI content generation
+    'ANTHROPIC_API_KEY', // For AI fallback
+    'DO_SPACES_ACCESS_KEY', // For image storage
+    'DO_SPACES_SECRET_KEY'
+  ];
+
   const missing = required.filter(key => !process.env[key]);
+  const missingRecommended = recommended.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+  
+  if (missingRecommended.length > 0) {
+    console.warn(`⚠️  Missing optional environment variables: ${missingRecommended.join(', ')}`);
+    console.warn('Some features may not work without these configurations.');
   }
   
   return true;

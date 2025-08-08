@@ -56,6 +56,82 @@ class WorkflowService {
     return this.sheetsService.updateSentenceStatus(videoId, sentenceNumber, status, imageUrl);
   }
 
+  async autoPopulateVideoData(videoId, videoData) {
+    // Update video status to Processing (metadata already populated during entry creation)
+    return this.updateVideoStatus(videoId, 'Processing');
+  }
+
+  async addVideoUrl(youtubeUrl) {
+    // This method is no longer needed since we create entries directly
+    // Return a mock object to maintain compatibility
+    return { id: null };
+  }
+
+  async createCompleteScriptStructure(videoId, title, originalTranscript, optimizedScript, scriptSentences = [], imagePrompts = [], editorKeywords = []) {
+    // Create detail workbook and script breakdown
+    const workbookResult = await this.sheetsService.createVideoDetailWorkbook(videoId, title);
+    let scriptBreakdownResult = null;
+    
+    if (scriptSentences.length > 0) {
+      scriptBreakdownResult = await this.createScriptBreakdown(videoId, scriptSentences, imagePrompts, editorKeywords);
+    }
+    
+    // Return structure compatible with existing code expectations
+    return {
+      originalScriptPage: { pageUrl: workbookResult?.workbookUrl }, // Google Sheets doesn't have separate pages, using workbook URL
+      optimizedScriptPage: { pageUrl: workbookResult?.workbookUrl },
+      scriptDatabase: scriptBreakdownResult ? { databaseUrl: workbookResult?.workbookUrl } : null
+    };
+  }
+
+  async autoTransitionStatus(videoId, status, scriptApproved = false) {
+    // Simple status transition - Google Sheets doesn't have complex state logic
+    return true;
+  }
+
+  async autoUpdateWorkflowStatuses(videoId, status) {
+    // Update workflow statuses based on main status
+    if (status === 'Script Separated') {
+      return this.updateVideoStatus(videoId, null, {
+        voiceGenerationStatus: 'Not Started'
+      });
+    } else if (status === 'Completed') {
+      return this.updateVideoStatus(videoId, null, {
+        videoEditingStatus: 'Not Started'
+      });
+    }
+    return true;
+  }
+
+  async getVideoNavigationLinks(videoId, knownUrls = {}) {
+    // Return mock navigation links since Google Sheets doesn't have hierarchical structure
+    return {
+      originalScript: null,
+      optimizedScript: null,
+      scriptBreakdown: null
+    };
+  }
+
+  async updateMultipleImageUrls(videoId, imageUrls) {
+    // Store image URLs in the thumbnailUrls field
+    const urlsText = imageUrls.map(img => img.url || img).join(', ');
+    return this.updateVideoStatus(videoId, null, {
+      thumbnailUrls: urlsText
+    });
+  }
+
+  async healthCheck() {
+    const sheetsHealth = await this.sheetsService.healthCheck();
+    const driveHealth = await this.driveService.testConnection();
+    return {
+      status: 'healthy',
+      services: {
+        sheets: sheetsHealth.status === 'healthy',
+        drive: !!driveHealth
+      }
+    };
+  }
+
   async processNewVideos() {
     try {
       logger.info('Processing new videos...');
@@ -127,7 +203,7 @@ class WorkflowService {
         // Ensure basic video data fields are populated if missing
         if (!video.youtubeVideoId || !video.title || video.title === 'Processing...') {
           logger.info(`${video.videoId}: populating data`);
-          await this.notionService.autoPopulateVideoData(video.id, videoData);
+          await this.autoPopulateVideoData(video.id, videoData);
         }
         
         const result = await this.processInitialVideo(videoData, video.id);
@@ -140,13 +216,13 @@ class WorkflowService {
       } else {
         // Script exists but not approved - update status to Script Separated for manual approval
         logger.info(`${video.videoId}: awaiting approval`);
-        await this.notionService.updateVideoStatus(video.id, 'Script Separated');
+        await this.updateVideoStatus(video.id, 'Script Separated');
         
         // Auto-transition: Script Separated → Ready for Review
-        await this.notionService.autoTransitionStatus(video.id, 'Script Separated', video.scriptApproved);
+        await this.autoTransitionStatus(video.id, 'Script Separated', video.scriptApproved);
         
         // Auto-update workflow statuses for resumed script generation
-        await this.notionService.autoUpdateWorkflowStatuses(video.id, 'Script Separated');
+        await this.autoUpdateWorkflowStatuses(video.id, 'Script Separated');
         
         // Send approval request
         await this.telegramService.sendScriptApprovalRequest(
@@ -219,7 +295,7 @@ class WorkflowService {
     try {
       logger.info('Processing videos ready for review...');
       
-      const readyForReviewVideos = await this.notionService.getVideosByStatus('Ready for Review');
+      const readyForReviewVideos = await this.getVideosByStatus('Ready for Review');
       
       if (readyForReviewVideos.length === 0) {
         logger.info('No videos ready for review');
@@ -236,7 +312,7 @@ class WorkflowService {
             logger.info(`${video.videoId}: Script approved, transitioning to Approved status`);
             
             // Auto-transition: Ready for Review → Approved
-            const transition = await this.notionService.autoTransitionStatus(
+            const transition = await this.autoTransitionStatus(
               video.id, 
               'Ready for Review', 
               true
@@ -281,7 +357,7 @@ class WorkflowService {
     try {
       logger.info('Processing error videos for retry...');
       
-      const errorVideos = await this.notionService.getVideosByStatus('Error');
+      const errorVideos = await this.getVideosByStatus('Error');
       
       if (errorVideos.length === 0) {
         logger.info('No error videos to retry');
@@ -329,7 +405,7 @@ class WorkflowService {
           }
           
           // Reset video to appropriate status for retry
-          await this.notionService.updateVideoStatus(video.id, resetStatus, {
+          await this.updateVideoStatus(video.id, resetStatus, {
             retryCount: retryCount + 1,
             lastRetryTime: new Date().toISOString(),
             errorMessage: null, // Clear previous error
@@ -377,39 +453,27 @@ class WorkflowService {
     try {
       logger.info(`New URL: ${youtubeUrl}`);
       
-      // Step 1: Create initial Notion entry with just the URL
-      const notionEntry = await this.notionService.addVideoUrl(youtubeUrl);
-      
-      // Step 2: Extract YouTube data
+      // Step 1: Extract YouTube data first
       const videoData = await this.youtubeService.getCompleteVideoData(youtubeUrl);
+      videoData.youtubeUrl = youtubeUrl; // Ensure URL is included
       
-      // Step 3: Auto-populate Notion entry with YouTube data
-      await this.notionService.autoPopulateVideoData(notionEntry.id, videoData);
-
-      // Step 4: Continue with workflow processing
-      const result = await this.processInitialVideo(videoData, notionEntry.id);
+      // Step 2: Create entry in Google Sheets with video metadata
+      const videoId = await this.createVideoEntry(videoData);
       
-      return { success: true, videoData, notionId: notionEntry.id, ...result };
+      // Step 3: Continue with workflow processing using the Google Sheets video ID
+      const result = await this.processInitialVideo(videoData, videoId);
+      
+      return { success: true, videoData, videoId: videoId, ...result };
     } catch (error) {
       logger.error('Error processing new URL:', error);
       throw error;
     }
   }
 
-  async processInitialVideo(videoData, notionPageId) {
+  async processInitialVideo(videoData, videoId) {
     try {
-      // Fetch the video information from Notion to get the proper VideoID (VID-XX format)
-      let videoDisplayId = notionPageId.replace(/-/g, ''); // Fallback
-      try {
-        // Query the database to get the video record with the proper VideoID
-        const videos = await this.notionService.getVideosByStatus('Processing');
-        const currentVideo = videos.find(v => v.id === notionPageId);
-        if (currentVideo && currentVideo.videoId) {
-          videoDisplayId = currentVideo.videoId; // Use the proper VID-XX format
-        }
-      } catch (fetchError) {
-        logger.warn('Could not fetch proper VideoID, using fallback:', fetchError.message);
-      }
+      // The videoId is already in VID-XX format from Google Sheets
+      const videoDisplayId = videoId;
 
       await this.telegramService.sendVideoProcessingStarted({
         ...videoData,
@@ -433,24 +497,51 @@ class WorkflowService {
       );
 
       // Create complete hierarchical script structure (script pages + breakdown database)
-      const scriptStructure = await this.notionService.createCompleteScriptStructure(
-        notionPageId,
+      // Only create breakdown if script breakdown is enabled
+      const scriptSentences = config.app.enableScriptBreakdown ? enhancedContent.scriptSentences : [];
+      const imagePrompts = config.app.enableScriptBreakdown ? enhancedContent.imagePrompts : [];
+      const editorKeywords = config.app.enableScriptBreakdown ? enhancedContent.editorKeywords : [];
+      
+      const scriptStructure = await this.createCompleteScriptStructure(
+        videoId,
         videoData.title,
         videoData.transcriptText, // Original transcript
         enhancedContent.attractiveScript, // Optimized script
-        enhancedContent.scriptSentences,
-        enhancedContent.imagePrompts,
-        enhancedContent.editorKeywords
+        scriptSentences,
+        imagePrompts,
+        editorKeywords
       );
+
+      // Populate Video Info sheet with metadata and optimized content (not in master sheet)
+      try {
+        await this.sheetsService.populateVideoInfoSheet(videoId, videoData, enhancedContent);
+        logger.info(`Video Info sheet populated for: ${videoData.title}`);
+      } catch (error) {
+        logger.warn('Failed to populate Video Info sheet:', error.message);
+        // Don't fail the entire workflow if sheet population fails
+      }
+
+      // Update Analytics sheet with metrics
+      try {
+        await this.sheetsService.updateAnalyticsSheet(videoId, videoData);
+        logger.info(`Analytics sheet updated for: ${videoData.title}`);
+      } catch (error) {
+        logger.warn('Failed to update Analytics sheet:', error.message);
+        // Don't fail the entire workflow if analytics update fails
+      }
       
       logger.info(`Complete script structure created successfully for: ${videoData.title}`);
-      logger.info(`- Original Script: ${scriptStructure.originalScriptPage.pageUrl}`);
-      logger.info(`- Optimized Script: ${scriptStructure.optimizedScriptPage.pageUrl}`);
-      if (scriptStructure.scriptDatabase) {
+      if (scriptStructure.originalScriptPage?.pageUrl) {
+        logger.info(`- Original Script: ${scriptStructure.originalScriptPage.pageUrl}`);
+      }
+      if (scriptStructure.optimizedScriptPage?.pageUrl) {
+        logger.info(`- Optimized Script: ${scriptStructure.optimizedScriptPage.pageUrl}`);
+      }
+      if (scriptStructure.scriptDatabase?.databaseUrl) {
         logger.info(`- Script Breakdown: ${scriptStructure.scriptDatabase.databaseUrl}`);
       }
-      logger.info(`Script sentences: ${enhancedContent.scriptSentences.length}`);
-      logger.info(`Image prompts: ${enhancedContent.imagePrompts.length}`);
+      logger.info(`Script sentences: ${scriptSentences.length}`);
+      logger.info(`Image prompts: ${imagePrompts.length}`);
       
       // Get navigation links for user-friendly notification using known URLs
       const knownUrls = {
@@ -458,49 +549,46 @@ class WorkflowService {
         optimizedScript: scriptStructure.optimizedScriptPage?.pageUrl,
         scriptBreakdown: scriptStructure.scriptDatabase?.databaseUrl
       };
-      const navigationLinks = await this.notionService.getVideoNavigationLinks(notionPageId, knownUrls);
+      const navigationLinks = await this.getVideoNavigationLinks(videoId, knownUrls);
       
       // Send enhanced Telegram notification with hierarchical structure
       if (this.telegramService) {
         try {
+          const breakdownEnabled = config.app.enableScriptBreakdown;
           await this.telegramService.sendMessage(
             '✅ Complete script structure created in Notion!\n\n' +
             `📋 Video: ${videoDisplayId} - ${videoData.title}\n` +
-            `📊 Sentences: ${enhancedContent.scriptSentences.length}\n` +
-            `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n\n` +
-            '📁 **Hierarchical Structure Created:**\n' +
+            (breakdownEnabled ? `📊 Sentences: ${enhancedContent.scriptSentences.length}\n` : '') +
+            (breakdownEnabled ? `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n` : '🚫 Script breakdown disabled in configuration\n') +
+            '\n📁 **Hierarchical Structure Created:**\n' +
             `🎬 [Main Video Record](${navigationLinks.links.mainVideo})\n` +
             `├── 📝 [Original Script](${navigationLinks.links.originalScript})\n` +
             `├── ✨ [Optimized Script](${navigationLinks.links.optimizedScript})\n` +
-            (navigationLinks.links.scriptBreakdown ? `└── 🎯 [Script Breakdown](${navigationLinks.links.scriptBreakdown})\n` : '') +
-            '\n💡 *Navigate directly from the main video record to review scripts and access the detailed breakdown!*'
+            (breakdownEnabled && navigationLinks.links.scriptBreakdown ? `└── 🎯 [Script Breakdown](${navigationLinks.links.scriptBreakdown})\n` : '') +
+            '\n💡 *Navigate directly from the main video record to review scripts' + 
+            (breakdownEnabled ? ' and access the detailed breakdown' : '') + '!*'
           );
         } catch (telegramError) {
           logger.warn('Failed to send Telegram notification:', telegramError.message);
         }
       }
 
-      // Update main video record with enhanced content
-      const notionUpdateData = {
-        optimizedTitle: enhancedContent.optimizedTitles.recommended,
-        optimizedDescription: enhancedContent.optimizedDescription,
-        keywords: enhancedContent.keywords.primaryKeywords
-      };
-
-      await this.notionService.updateVideoStatus(notionPageId, 'Script Separated', notionUpdateData);
+      // Don't update master sheet with optimized content - it goes to Video Detail sheet
+      // Only update basic video status in master sheet
+      await this.updateVideoStatus(videoId, 'Script Separated');
 
       // Auto-transition: Script Separated → Ready for Review
-      await this.notionService.autoTransitionStatus(notionPageId, 'Script Separated', false);
+      await this.autoTransitionStatus(videoId, 'Script Separated', false);
 
       // Auto-update workflow statuses after script generation
-      await this.notionService.autoUpdateWorkflowStatuses(notionPageId, 'Script Separated');
+      await this.autoUpdateWorkflowStatuses(videoId, 'Script Separated');
 
       // Check if auto-approval is enabled
       if (config.app.autoApproveScripts) {
         logger.info(`Auto-approving script for: ${videoData.title}`);
         
         // Auto-approve the script
-        await this.notionService.updateVideoStatus(notionPageId, 'Approved', {
+        await this.updateVideoStatus(videoId, 'Approved', {
           scriptApproved: true,
           autoApproved: true,
           approvedAt: new Date().toISOString()
@@ -512,7 +600,7 @@ class WorkflowService {
       } else {
         await this.telegramService.sendScriptApprovalRequest(
           `${videoDisplayId} - ${videoData.title}`,
-          `https://notion.so/${notionPageId.replace(/-/g, '')}` // Keep using page ID for Notion URL
+          scriptStructure.originalScriptPage?.pageUrl || `Video ID: ${videoDisplayId}` // Use Google Sheets workbook URL or video ID
         );
       }
 
@@ -523,7 +611,7 @@ class WorkflowService {
         videoData,
         enhancedContent,
         scriptStructure, // Updated to return the complete structure
-        notionPageId
+        videoId
       };
     } catch (error) {
       logger.error('Error in processInitialVideo:', error);
@@ -535,14 +623,42 @@ class WorkflowService {
     try {
       logger.info(`Approved: ${videoInfo.title}`);
 
-      await this.notionService.updateVideoStatus(videoInfo.id, 'Generating Images');
+      const videoDisplayId = videoInfo.videoId || videoInfo.id;
+      
+      // Check if image generation is enabled
+      if (!config.app.enableImageGeneration) {
+        logger.info(`Image generation disabled - skipping image generation for ${videoDisplayId}`);
+        
+        // Send notification that processing is complete without images
+        await this.telegramService.sendMessage(
+          '✅ <b>Processing Completed</b> (Images Disabled)\n\n' +
+          `🎬 ${videoDisplayId} - ${videoInfo.title}\n` +
+          '🚫 Image generation is disabled in configuration\n' +
+          '📝 <i>Script is ready for voice generation</i>\n' +
+          `🔗 [View Record](https://notion.so/${videoInfo.id.replace(/-/g, '')})`
+        );
+
+        // Update status to Completed without image generation
+        await this.updateVideoStatus(videoInfo.id, 'Completed', {
+          imagesGenerated: 0,
+          imageGenerationSkipped: true,
+          processingCompletedAt: new Date().toISOString(),
+          note: 'Image generation disabled in configuration'
+        });
+
+        // Auto-update workflow statuses
+        await this.autoUpdateWorkflowStatuses(videoInfo.id, 'Completed');
+
+        return { success: true, stage: 'completed_no_images', imagesGenerated: 0 };
+      }
+
+      await this.updateVideoStatus(videoInfo.id, 'Generating Images');
 
       // Get video data with proper video ID for cost tracking
       const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
       videoData.videoId = videoInfo.videoId || videoInfo.id;
 
       // Create Digital Ocean folder structure for this video
-      const videoDisplayId = videoInfo.videoId || videoInfo.id; // Use VideoID (VID-XX) or fallback to internal ID
       try {
         await this.aiService.digitalOceanService.createVideoFolder(videoDisplayId);
         logger.info(`Created Digital Ocean folder structure for video ${videoDisplayId}`);
@@ -561,7 +677,7 @@ class WorkflowService {
       // Update Script Details database with Digital Ocean image URLs
       if (imageUrls && imageUrls.length > 0) {
         try {
-          await this.notionService.updateMultipleImageUrls(videoInfo.id, imageUrls);
+          await this.updateMultipleImageUrls(videoInfo.id, imageUrls);
           logger.info(`Updated Script Details database with ${imageUrls.length} image URLs from Digital Ocean`);
         } catch (error) {
           logger.warn('Failed to update Script Details with image URLs:', error.message);
@@ -622,7 +738,7 @@ class WorkflowService {
       }
 
       // Update status to Completed with enhanced metadata (workflow ends here)
-      await this.notionService.updateVideoStatus(videoInfo.id, 'Completed', {
+      await this.updateVideoStatus(videoInfo.id, 'Completed', {
         imagesGenerated: generatedImages.length,
         imageStyle: enhancedContent.videoStyle?.style,
         totalCost: costSummary.totalCost,
@@ -634,7 +750,7 @@ class WorkflowService {
 
       // Auto-update workflow statuses after automation completion
       // Note: Video Editing Status will only update if Voice Generation Status is "Completed"
-      await this.notionService.autoUpdateWorkflowStatuses(videoInfo.id, 'Completed', videoInfo.voiceGenerationStatus);
+      await this.autoUpdateWorkflowStatuses(videoInfo.id, 'Completed', videoInfo.voiceGenerationStatus);
 
       logger.info(`Script processing completed for: ${videoInfo.title} (${generatedImages.length} images, $${costSummary.totalCost.toFixed(4)})`);
       
@@ -656,7 +772,7 @@ class WorkflowService {
 
   async handleVideoError(video, error, stage) {
     try {
-      await this.notionService.updateVideoStatus(video.id, 'Error', {
+      await this.updateVideoStatus(video.id, 'Error', {
         errorMessage: error.message,
         errorStage: stage,
         errorTime: new Date().toISOString(),
@@ -678,7 +794,7 @@ class WorkflowService {
 
   async processTimeouts() {
     try {
-      const pendingApprovals = await this.notionService.getVideosByStatus('Script Separated');
+      const pendingApprovals = await this.getVideosByStatus('Script Separated');
       const timeoutThreshold = 24 * 60 * 60 * 1000; // 24 hours
       let processedCount = 0;
       
@@ -692,7 +808,7 @@ class WorkflowService {
           processedCount++;
           
           if (now - createdTime > timeoutThreshold * 2) { // 48 hours
-            await this.notionService.updateVideoStatus(video.id, 'Timeout - Manual Review Required');
+            await this.updateVideoStatus(video.id, 'Timeout - Manual Review Required');
           }
         }
       }
@@ -707,10 +823,10 @@ class WorkflowService {
   async generateDailySummary() {
     try {
       const [pending, processing, completed, failed] = await Promise.all([
-        this.notionService.getVideosByStatus('Pending'),
-        this.notionService.getVideosByStatus('Processing'),
-        this.notionService.getVideosByStatus('Completed'),
-        this.notionService.getVideosByStatus('Error')
+        this.getVideosByStatus('Pending'),
+        this.getVideosByStatus('Processing'),
+        this.getVideosByStatus('Completed'),
+        this.getVideosByStatus('Error')
       ]);
 
       const stats = {
@@ -752,7 +868,7 @@ class WorkflowService {
 
       // Test Notion API (both databases)
       try {
-        await this.notionService.healthCheck();
+        await this.healthCheck();
         checks.notion = true;
       } catch (error) {
         logger.error('Notion service health check failed:', error);
@@ -795,19 +911,19 @@ class WorkflowService {
         const result = await this.processNewUrl(video);
         return result;
       } else {
-        // It's a video object from Notion
+        // It's a video object from Google Sheets
         videoData = await this.youtubeService.getCompleteVideoData(video.youtubeUrl);
-        notionPageId = video.id;
+        const videoId = video.videoId;
         
         // Update status to Processing
-        await this.notionService.updateVideoStatus(notionPageId, 'Processing');
+        await this.updateVideoStatus(videoId, 'Processing');
         
-        // Auto-populate Notion entry with YouTube data (populate 🤖 fields)
-        await this.notionService.autoPopulateVideoData(notionPageId, videoData);
+        // Auto-populate video entry with YouTube data
+        await this.autoPopulateVideoData(videoId, videoData);
         
         // Process the video
-        const result = await this.processInitialVideo(videoData, notionPageId);
-        return { success: true, videoData, notionId: notionPageId, ...result };
+        const result = await this.processInitialVideo(videoData, videoId);
+        return { success: true, videoData, videoId: videoId, ...result };
       }
     } catch (error) {
       logger.error('Error in processSingleVideo:', error);
@@ -895,7 +1011,7 @@ class WorkflowService {
 
     // Test Notion API
     try {
-      await this.notionService.healthCheck();
+      await this.healthCheck();
       checks.notion = true;
     } catch (error) {
       logger.error('Notion service health check failed:', error);

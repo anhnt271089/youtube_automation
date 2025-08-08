@@ -105,6 +105,45 @@ npm run typecheck      # TypeScript validation - MUST pass before commits
 npm test               # Run Jest test suite - MUST pass before commits
 ```
 
+### 🔧 Recent Workflow Fixes (Latest Update)
+
+**Critical Issues Fixed:**
+- ✅ **Master Sheet Population**: Optimized content (title, description, keywords) now only goes to Video Detail sheets, not master sheet
+- ✅ **Status Progression**: Workflow correctly moves from "Script Separated" → "Completed" when image generation is disabled
+- ✅ **Video Info Sheet**: Now properly populated with complete metadata, optimized content, and full script sections
+- ✅ **Script Text Truncation**: Full sentence text preserved in script breakdowns (no more cut-off text)
+- ✅ **Image Prompts**: Generated when script breakdown enabled, even if image generation is disabled
+- ✅ **Analytics Tab**: Now populated with processing metrics and video analytics
+- ✅ **Full Script Sections**: Added comprehensive sections for Video Editor and Voice Generator workflows
+
+**Current Working Configuration:**
+```bash
+ENABLE_IMAGE_GENERATION=false   # Disabled to save costs
+ENABLE_SCRIPT_BREAKDOWN=true    # Enabled for detailed script analysis
+AUTO_APPROVE_SCRIPTS=true       # Optional: enables automatic approval for testing
+```
+
+### Configuration Toggle Options
+
+The system supports configurable workflow stages through environment variables:
+
+**Image Generation Control (Default: Disabled)**
+```bash
+ENABLE_IMAGE_GENERATION=false  # Enable/disable image generation completely
+ENABLE_SCRIPT_BREAKDOWN=true   # Enable/disable script sentence breakdown  
+```
+
+**Cost-Optimized Workflow Options:**
+- `ENABLE_IMAGE_GENERATION=false`: Skips DALL-E image generation entirely, saves ~$0.40-0.80 per video
+- `ENABLE_SCRIPT_BREAKDOWN=true`: Creates detailed sentence-level script breakdown with image prompts
+- **Fixed Workflow**: Now correctly progresses through all statuses regardless of image generation setting
+
+**Current Workflow Behavior:**
+- **New** → **Processing** → **Script Separated** → **Completed** (when images disabled)
+- **Video Detail Sheets**: Populated with optimized content, full scripts, and processing analytics
+- **Script Breakdown**: Individual sentences with image prompts and editor keywords
+- **Master Sheet**: Contains only basic tracking data (no optimized content)
+
 ### System Operations
 ```bash
 # Test system functionality with unified test script
@@ -241,6 +280,12 @@ The system automatically manages Voice Generation Status and Video Editing Statu
 ### Environment Setup
 The system requires extensive API integration. Copy `.env.example` to `.env` and configure:
 
+**Workflow Configuration (Cost Control):**
+- `ENABLE_IMAGE_GENERATION` (default: false): Toggle AI image generation workflow
+- `ENABLE_SCRIPT_BREAKDOWN` (default: false): Toggle sentence-level script breakdown
+- `IMAGE_GENERATION_LIMIT` (default: 5): Maximum images per video (0 = no limit)
+- `AUTO_APPROVE_SCRIPTS` (default: false): Skip manual approval step for testing
+
 **Timezone Configuration:**
 - `TIMEZONE` (optional): Timezone for cron job scheduling (default: 'Asia/Bangkok' GMT+7)
   - Examples: 'Asia/Bangkok', 'America/New_York', 'Europe/London', 'UTC'
@@ -249,9 +294,9 @@ The system requires extensive API integration. Copy `.env.example` to `.env` and
 **Critical Services:**
 - YouTube Data API v3 (metadata extraction)
 - Notion Integration (database operations with VideoID)
-- OpenAI API (GPT-4o-mini + DALL-E 3 image generation)
+- OpenAI API (GPT-4o-mini + conditional DALL-E 3 image generation)
 - Anthropic API (alternative AI provider)
-- Digital Ocean Spaces (cloud storage with CDN)
+- Digital Ocean Spaces (cloud storage with CDN - only if images enabled)
 - Telegram Bot (notifications/approvals with enhanced formatting)
 
 ### Notion Database Schema

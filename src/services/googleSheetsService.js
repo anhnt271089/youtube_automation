@@ -26,32 +26,24 @@ class GoogleSheetsService {
     // Template workbook ID for creating video detail workbooks
     this.templateWorkbookId = config.google.templateWorkbookId;
     
-    // Master sheet column mapping (A=0, B=1, etc.)
+    // Master sheet column mapping (A=0, B=1, etc.) - Fixed voice status conflict
     this.masterColumns = {
-      videoId: 0,           // A: Video ID (VID-XX format)
-      youtubeUrl: 1,        // B: YouTube URL
-      title: 2,             // C: Title
-      status: 3,            // D: Status
-      channel: 4,           // E: Channel
-      duration: 5,          // F: Duration
-      viewCount: 6,         // G: View Count
-      publishedDate: 7,     // H: Published Date
-      youtubeVideoId: 8,    // I: YouTube Video ID
-      optimizedTitle: 9,    // J: Optimized Title
-      optimizedDescription: 10, // K: Optimized Description
-      keywords: 11,         // L: Keywords
-      totalSentences: 12,   // M: Total Sentences
-      completedSentences: 13, // N: Completed Sentences
-      thumbnailUrls: 14,    // O: Thumbnail URLs
-      thumbnailPrompt: 15,  // P: Thumbnail Prompt
-      scriptApproved: 16,   // Q: Script Approved (checkbox)
-      voiceStatus: 17,      // R: Voice Status (checkbox)
-      voiceGenerationStatus: 18, // S: Voice Generation Status
-      videoEditingStatus: 19, // T: Video Editing Status
-      driveFolder: 20,      // U: Drive Folder Link
-      detailWorkbookUrl: 21, // V: Detail Workbook URL
-      createdTime: 22,      // W: Created Time
-      lastEditedTime: 23    // X: Last Edited Time
+      videoId: 0,           // A: 🤖 Auto: Video ID (VID-XXXX format)
+      youtubeUrl: 1,        // B: 🔧 Input: YouTube URL
+      title: 2,             // C: 🤖 Auto: Title
+      status: 3,            // D: 🤖 Auto: Status
+      channel: 4,           // E: 🤖 Auto: Channel
+      duration: 5,          // F: 🤖 Auto: Duration
+      viewCount: 6,         // G: 🤖 Auto: View Count
+      publishedDate: 7,     // H: 🤖 Auto: Published Date
+      youtubeVideoId: 8,    // I: 🤖 Auto: YouTube Video ID
+      scriptApproved: 9,    // J: 👤 Manual: Script Approved (dropdown: 'Pending', 'Approved', 'Needs Changes')
+      voiceGenerationStatus: 10, // K: 👤 Manual: Voice Generation Status
+      videoEditingStatus: 11, // L: 👤 Manual: Video Editing Status
+      driveFolder: 12,      // M: 🤖 Auto: Drive Folder Link
+      detailWorkbookUrl: 13, // N: 🤖 Auto: Detail Workbook URL
+      createdTime: 14,      // O: 🤖 Auto: Created Time
+      lastEditedTime: 15    // P: 🤖 Auto: Last Edited Time
     };
 
     // Detail workbook sheet structure
@@ -94,7 +86,7 @@ class GoogleSheetsService {
   }
 
   /**
-   * Get next available Video ID (VID-XX format)
+   * Get next available Video ID (VID-XXXX format)
    */
   async getNextVideoId() {
     return this.retryOperation(async () => {
@@ -116,7 +108,7 @@ class GoogleSheetsService {
         }
       }
 
-      return `VID-${(maxId + 1).toString().padStart(2, '0')}`;
+      return `VID-${(maxId + 1).toString().padStart(4, '0')}`;
     }, 'getNextVideoId');
   }
 
@@ -128,7 +120,7 @@ class GoogleSheetsService {
       const videoId = await this.getNextVideoId();
       const timestamp = new Date().toISOString();
 
-      const rowData = new Array(24).fill(''); // Initialize 24 columns
+      const rowData = new Array(16).fill(''); // Initialize 16 columns (A-P)
       rowData[this.masterColumns.videoId] = videoId;
       rowData[this.masterColumns.youtubeUrl] = videoData.youtubeUrl;
       rowData[this.masterColumns.title] = videoData.title || '';
@@ -138,12 +130,13 @@ class GoogleSheetsService {
       rowData[this.masterColumns.viewCount] = videoData.viewCount || 0;
       rowData[this.masterColumns.publishedDate] = videoData.publishedAt || '';
       rowData[this.masterColumns.youtubeVideoId] = videoData.videoId || '';
+      rowData[this.masterColumns.scriptApproved] = 'Pending'; // Default to Pending instead of checkbox
       rowData[this.masterColumns.createdTime] = timestamp;
       rowData[this.masterColumns.lastEditedTime] = timestamp;
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:X',
+        range: 'Videos!A:P', // Updated to P column (16 columns)
         valueInputOption: 'USER_ENTERED',
         resource: {
           values: [rowData]
@@ -162,7 +155,7 @@ class GoogleSheetsService {
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:X'
+        range: 'Videos!A:P' // Updated to P column
       });
 
       const values = response.data.values || [];
@@ -199,7 +192,7 @@ class GoogleSheetsService {
 
       // Update last edited time
       updates.push({
-        range: `Videos!X${videoRow.rowIndex}`,
+        range: `Videos!P${videoRow.rowIndex}`, // Updated to P column
         values: [[timestamp]]
       });
 
@@ -207,9 +200,16 @@ class GoogleSheetsService {
       for (const [field, value] of Object.entries(additionalData)) {
         if (this.masterColumns[field] !== undefined) {
           const column = String.fromCharCode(65 + this.masterColumns[field]); // Convert to A, B, C...
+          
+          // Convert arrays to comma-separated strings for Google Sheets compatibility
+          let processedValue = value;
+          if (Array.isArray(value)) {
+            processedValue = value.join(', ');
+          }
+          
           updates.push({
             range: `Videos!${column}${videoRow.rowIndex}`,
-            values: [[value]]
+            values: [[processedValue]]
           });
         }
       }
@@ -234,7 +234,7 @@ class GoogleSheetsService {
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:X'
+        range: 'Videos!A:P' // Updated to P column
       });
 
       const values = response.data.values || [];
@@ -261,28 +261,163 @@ class GoogleSheetsService {
    */
   async createVideoDetailWorkbook(videoId, videoTitle) {
     return this.retryOperation(async () => {
-      // Copy template workbook
+      // Create individual video folder inside the root folder
+      const folderName = `(${videoId}) ${videoTitle}`;
+      const folderResponse = await this.drive.files.create({
+        resource: {
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [config.google.videosRootFolderId]
+        }
+      });
+
+      const folderId = folderResponse.data.id;
+      const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+      logger.info(`Created video folder: ${folderName} - ${folderUrl}`);
+
+      // Copy template workbook with new naming format
+      const workbookName = `(${videoId}) ${videoTitle} - Video Detail`;
       const copyResponse = await this.drive.files.copy({
         fileId: this.templateWorkbookId,
         resource: {
-          name: `${videoTitle} (${videoId}) - Video Details`
+          name: workbookName,
+          parents: [folderId] // Place workbook inside the video folder
         }
       });
 
       const workbookId = copyResponse.data.id;
       const workbookUrl = `https://docs.google.com/spreadsheets/d/${workbookId}`;
 
-      // Update master sheet with workbook URL
+      // Update master sheet with both workbook and folder URLs
       await this.updateVideoStatus(videoId, null, {
-        detailWorkbookUrl: workbookUrl
+        detailWorkbookUrl: workbookUrl,
+        driveFolder: folderUrl
       });
 
       logger.info(`Created detail workbook for ${videoId}: ${workbookUrl}`);
+      logger.info(`Workbook placed in folder: ${folderUrl}`);
+      
       return {
         workbookId,
-        workbookUrl
+        workbookUrl,
+        folderId,
+        folderUrl
       };
     }, 'createVideoDetailWorkbook');
+  }
+
+  /**
+   * Populate Video Info sheet in detail workbook with metadata and optimized content
+   */
+  async populateVideoInfoSheet(videoId, videoData, enhancedContent) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data[this.masterColumns.detailWorkbookUrl]) {
+        throw new Error(`Detail workbook not found for video: ${videoId}`);
+      }
+
+      const workbookUrl = videoRow.data[this.masterColumns.detailWorkbookUrl];
+      const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
+
+      // Prepare video info data for the Video Info sheet
+      const videoInfoData = [
+        ['Video Title', videoData.title],
+        ['YouTube URL', videoData.youtubeUrl || ''],
+        ['YouTube Video ID', videoData.videoId || videoData.id],
+        ['Channel', videoData.channelTitle || ''],
+        ['Duration', videoData.duration || ''],
+        ['View Count', videoData.viewCount || ''],
+        ['Published Date', videoData.publishedAt || ''],
+        ['', ''], // Empty row
+        ['Script Style', enhancedContent.videoStyle?.style || ''],
+        ['Processing Date', new Date().toISOString()]
+      ];
+
+      // Update Video Info sheet
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: workbookId,
+        range: `${this.detailSheets.videoInfo}!A1:B${videoInfoData.length}`,
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: videoInfoData
+        }
+      });
+
+      // Also add full scripts to separate areas with detailed sections
+      const fullScriptData = [];
+      if (enhancedContent.attractiveScript) {
+        // Video Editor Section
+        fullScriptData.push(['', '']); // Empty row for spacing
+        fullScriptData.push(['FULL SCRIPT FOR VIDEO EDITOR', '']);
+        fullScriptData.push(['Instructions:', 'Use this optimized script for video editing. Match visuals to each segment.']);
+        fullScriptData.push(['Script Length:', `${enhancedContent.scriptSentences ? enhancedContent.scriptSentences.length : 'N/A'} sentences`]);
+        fullScriptData.push(['Estimated Duration:', '2-3 minutes']);
+        fullScriptData.push(['', '']); // Empty row
+        fullScriptData.push(['OPTIMIZED SCRIPT:', enhancedContent.attractiveScript]);
+        
+        // Voice Generator Section
+        fullScriptData.push(['', '']); // Empty row for spacing
+        fullScriptData.push(['', '']); // Extra spacing
+        fullScriptData.push(['SCRIPT FOR VOICE GENERATOR', '']);
+        fullScriptData.push(['Instructions:', 'Clean transcript only - no music, no timestamps, no voiceover instructions']);
+        fullScriptData.push(['Voice Style:', 'Conversational, engaging, clear pronunciation']);
+        fullScriptData.push(['Pacing:', 'Natural speech speed with pauses for emphasis']);
+        fullScriptData.push(['', '']); // Empty row
+        fullScriptData.push(['CLEAN VOICE SCRIPT:', enhancedContent.attractiveScript]);
+      }
+
+      if (fullScriptData.length > 0) {
+        await this.sheets.spreadsheets.values.update({
+          spreadsheetId: workbookId,
+          range: `${this.detailSheets.videoInfo}!A${videoInfoData.length + 2}:B${videoInfoData.length + 2 + fullScriptData.length}`,
+          valueInputOption: 'USER_ENTERED',
+          resource: {
+            values: fullScriptData
+          }
+        });
+      }
+
+      logger.info(`Populated Video Info sheet for ${videoId}`);
+      return workbookId;
+    }, 'populateVideoInfoSheet');
+  }
+
+  /**
+   * Update Analytics sheet in detail workbook
+   */
+  async updateAnalyticsSheet(videoId, videoData) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data[this.masterColumns.detailWorkbookUrl]) {
+        throw new Error(`Detail workbook not found for video: ${videoId}`);
+      }
+
+      const workbookUrl = videoRow.data[this.masterColumns.detailWorkbookUrl];
+      const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
+
+      const analyticsData = [
+        ['Metric', 'Value', 'Date'],
+        ['View Count', videoData.viewCount || 0, videoData.publishedAt || new Date().toISOString()],
+        ['Duration', videoData.duration || 'N/A', ''],
+        ['Channel', videoData.channelTitle || 'N/A', ''],
+        ['Category', videoData.category || 'N/A', ''],
+        ['Language', videoData.language || 'N/A', ''],
+        ['Processing Cost', '$0.00', new Date().toISOString()],
+        ['Generated Images', '0 (Image generation disabled)', new Date().toISOString()]
+      ];
+
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: workbookId,
+        range: `${this.detailSheets.analytics}!A1:C${analyticsData.length}`,
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: analyticsData
+        }
+      });
+
+      logger.info(`Updated Analytics sheet for ${videoId}`);
+      return workbookId;
+    }, 'updateAnalyticsSheet');
   }
 
   /**
@@ -303,9 +438,28 @@ class GoogleSheetsService {
       for (let i = 0; i < scriptSentences.length; i++) {
         const row = new Array(7).fill(''); // Initialize 7 columns
         row[this.scriptColumns.sentenceNumber] = i + 1;
-        row[this.scriptColumns.scriptText] = scriptSentences[i];
-        row[this.scriptColumns.imagePrompt] = imagePrompts[i] || '';
-        row[this.scriptColumns.editorKeywords] = editorKeywords[i] || '';
+        
+        // Ensure full script text is preserved (Google Sheets supports up to 50,000 characters per cell)
+        const fullScriptText = scriptSentences[i] ? scriptSentences[i].toString().trim() : '';
+        row[this.scriptColumns.scriptText] = fullScriptText;
+        
+        // Extract image prompt text properly (handle both string and object formats)
+        let fullImagePrompt = '';
+        if (imagePrompts[i]) {
+          if (typeof imagePrompts[i] === 'string') {
+            fullImagePrompt = imagePrompts[i].trim();
+          } else if (imagePrompts[i].prompt) {
+            fullImagePrompt = imagePrompts[i].prompt.trim();
+          } else if (imagePrompts[i].toString) {
+            fullImagePrompt = imagePrompts[i].toString().trim();
+          }
+        }
+        row[this.scriptColumns.imagePrompt] = fullImagePrompt;
+        
+        // Ensure editor keywords are preserved
+        const fullKeywords = editorKeywords[i] ? editorKeywords[i].toString().trim() : '';
+        row[this.scriptColumns.editorKeywords] = fullKeywords;
+        
         row[this.scriptColumns.status] = 'Pending';
         row[this.scriptColumns.wordCount] = `=LEN(TRIM(B${i + 2}))-LEN(SUBSTITUTE(TRIM(B${i + 2})," ",""))+1`; // Word count formula
         breakdownData.push(row);
@@ -321,11 +475,7 @@ class GoogleSheetsService {
         }
       });
 
-      // Update master sheet with total sentences
-      await this.updateVideoStatus(videoId, null, {
-        totalSentences: scriptSentences.length,
-        completedSentences: 0
-      });
+      // Note: totalSentences and completedSentences removed as they are no longer used
 
       logger.info(`Created script breakdown for ${videoId}: ${scriptSentences.length} sentences`);
       return workbookId;
@@ -401,10 +551,7 @@ class GoogleSheetsService {
       const statusValues = response.data.values || [];
       const completedCount = statusValues.filter(row => row[0] === 'Complete').length;
 
-      // Update master sheet
-      await this.updateVideoStatus(videoId, null, {
-        completedSentences: completedCount
-      });
+      // Note: completedSentences removed as it's no longer used in master sheet
 
       return completedCount;
     }, 'updateCompletedCount');
@@ -431,15 +578,7 @@ class GoogleSheetsService {
         viewCount: parseInt(data[this.masterColumns.viewCount]) || 0,
         publishedDate: data[this.masterColumns.publishedDate],
         youtubeVideoId: data[this.masterColumns.youtubeVideoId],
-        optimizedTitle: data[this.masterColumns.optimizedTitle],
-        optimizedDescription: data[this.masterColumns.optimizedDescription],
-        keywords: data[this.masterColumns.keywords],
-        totalSentences: parseInt(data[this.masterColumns.totalSentences]) || 0,
-        completedSentences: parseInt(data[this.masterColumns.completedSentences]) || 0,
-        thumbnailUrls: data[this.masterColumns.thumbnailUrls],
-        thumbnailPrompt: data[this.masterColumns.thumbnailPrompt],
-        scriptApproved: data[this.masterColumns.scriptApproved] === 'TRUE',
-        voiceStatus: data[this.masterColumns.voiceStatus] === 'TRUE',
+        scriptApproved: data[this.masterColumns.scriptApproved], // Now a dropdown value
         voiceGenerationStatus: data[this.masterColumns.voiceGenerationStatus],
         videoEditingStatus: data[this.masterColumns.videoEditingStatus],
         driveFolder: data[this.masterColumns.driveFolder],
@@ -451,12 +590,12 @@ class GoogleSheetsService {
   }
 
   /**
-   * Approve script (set checkbox to true)
+   * Approve script (set dropdown to 'Approved')
    */
   async approveScript(videoId) {
     return this.retryOperation(async () => {
       await this.updateVideoStatus(videoId, 'Approved', {
-        scriptApproved: 'TRUE'
+        scriptApproved: 'Approved'
       });
       logger.info(`Approved script for video: ${videoId}`);
       return true;

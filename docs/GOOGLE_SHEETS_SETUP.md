@@ -40,7 +40,7 @@ Create a new Google Sheet with these columns:
 
 | Column | Header | Type | Description |
 |--------|--------|------|-------------|
-| A | Video ID | Text | VID-XX format |
+| A | Video ID | Text | VID-XXXX format |
 | B | YouTube URL | URL | Source video URL |
 | C | Title | Text | Video title |
 | D | Status | Dropdown | New, Processing, Script Separated, Approved, Generating Images, Completed, Error |
