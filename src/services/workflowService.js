@@ -207,10 +207,10 @@ class WorkflowService {
         // Ensure basic video data fields are populated if missing
         if (!video.youtubeVideoId || !video.title || video.title === 'Processing...') {
           logger.info(`${video.videoId}: populating data`);
-          await this.autoPopulateVideoData(video.id, videoData);
+          await this.autoPopulateVideoData(video.videoId, videoData);
         }
         
-        const result = await this.processInitialVideo(videoData, video.id);
+        const result = await this.processInitialVideo(videoData, video.videoId);
         return result;
       } else if (hasScript && hasApproval) {
         // Resume from image generation stage (script was already approved)
@@ -220,13 +220,13 @@ class WorkflowService {
       } else {
         // Script exists but not approved - update status to Script Separated for manual approval
         logger.info(`${video.videoId}: awaiting approval`);
-        await this.updateVideoStatus(video.id, 'Script Separated');
+        await this.updateVideoStatus(video.videoId, 'Script Separated');
         
         // Auto-transition: Script Separated → Ready for Review
-        await this.autoTransitionStatus(video.id, 'Script Separated', video.scriptApproved);
+        await this.autoTransitionStatus(video.videoId, 'Script Separated', video.scriptApproved);
         
         // Auto-update workflow statuses for resumed script generation
-        await this.autoUpdateWorkflowStatuses(video.id, 'Script Separated');
+        await this.autoUpdateWorkflowStatuses(video.videoId, 'Script Separated');
         
         // Send approval request with Google Sheets URLs
         const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
@@ -323,7 +323,7 @@ class WorkflowService {
             
             // Auto-transition: Ready for Review → Approved
             const transition = await this.autoTransitionStatus(
-              video.id, 
+              video.videoId, 
               'Ready for Review', 
               true
             );
@@ -415,7 +415,7 @@ class WorkflowService {
           }
           
           // Reset video to appropriate status for retry
-          await this.updateVideoStatus(video.id, resetStatus, {
+          await this.updateVideoStatus(video.videoId, resetStatus, {
             retryCount: retryCount + 1,
             lastRetryTime: new Date().toISOString(),
             errorMessage: null, // Clear previous error
@@ -649,7 +649,7 @@ class WorkflowService {
     try {
       logger.info(`Approved: ${videoInfo.title}`);
 
-      const videoDisplayId = videoInfo.videoId || videoInfo.id;
+      const videoDisplayId = videoInfo.videoId;
       
       // Check if image generation is enabled
       if (!config.app.enableImageGeneration) {
@@ -661,11 +661,11 @@ class WorkflowService {
           `🎬 ${videoDisplayId} - ${videoInfo.title}\n` +
           '🚫 Image generation is disabled in configuration\n' +
           '📝 <i>Script is ready for voice generation</i>\n' +
-          `🔗 [View Record](https://notion.so/${videoInfo.id.replace(/-/g, '')})`
+          `🔗 [View Record](https://notion.so/${videoInfo.videoId.replace(/-/g, '')})`
         );
 
         // Update status to Completed without image generation
-        await this.updateVideoStatus(videoInfo.id, 'Completed', {
+        await this.updateVideoStatus(videoInfo.videoId, 'Completed', {
           imagesGenerated: 0,
           imageGenerationSkipped: true,
           processingCompletedAt: new Date().toISOString(),
@@ -673,16 +673,16 @@ class WorkflowService {
         });
 
         // Auto-update workflow statuses
-        await this.autoUpdateWorkflowStatuses(videoInfo.id, 'Completed');
+        await this.autoUpdateWorkflowStatuses(videoInfo.videoId, 'Completed');
 
         return { success: true, stage: 'completed_no_images', imagesGenerated: 0 };
       }
 
-      await this.updateVideoStatus(videoInfo.id, 'Generating Images');
+      await this.updateVideoStatus(videoInfo.videoId, 'Generating Images');
 
       // Get video data with proper video ID for cost tracking
       const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
-      videoData.videoId = videoInfo.videoId || videoInfo.id;
+      videoData.videoId = videoInfo.videoId;
 
       // Create Digital Ocean folder structure for this video
       try {
@@ -703,7 +703,7 @@ class WorkflowService {
       // Update Script Details database with Digital Ocean image URLs
       if (imageUrls && imageUrls.length > 0) {
         try {
-          await this.updateMultipleImageUrls(videoInfo.id, imageUrls);
+          await this.updateMultipleImageUrls(videoInfo.videoId, imageUrls);
           logger.info(`Updated Script Details database with ${imageUrls.length} image URLs from Digital Ocean`);
         } catch (error) {
           logger.warn('Failed to update Script Details with image URLs:', error.message);
@@ -713,7 +713,7 @@ class WorkflowService {
 
       // Send enhanced Telegram notification with cost information
       const costSummary = enhancedContent.costSummary;
-      const folderName = `videos/${videoInfo.videoId || videoInfo.id}`;
+      const folderName = `videos/${videoInfo.videoId}`;
       
       await this.telegramService.sendMessage(
         '✅ <b>Processing Completed</b>\n\n' +
@@ -731,19 +731,19 @@ class WorkflowService {
         }\n\n` +
         `💡 <i>Total processing cost for this video: $${costSummary.totalCost.toFixed(4)}</i>\n` +
         '📝 <i>Ready for voice generation - check Voice Status when complete</i>\n' +
-        `🔗 [View Record](https://notion.so/${videoInfo.id.replace(/-/g, '')})`
+        `🔗 [View Record](https://notion.so/${videoInfo.videoId.replace(/-/g, '')})`
       );
 
       // Thumbnail is already generated by enhanceContentWithAI
       const thumbnailResult = enhancedContent.thumbnail;
       if (thumbnailResult) {
         // Upload thumbnail to Digital Ocean if not already done
-        const thumbnailFileName = `${(videoInfo.videoId || videoInfo.id)}_thumbnail.jpg`;
+        const thumbnailFileName = `${videoInfo.videoId}_thumbnail.jpg`;
         try {
           const thumbnailUpload = await this.aiService.downloadAndUploadImage(
             thumbnailResult.url,
             thumbnailFileName,
-            videoInfo.videoId || videoInfo.id,
+            videoInfo.videoId,
             'thumbnails'
           );
           
@@ -774,7 +774,7 @@ class WorkflowService {
       }
 
       // Update status to Completed with enhanced metadata (workflow ends here)
-      await this.updateVideoStatus(videoInfo.id, 'Completed', {
+      await this.updateVideoStatus(videoInfo.videoId, 'Completed', {
         imagesGenerated: generatedImages.length,
         imageStyle: enhancedContent.videoStyle?.style,
         totalCost: costSummary.totalCost,
@@ -786,7 +786,7 @@ class WorkflowService {
 
       // Auto-update workflow statuses after automation completion
       // Note: Video Editing Status will only update if Voice Generation Status is "Completed"
-      await this.autoUpdateWorkflowStatuses(videoInfo.id, 'Completed', videoInfo.voiceGenerationStatus);
+      await this.autoUpdateWorkflowStatuses(videoInfo.videoId, 'Completed', videoInfo.voiceGenerationStatus);
 
       logger.info(`Script processing completed for: ${videoInfo.title} (${generatedImages.length} images, $${costSummary.totalCost.toFixed(4)})`);
       
@@ -808,7 +808,7 @@ class WorkflowService {
 
   async handleVideoError(video, error, stage) {
     try {
-      await this.updateVideoStatus(video.id, 'Error', {
+      await this.updateVideoStatus(video.videoId, 'Error', {
         errorMessage: error.message,
         errorStage: stage,
         errorTime: new Date().toISOString(),
@@ -864,7 +864,7 @@ class WorkflowService {
           processedCount++;
           
           if (now - createdTime > timeoutThreshold * 2) { // 48 hours
-            await this.updateVideoStatus(video.id, 'Timeout - Manual Review Required');
+            await this.updateVideoStatus(video.videoId, 'Timeout - Manual Review Required');
           }
         }
       }
