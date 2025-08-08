@@ -113,7 +113,7 @@ After setup, verify your configuration:
 - [ ] Google Drive folder shared with service account
 - [ ] Telegram notifications working
 - [ ] FFmpeg available in PATH
-- [ ] System health check passes: `node test-single-run.js health`
+- [ ] System health check passes: `node tests/integration/test-single-run.js health`
 
 ### Notion Database Schema
 
@@ -171,12 +171,12 @@ const result = await automation.processUrl('https://www.youtube.com/watch?v=VIDE
 ### Test System Functionality
 ```bash
 # Test system functionality with unified test script
-node test-single-run.js health                    # Health check only
-node test-single-run.js all                       # Run all services once
-node test-single-run.js single-video <url>        # Process specific video
-node test-single-run.js new-videos               # Process new videos
-node test-single-run.js approved-scripts         # Process approved scripts
-node test-single-run.js video-generation         # Run video generation
+node tests/integration/test-single-run.js health                    # Health check only
+node tests/integration/test-single-run.js all                       # Run all services once
+node tests/integration/test-single-run.js single-video <url>        # Process specific video
+node tests/integration/test-single-run.js new-videos               # Process new videos
+node tests/integration/test-single-run.js approved-scripts         # Process approved scripts
+node tests/integration/test-single-run.js video-generation         # Run video generation
 ```
 
 ### Force Processing

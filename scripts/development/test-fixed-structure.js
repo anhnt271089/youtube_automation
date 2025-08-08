@@ -7,8 +7,8 @@
  * to ensure there are no conflicts or issues.
  */
 
-import GoogleSheetsService from '../src/services/googleSheetsService.js';
-import logger from '../src/utils/logger.js';
+import GoogleSheetsService from '../../src/services/googleSheetsService.js';
+import logger from '../../src/utils/logger.js';
 
 async function testFixedStructure() {
   console.log('🧪 Testing Fixed Google Sheets Structure...\n');

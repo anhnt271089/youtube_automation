@@ -463,7 +463,7 @@ class MasterSheetRecreator {
       console.log('\n🧪 Testing new sheet integration...');
       
       // Import and test the service
-      const { default: GoogleSheetsService } = await import('../src/services/googleSheetsService.js');
+      const { default: GoogleSheetsService } = await import('../../src/services/googleSheetsService.js');
       
       // Temporarily override the config for testing
       const originalSheetId = config.google.masterSheetId;

@@ -5,8 +5,8 @@
  * Tests the core workflow logic without requiring external API calls
  */
 
-import { config } from './config/config.js';
-import logger from './src/utils/logger.js';
+import { config } from '../../config/config.js';
+import logger from '../../src/utils/logger.js';
 
 console.log('🧪 YouTube Automation Workflow Fixes Test');
 console.log('=========================================\n');
@@ -36,7 +36,7 @@ try {
 // Test 2: Service Initialization 
 console.log('2. Testing Service Initialization...');
 try {
-  const { default: WorkflowService } = await import('./src/services/workflowService.js');
+  const { default: WorkflowService } = await import('../../src/services/workflowService.js');
   const workflow = new WorkflowService();
   
   console.log('   ✅ WorkflowService initialized');
@@ -103,7 +103,7 @@ try {
 // Test 4: Google Sheets Column Mapping
 console.log('4. Testing Google Sheets Integration...');
 try {
-  const { default: GoogleSheetsService } = await import('./src/services/googleSheetsService.js');
+  const { default: GoogleSheetsService } = await import('../../src/services/googleSheetsService.js');
   const sheetsService = new GoogleSheetsService();
   
   // Test column mapping

@@ -7,8 +7,8 @@
  * with the GoogleSheetsService.
  */
 
-import GoogleSheetsService from './src/services/googleSheetsService.js';
-import logger from './src/utils/logger.js';
+import GoogleSheetsService from '../../src/services/googleSheetsService.js';
+import logger from '../../src/utils/logger.js';
 
 async function testHeaderStructure() {
   console.log('🧪 Testing Google Sheets Header Structure...\n');

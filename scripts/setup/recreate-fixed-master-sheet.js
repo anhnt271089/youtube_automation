@@ -12,7 +12,7 @@
 
 import { google } from 'googleapis';
 import { config } from '../config/config.js';
-import logger from '../src/utils/logger.js';
+import logger from '../../src/utils/logger.js';
 
 class FixedMasterSheetCreator {
   constructor() {

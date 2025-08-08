@@ -5,7 +5,7 @@
  * For testing single URLs quickly
  */
 
-import YouTubeService from '../src/services/youtubeService.js';
+import YouTubeService from '../../src/services/youtubeService.js';
 
 async function quickTest(url) {
   const youtube = new YouTubeService();

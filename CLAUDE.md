@@ -167,22 +167,22 @@ ENABLE_SCRIPT_BREAKDOWN=true   # Enable/disable script sentence breakdown
 ### System Operations
 ```bash
 # Test system functionality with unified test script
-node test-single-run.js health                    # Health check only
-node test-single-run.js all                       # Run all services once
-node test-single-run.js single-video <url>        # Process specific video
-node test-single-run.js new-videos               # Process new videos
-node test-single-run.js approved-scripts         # Process approved scripts
-node test-single-run.js ready-for-review         # Process ready for review videos
-node test-single-run.js error-videos             # Test error recovery system
-node test-single-run.js status-monitor           # Test status change monitoring
-node test-single-run.js cache-refresh            # Initialize status monitoring cache
+node tests/integration/test-single-run.js health                    # Health check only
+node tests/integration/test-single-run.js all                       # Run all services once
+node tests/integration/test-single-run.js single-video <url>        # Process specific video
+node tests/integration/test-single-run.js new-videos               # Process new videos
+node tests/integration/test-single-run.js approved-scripts         # Process approved scripts
+node tests/integration/test-single-run.js ready-for-review         # Process ready for review videos
+node tests/integration/test-single-run.js error-videos             # Test error recovery system
+node tests/integration/test-single-run.js status-monitor           # Test status change monitoring
+node tests/integration/test-single-run.js cache-refresh            # Initialize status monitoring cache
 
 # Dedicated status monitoring testing
-node test-status-monitoring.js health             # Test all services health
-node test-status-monitoring.js cache-refresh      # Initialize cache with current data
-node test-status-monitoring.js monitor           # Run status monitoring once
-node test-status-monitoring.js test-notifications # Test notification methods
-node test-status-monitoring.js cache-clear       # Clear status cache
+node tests/integration/test-status-monitoring.js health             # Test all services health
+node tests/integration/test-status-monitoring.js cache-refresh      # Initialize cache with current data
+node tests/integration/test-status-monitoring.js monitor           # Run status monitoring once
+node tests/integration/test-status-monitoring.js test-notifications # Test notification methods
+node tests/integration/test-status-monitoring.js cache-clear       # Clear status cache
 
 # Note: Video generation is handled manually outside the automated flow
 

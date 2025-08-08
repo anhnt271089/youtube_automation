@@ -12,8 +12,8 @@
  * - test-notifications: Test individual notification methods
  */
 
-import YouTubeAutomation from './src/index.js';
-import logger from './src/utils/logger.js';
+import YouTubeAutomation from '../../src/index.js';
+import logger from '../../src/utils/logger.js';
 
 async function main() {
   const command = process.argv[2] || 'help';

@@ -5,9 +5,9 @@
  * Usage: node scripts/test-youtube-metadata.js [YOUTUBE_URL]
  */
 
-import YouTubeService from '../src/services/youtubeService.js';
-import logger from '../src/utils/logger.js';
-import { TEST_SCENARIOS, TEST_VIDEOS, EXPECTED_METADATA } from '../src/test-data/beyondBeingTestData.js';
+import YouTubeService from '../../src/services/youtubeService.js';
+import logger from '../../src/utils/logger.js';
+import { TEST_SCENARIOS, TEST_VIDEOS, EXPECTED_METADATA } from '../../src/test-data/beyondBeingTestData.js';
 
 class YouTubeMetadataTest {
   constructor() {

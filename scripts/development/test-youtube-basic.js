@@ -5,8 +5,8 @@
  * Tests URL parsing and utility functions only
  */
 
-import YouTubeService from '../src/services/youtubeService.js';
-import { TEST_SCENARIOS, TEST_VIDEOS } from '../src/test-data/beyondBeingTestData.js';
+import YouTubeService from '../../src/services/youtubeService.js';
+import { TEST_SCENARIOS, TEST_VIDEOS } from '../../src/test-data/beyondBeingTestData.js';
 
 console.log('🔍 YouTube Service Basic Test (No API calls)');
 console.log('Testing with BeyondBeing channel sample data');

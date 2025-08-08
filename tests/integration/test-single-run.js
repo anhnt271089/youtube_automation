@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import dotenv from 'dotenv';
-import WorkflowService from './src/services/workflowService.js';
-import logger from './src/utils/logger.js';
-import { validateConfig } from './config/config.js';
-import { TEST_SCENARIOS, TEST_VIDEOS } from './src/test-data/beyondBeingTestData.js';
+import WorkflowService from '../../src/services/workflowService.js';
+import logger from '../../src/utils/logger.js';
+import { validateConfig } from '../../config/config.js';
+import { TEST_SCENARIOS, TEST_VIDEOS } from '../../src/test-data/beyondBeingTestData.js';
 
 dotenv.config();
 

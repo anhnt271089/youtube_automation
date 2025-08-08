@@ -10,10 +10,10 @@
  * 5. DALL-E 2 cost reduction
  */
 
-import { config } from '../config/config.js';
-import AIService from '../src/services/aiService.js';
-import DigitalOceanService from '../src/services/digitalOceanService.js';
-import logger from '../src/utils/logger.js';
+import { config } from '../../config/config.js';
+import AIService from '../../src/services/aiService.js';
+import DigitalOceanService from '../../src/services/digitalOceanService.js';
+import logger from '../../src/utils/logger.js';
 
 async function testImageImprovements() {
   console.log('🚀 Testing YouTube Image Generation Improvements\n');

@@ -4,9 +4,9 @@
  * Tests various scenarios where YouTube transcripts may not be available
  */
 
-import YouTubeService from '../src/services/youtubeService.js';
-import logger from '../src/utils/logger.js';
-import { TEST_SCENARIOS, TEST_VIDEOS } from '../src/test-data/beyondBeingTestData.js';
+import YouTubeService from '../../src/services/youtubeService.js';
+import logger from '../../src/utils/logger.js';
+import { TEST_SCENARIOS, TEST_VIDEOS } from '../../src/test-data/beyondBeingTestData.js';
 
 class TranscriptFallbackTester {
   constructor() {

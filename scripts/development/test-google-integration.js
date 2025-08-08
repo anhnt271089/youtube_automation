@@ -6,9 +6,9 @@
  * Tests the Google Sheets and Drive integration to ensure everything is working properly.
  */
 
-import GoogleSheetsService from '../src/services/googleSheetsService.js';
-import GoogleDriveService from '../src/services/googleDriveService.js';
-import logger from '../src/utils/logger.js';
+import GoogleSheetsService from '../../src/services/googleSheetsService.js';
+import GoogleDriveService from '../../src/services/googleDriveService.js';
+import logger from '../../src/utils/logger.js';
 
 class GoogleIntegrationTest {
   constructor() {
