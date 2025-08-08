@@ -439,13 +439,15 @@ The system creates a dedicated "Video Info" sheet for each video containing deta
 - `O: 🤖 Full Script` (Text): Complete optimized script
 - `P: 🤖 Script for Voice Generator` (Text): Script formatted for voice generation
 - `Q: 🤖 Script for Video Editor` (Text): Script with editing notes and timing
+- `R: 🤖 Clean Voice Script` (Text): Pure voice script text without editing suggestions
+- `S: 🤖 Voice Script File` (URL): Link to voice_script.txt file in Google Drive
 
 **🤖 ANALYTICS SECTION - Auto-Populated (Read-Only):**
-- `R: 🤖 Processing Time` (Text): Total processing duration
-- `S: 🤖 Script Length` (Number): Word count of optimized script
-- `T: 🤖 Cost Estimate` (Text): Processing cost breakdown
-- `U: 🤖 Images Generated` (Number): Count of images created
-- `V: 🤖 Drive Folder URL` (URL): Link to Google Drive folder with assets
+- `T: 🤖 Processing Time` (Text): Total processing duration
+- `U: 🤖 Script Length` (Number): Word count of optimized script
+- `V: 🤖 Cost Estimate` (Text): Processing cost breakdown
+- `W: 🤖 Images Generated` (Number): Count of images created
+- `X: 🤖 Drive Folder URL` (URL): Link to Google Drive folder with assets
 
 #### Script Details Sheet Structure
 
