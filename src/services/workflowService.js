@@ -982,7 +982,7 @@ class WorkflowService {
 
       // Generate 2 YouTube thumbnails and upload to Google Drive
       let youtubeThumbnailResults = null;
-      if (config.app.enableThumbnailGeneration !== false) { // Default enabled if not explicitly disabled
+      if (config.app.enableThumbnailGeneration === true) { // Only if explicitly enabled
         try {
           logger.info(`🎨 Generating 2 YouTube thumbnails for ${videoDisplayId}`);
           
@@ -1023,8 +1023,15 @@ class WorkflowService {
           );
         }
       } else {
-        logger.info(`Thumbnail generation disabled for ${videoDisplayId}`);
-        // Thumbnail generation disabled - status logged
+        logger.info(`🚫 Thumbnail generation disabled for ${videoDisplayId} (ENABLE_THUMBNAIL_GENERATION=${process.env.ENABLE_THUMBNAIL_GENERATION})`);
+        // Send notification that thumbnails were skipped
+        const skippedMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
+        await this.telegramService.sendMessage(
+          '🚫 <b>Thumbnail Generation Skipped</b>\n\n' +
+          `🎬 ${videoDisplayId} - ${skippedMetadata.title}\n` +
+          '⚙️ ENABLE_THUMBNAIL_GENERATION is disabled\n\n' +
+          '💡 <i>Enable in .env file to generate thumbnails automatically</i>'
+        );
       }
 
       // Update status to Completed with enhanced metadata (workflow ends here)

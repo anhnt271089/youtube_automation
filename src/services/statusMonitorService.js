@@ -181,7 +181,7 @@ class StatusMonitorService {
                 };
                 
                 // Trigger the complete approved script workflow (includes thumbnails)
-                const result = await this.workflowService.processApprovedScript(videoInfo);
+                await this.workflowService.processApprovedScript(videoInfo);
                 
                 logger.info(`${videoId}: Complete approved script workflow completed successfully`);
                 

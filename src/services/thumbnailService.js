@@ -24,9 +24,9 @@ class ThumbnailService {
     this.thumbnailSpecs = {
       width: 1280,
       height: 720,
-      format: 'PNG',
+      format: config.app.thumbnailFormat || 'JPG',
       dalleSize: '1792x1024', // DALL-E 3 closest to 16:9 ratio
-      quality: 'standard'
+      quality: config.app.thumbnailQuality || 'standard'
     };
   }
 
@@ -51,15 +51,17 @@ class ThumbnailService {
         this.generateSingleThumbnail(baseContext, title, videoId, 'style2')
       ]);
       
+      const fileExtension = this.thumbnailSpecs.format.toLowerCase();
+      
       const result = {
         thumbnail1: {
           ...thumbnail1,
-          fileName: 'thumbnail_1.png',
+          fileName: `thumbnail_1.${fileExtension}`,
           style: this.thumbnailStyles.style1.name
         },
         thumbnail2: {
           ...thumbnail2,
-          fileName: 'thumbnail_2.png', 
+          fileName: `thumbnail_2.${fileExtension}`, 
           style: this.thumbnailStyles.style2.name
         },
         totalGenerated: 2,

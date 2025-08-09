@@ -69,7 +69,7 @@ export const config = {
     // YouTube thumbnail generation settings
     enableThumbnailGeneration: process.env.ENABLE_THUMBNAIL_GENERATION !== 'false', // Default true
     thumbnailCount: parseInt(process.env.THUMBNAIL_COUNT) || 2, // Number of thumbnails to generate
-    thumbnailFormat: process.env.THUMBNAIL_FORMAT || 'PNG', // PNG or JPG
+    thumbnailFormat: process.env.THUMBNAIL_FORMAT || 'JPG', // PNG or JPG
     thumbnailQuality: process.env.THUMBNAIL_QUALITY || 'standard', // standard or hd for DALL-E 3
     // Timezone configuration for cron jobs
     timezone: process.env.TIMEZONE || 'Asia/Bangkok', // GMT+7
