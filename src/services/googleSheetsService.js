@@ -64,13 +64,9 @@ class GoogleSheetsService {
       videoEditingStatus: 11, // L: 👤 Video Editing Status
       driveFolder: 12,      // M: 🤖 Drive Folder Link
       detailWorkbookUrl: 13, // N: 🤖 Detail Workbook URL
-      thumbnailGenerationStatus: 14, // O: 🤖 Thumbnail Generation Status
-      thumbnail1Url: 15,    // P: 🤖 Thumbnail 1 URL
-      thumbnail2Url: 16,    // Q: 🤖 Thumbnail 2 URL
-      thumbnailDriveFolder: 17, // R: 🤖 Thumbnail Drive Folder
-      createdTime: 18,      // S: 🤖 Created Time
-      lastEditedTime: 19,   // T: 🤖 Last Edited Time
-      isRegenerating: 20    // U: 🤖 Is Regenerating Flag (internal use)
+      createdTime: 14,      // O: 🤖 Created Time
+      lastEditedTime: 15,   // P: 🤖 Last Edited Time
+      isRegenerating: 16    // Q: 🤖 Is Regenerating Flag (internal use)
     };
 
     // Detail workbook sheet structure
@@ -157,7 +153,7 @@ class GoogleSheetsService {
       const videoId = await this.getNextVideoId();
       const timestamp = this.getCurrentTimestamp();
 
-      const rowData = new Array(16).fill(''); // Initialize 16 columns (A-P)
+      const rowData = new Array(17).fill(''); // Initialize 17 columns (A-Q)
       rowData[this.masterColumns.videoId] = videoId;
       rowData[this.masterColumns.youtubeUrl] = videoData.youtubeUrl;
       rowData[this.masterColumns.title] = videoData.title || 'YouTube API Error - Run fix-missing-titles.js';
@@ -173,7 +169,7 @@ class GoogleSheetsService {
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:P', // Updated to P column (16 columns)
+        range: 'Videos!A:Q', // Updated to Q column (17 columns)
         valueInputOption: 'USER_ENTERED',
         resource: {
           values: [rowData]
@@ -192,7 +188,7 @@ class GoogleSheetsService {
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:P' // Updated to P column
+        range: 'Videos!A:Q' // Updated to Q column
       });
 
       const values = response.data.values || [];
@@ -229,7 +225,7 @@ class GoogleSheetsService {
 
       // Update last edited time
       updates.push({
-        range: `Videos!P${videoRow.rowIndex}`, // Updated to P column
+        range: `Videos!P${videoRow.rowIndex}`, // P column for lastEditedTime
         values: [[timestamp]]
       });
 
@@ -411,7 +407,7 @@ END OF BACKUP - Original script preserved before regeneration`;
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:P' // Updated to P column
+        range: 'Videos!A:Q' // Updated to Q column
       });
 
       const values = response.data.values || [];
@@ -1095,7 +1091,7 @@ END OF BACKUP - Original script preserved before regeneration`;
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:P' // Get all columns
+        range: 'Videos!A:Q' // Get all columns
       });
 
       const values = response.data.values || [];
@@ -1362,7 +1358,7 @@ END OF BACKUP - Original script preserved before regeneration`;
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:P'
+        range: 'Videos!A:Q'
       });
 
       const values = response.data.values || [];

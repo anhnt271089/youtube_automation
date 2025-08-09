@@ -36,13 +36,15 @@ class WorkflowService {
     this.aiService = new AIService();
     this.telegramService = new TelegramService();
     this.videoService = new VideoService();
-    this.statusMonitorService = new StatusMonitorService();
     
     // Initialize MetadataService with service dependencies for fallback
     this.metadataService = new MetadataService(this.sheetsService, this.youtubeService);
     
     // Initialize ThumbnailService with required dependencies
     this.thumbnailService = new ThumbnailService(this.aiService, this.driveService);
+    
+    // Initialize StatusMonitorService with this workflow service for thumbnail integration
+    this.statusMonitorService = new StatusMonitorService(this);
     
     // Metadata cache for workflow efficiency
     this.metadataCache = new Map();
@@ -984,20 +986,11 @@ class WorkflowService {
         try {
           logger.info(`🎨 Generating 2 YouTube thumbnails for ${videoDisplayId}`);
           
-          await this.updateVideoStatus(videoInfo.videoId, null, {
-            thumbnailGenerationStatus: 'Generating'
-          });
           
           // Generate and upload 2 thumbnails
           youtubeThumbnailResults = await this.thumbnailService.processVideoThumbnails(videoData, videoDisplayId);
           
-          // Update status with results
-          await this.updateVideoStatus(videoInfo.videoId, null, {
-            thumbnailGenerationStatus: `Completed (${youtubeThumbnailResults.uploaded}/${youtubeThumbnailResults.generated})`,
-            thumbnail1Url: youtubeThumbnailResults.thumbnails.thumbnail1?.upload?.directLink || null,
-            thumbnail2Url: youtubeThumbnailResults.thumbnails.thumbnail2?.upload?.directLink || null,
-            thumbnailDriveFolder: youtubeThumbnailResults.driveFolder
-          });
+          // Thumbnail results available in youtubeThumbnailResults for Telegram notifications
           
           // Use reliable metadata for thumbnail notification
           const youtubeThumbnailMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
@@ -1018,10 +1011,7 @@ class WorkflowService {
         } catch (thumbnailError) {
           logger.error(`❌ Failed to generate YouTube thumbnails for ${videoDisplayId}:`, thumbnailError);
           
-          await this.updateVideoStatus(videoInfo.videoId, null, {
-            thumbnailGenerationStatus: 'Failed',
-            thumbnailError: thumbnailError.message
-          });
+          // Thumbnail generation failed - error logged and notified via Telegram
           
           // Send error notification
           const thumbnailErrorMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
@@ -1034,9 +1024,7 @@ class WorkflowService {
         }
       } else {
         logger.info(`Thumbnail generation disabled for ${videoDisplayId}`);
-        await this.updateVideoStatus(videoInfo.videoId, null, {
-          thumbnailGenerationStatus: 'Disabled'
-        });
+        // Thumbnail generation disabled - status logged
       }
 
       // Update status to Completed with enhanced metadata (workflow ends here)

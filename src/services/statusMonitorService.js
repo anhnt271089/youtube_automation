@@ -23,10 +23,11 @@ class StatusMonitorService {
     }).replace(' ', 'T');
   }
 
-  constructor() {
+  constructor(workflowService = null) {
     this.googleSheetsService = new GoogleSheetsService();
     this.statusCacheService = new StatusCacheService();
     this.telegramService = new TelegramService();
+    this.workflowService = workflowService; // For thumbnail generation integration
     
     // Generate URLs for notifications
     this.masterSheetUrl = `https://docs.google.com/spreadsheets/d/${config.google.masterSheetId}`;
@@ -153,26 +154,47 @@ class StatusMonitorService {
             await this.handleScriptNeedsChanges(videoId, title, detailWorkbookUrl);
           }
           
-          // Handle "Approved" status - set Voice Generation Status to "Not Started" and create voice script
+          // Handle "Approved" status - trigger complete approved script workflow (voice script + thumbnails)
           if (changeInfo.new === 'Approved') {
-            logger.info(`${videoId}: Script approved, setting Voice Generation Status to Not Started and creating voice script`);
+            logger.info(`${videoId}: Script approved, triggering complete approved script workflow`);
+            
+            // Set Voice Generation Status to "Not Started"
             await this.googleSheetsService.updateVideoField(videoId, 'voiceGenerationStatus', 'Not Started');
             
-            // Trigger voice script creation now that script is approved
-            try {
-              logger.info(`${videoId}: Creating voice script file after approval`);
-              const voiceScriptResult = await this.googleSheetsService.createAndUploadVoiceScript(videoId, false);
-              
-              if (voiceScriptResult && !voiceScriptResult.skipped) {
-                await this.telegramService.sendMessage(
-                  `✅ <b>Voice Script Created</b>\n\n🎬 ${videoId} - ${title}\n📄 File: voice_script.txt\n📁 Location: Google Drive folder\n\n💡 <i>Ready for voice generation</i>`
-                );
+            // If WorkflowService is available, use the complete processApprovedScript workflow
+            if (this.workflowService) {
+              try {
+                logger.info(`${videoId}: Triggering complete approved script workflow (voice + thumbnails)`);
+                
+                // Get video details for processApprovedScript
+                const videoRow = await this.googleSheetsService.findVideoRow(videoId);
+                if (!videoRow || !videoRow.data) {
+                  throw new Error('Video data not found in sheets');
+                }
+                
+                const videoInfo = {
+                  videoId: videoId,
+                  title: title,
+                  youtubeUrl: videoRow.data[this.googleSheetsService.masterColumns.youtubeUrl],
+                  status: 'Approved',
+                  voiceGenerationStatus: videoRow.data[this.googleSheetsService.masterColumns.voiceGenerationStatus] || 'Not Started'
+                };
+                
+                // Trigger the complete approved script workflow (includes thumbnails)
+                const result = await this.workflowService.processApprovedScript(videoInfo);
+                
+                logger.info(`${videoId}: Complete approved script workflow completed successfully`);
+                
+              } catch (workflowError) {
+                logger.error(`Failed to run complete approved script workflow for ${videoId}:`, workflowError);
+                
+                // Fallback to voice script creation only
+                await this.createVoiceScriptFallback(videoId, title, workflowError);
               }
-            } catch (voiceScriptError) {
-              logger.error(`Failed to create voice script for ${videoId}:`, voiceScriptError);
-              await this.telegramService.sendMessage(
-                `❌ <b>Voice Script Creation Failed</b>\n\n🎬 ${videoId} - ${title}\n🔄 Error: ${voiceScriptError.message}\n\n🔧 Manual intervention required`
-              );
+            } else {
+              // Fallback: Create voice script only (old behavior)
+              logger.warn(`${videoId}: WorkflowService not available, using fallback voice script creation`);
+              await this.createVoiceScriptFallback(videoId, title);
             }
           }
           break;
@@ -225,6 +247,29 @@ class StatusMonitorService {
       );
       
       throw error;
+    }
+  }
+
+  /**
+   * Fallback method for voice script creation when full workflow fails
+   */
+  async createVoiceScriptFallback(videoId, title, originalError = null) {
+    try {
+      logger.info(`${videoId}: Creating voice script file (fallback mode)`);
+      const voiceScriptResult = await this.googleSheetsService.createAndUploadVoiceScript(videoId, false);
+      
+      if (voiceScriptResult && !voiceScriptResult.skipped) {
+        const message = originalError ? 
+          `⚠️ <b>Voice Script Created (Fallback)</b>\n\n🎬 ${videoId} - ${title}\n📄 File: voice_script.txt\n📁 Location: Google Drive folder\n\n⚠️ <i>Full workflow failed, but voice script created successfully</i>\n🔧 ${originalError.message}` :
+          `✅ <b>Voice Script Created</b>\n\n🎬 ${videoId} - ${title}\n📄 File: voice_script.txt\n📁 Location: Google Drive folder\n\n💡 <i>Ready for voice generation</i>`;
+        
+        await this.telegramService.sendMessage(message);
+      }
+    } catch (voiceScriptError) {
+      logger.error(`Fallback voice script creation also failed for ${videoId}:`, voiceScriptError);
+      await this.telegramService.sendMessage(
+        `❌ <b>Voice Script Creation Failed</b>\n\n🎬 ${videoId} - ${title}\n🔄 Error: ${voiceScriptError.message}\n\n🔧 Manual intervention required`
+      );
     }
   }
 
