@@ -320,7 +320,7 @@ Please review and approve the script to continue processing, or the video will b
   // New methods for manual status change notifications
   
   async sendVoiceGenerationStatusChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null) {
-    const formattedTitle = this.formatVideoTitle(title);
+    const formattedTitle = this.formatReliableTitle(title, videoId);
     let statusIcon = '🎙️';
     
     // Add status-specific icons and context
@@ -371,7 +371,7 @@ Please review and approve the script to continue processing, or the video will b
   }
 
   async sendVideoEditingStatusChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null, driveFolderUrl = null) {
-    const formattedTitle = this.formatVideoTitle(title);
+    const formattedTitle = this.formatReliableTitle(title, videoId);
     let statusIcon = '🎬';
     
     // Add status-specific icons and context
@@ -430,7 +430,7 @@ Please review and approve the script to continue processing, or the video will b
   }
 
   async sendScriptApprovedChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null) {
-    const formattedTitle = this.formatVideoTitle(title);
+    const formattedTitle = this.formatReliableTitle(title, videoId);
     let statusIcon = '📝';
     
     // Add status-specific icons and context
@@ -484,7 +484,7 @@ Please review and approve the script to continue processing, or the video will b
    * Send notification about script regeneration started
    */
   async sendScriptRegenerationStarted(videoId, title, masterSheetUrl = null, workbookUrl = null) {
-    const formattedTitle = this.formatVideoTitle(title);
+    const formattedTitle = this.formatReliableTitle(title, videoId);
     
     let message = `🔄 <b>Script Regeneration Started</b>
 
@@ -528,7 +528,7 @@ Please review and approve the script to continue processing, or the video will b
 
     // Add summary of changes
     changes.forEach(change => {
-      const videoLine = `🎬 <b>${change.videoId}</b> - ${this.formatVideoTitle(change.title)}`;
+      const videoLine = `🎬 <b>${change.videoId}</b> - ${this.formatReliableTitle(change.title, change.videoId)}`;
       message += `${videoLine}\n`;
       
       Object.entries(change.changes).forEach(([field, changeInfo]) => {
@@ -553,9 +553,47 @@ Please review and approve the script to continue processing, or the video will b
   }
 
   formatVideoTitle(title, maxLength = 40) {
-    return title.length > maxLength ? 
-      title.substring(0, maxLength) + '...' : 
-      title;
+    if (!title || typeof title !== 'string') {
+      return 'Unknown Title';
+    }
+    
+    // Handle edge cases that indicate corrupted/missing titles
+    const cleanTitle = title.trim();
+    if (cleanTitle === '' || cleanTitle.toLowerCase() === 'not set' || cleanTitle.toLowerCase() === 'unknown') {
+      return 'Processing Video';
+    }
+    
+    return cleanTitle.length > maxLength ? 
+      cleanTitle.substring(0, maxLength) + '...' : 
+      cleanTitle;
+  }
+
+  /**
+   * Enhanced title formatting that provides better fallbacks for corrupted data
+   * This helps prevent "Unknown Title, Not Set" display issues
+   */
+  formatReliableTitle(title, videoId = null, maxLength = 40) {
+    // First attempt: use provided title if valid
+    if (title && typeof title === 'string') {
+      const cleanTitle = title.trim();
+      if (cleanTitle && 
+          cleanTitle.toLowerCase() !== 'not set' && 
+          cleanTitle.toLowerCase() !== 'unknown' &&
+          cleanTitle.toLowerCase() !== 'processing...' &&
+          cleanTitle !== '') {
+        return cleanTitle.length > maxLength ? 
+          cleanTitle.substring(0, maxLength) + '...' : 
+          cleanTitle;
+      }
+    }
+    
+    // Fallback: use video ID if available
+    if (videoId) {
+      return `Video ${videoId}`;
+    }
+    
+    // Ultimate fallback
+    return 'Processing Video';
   }
 
   formatDuration(seconds) {

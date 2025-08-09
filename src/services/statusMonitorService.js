@@ -5,6 +5,24 @@ import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 
 class StatusMonitorService {
+  /**
+   * Get current timestamp in configured timezone for consistent display
+   * @returns {string} Formatted timestamp in Asia/Bangkok (GMT+7) timezone
+   */
+  getCurrentTimestamp() {
+    const now = new Date();
+    // Convert to Asia/Bangkok timezone and format
+    return now.toLocaleString('sv-SE', { 
+      timeZone: config.app.timezone,
+      year: 'numeric',
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).replace(' ', 'T');
+  }
+
   constructor() {
     this.googleSheetsService = new GoogleSheetsService();
     this.statusCacheService = new StatusCacheService();
@@ -135,10 +153,27 @@ class StatusMonitorService {
             await this.handleScriptNeedsChanges(videoId, title, detailWorkbookUrl);
           }
           
-          // Handle "Approved" status - set Voice Generation Status to "Not Started"
+          // Handle "Approved" status - set Voice Generation Status to "Not Started" and create voice script
           if (changeInfo.new === 'Approved') {
-            logger.info(`${videoId}: Script approved, setting Voice Generation Status to Not Started`);
-            await this.sheetsService.updateVideoField(videoId, 'voiceGenerationStatus', 'Not Started');
+            logger.info(`${videoId}: Script approved, setting Voice Generation Status to Not Started and creating voice script`);
+            await this.googleSheetsService.updateVideoField(videoId, 'voiceGenerationStatus', 'Not Started');
+            
+            // Trigger voice script creation now that script is approved
+            try {
+              logger.info(`${videoId}: Creating voice script file after approval`);
+              const voiceScriptResult = await this.googleSheetsService.createAndUploadVoiceScript(videoId, false);
+              
+              if (voiceScriptResult && !voiceScriptResult.skipped) {
+                await this.telegramService.sendMessage(
+                  `✅ <b>Voice Script Created</b>\n\n🎬 ${videoId} - ${title}\n📄 File: voice_script.txt\n📁 Location: Google Drive folder\n\n💡 <i>Ready for voice generation</i>`
+                );
+              }
+            } catch (voiceScriptError) {
+              logger.error(`Failed to create voice script for ${videoId}:`, voiceScriptError);
+              await this.telegramService.sendMessage(
+                `❌ <b>Voice Script Creation Failed</b>\n\n🎬 ${videoId} - ${title}\n🔄 Error: ${voiceScriptError.message}\n\n🔧 Manual intervention required`
+              );
+            }
           }
           break;
 
@@ -205,7 +240,7 @@ class StatusMonitorService {
       
       if (existingContent && existingContent.cleanVoiceScript) {
         // Create backup file with timestamp
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const timestamp = this.getCurrentTimestamp().replace(/[:.]/g, '-');
         const backupFileName = `voice_script_backup_${timestamp}.txt`;
         
         // Upload backup to Drive

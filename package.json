@@ -30,6 +30,7 @@
     "@aws-sdk/s3-request-presigner": "^3.862.0",
     "@notionhq/client": "^2.2.15",
     "axios": "^1.7.2",
+    "commander": "^14.0.0",
     "dotenv": "^16.4.5",
     "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "^2.1.2",

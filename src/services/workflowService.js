@@ -6,10 +6,29 @@ import TelegramService from './telegramService.js';
 import VideoService from './videoService.js';
 import StatusMonitorService from './statusMonitorService.js';
 import MetadataService from './metadataService.js';
+import ThumbnailService from './thumbnailService.js';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 
 class WorkflowService {
+  /**
+   * Get current timestamp in configured timezone for consistent display
+   * @returns {string} Formatted timestamp in Asia/Bangkok (GMT+7) timezone
+   */
+  getCurrentTimestamp() {
+    const now = new Date();
+    // Convert to Asia/Bangkok timezone and format for Google Sheets
+    return now.toLocaleString('sv-SE', { 
+      timeZone: config.app.timezone,
+      year: 'numeric',
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).replace(' ', 'T');
+  }
+
   constructor() {
     this.youtubeService = new YouTubeService();
     this.sheetsService = new GoogleSheetsService();
@@ -21,6 +40,9 @@ class WorkflowService {
     
     // Initialize MetadataService with service dependencies for fallback
     this.metadataService = new MetadataService(this.sheetsService, this.youtubeService);
+    
+    // Initialize ThumbnailService with required dependencies
+    this.thumbnailService = new ThumbnailService(this.aiService, this.driveService);
     
     // Metadata cache for workflow efficiency
     this.metadataCache = new Map();
@@ -173,7 +195,7 @@ class WorkflowService {
         duration: videoData.duration || 'Unknown',
         youtubeVideoId: videoData.videoId || 'Unknown',
         viewCount: videoData.viewCount || 0,
-        publishedDate: videoData.publishedAt || new Date().toISOString()
+        publishedDate: videoData.publishedAt || this.getCurrentTimestamp()
       };
       
       // Update master sheet with metadata
@@ -554,7 +576,7 @@ class WorkflowService {
           // Reset video to appropriate status for retry
           await this.updateVideoStatus(video.videoId, resetStatus, {
             retryCount: retryCount + 1,
-            lastRetryTime: new Date().toISOString(),
+            lastRetryTime: this.getCurrentTimestamp(),
             errorMessage: null, // Clear previous error
             errorStage: null,
             errorTime: null
@@ -771,7 +793,7 @@ class WorkflowService {
         await this.updateVideoStatus(videoId, 'Approved', {
           scriptApproved: true,
           autoApproved: true,
-          approvedAt: new Date().toISOString()
+          approvedAt: this.getCurrentTimestamp()
         });
         
         // Use reliable metadata for auto-approval notification
@@ -835,7 +857,7 @@ class WorkflowService {
         await this.updateVideoStatus(videoInfo.videoId, 'Completed', {
           imagesGenerated: 0,
           imageGenerationSkipped: true,
-          processingCompletedAt: new Date().toISOString(),
+          processingCompletedAt: this.getCurrentTimestamp(),
           note: 'Image generation disabled in configuration'
         });
 
@@ -956,6 +978,67 @@ class WorkflowService {
         }
       }
 
+      // Generate 2 YouTube thumbnails and upload to Google Drive
+      let youtubeThumbnailResults = null;
+      if (config.app.enableThumbnailGeneration !== false) { // Default enabled if not explicitly disabled
+        try {
+          logger.info(`🎨 Generating 2 YouTube thumbnails for ${videoDisplayId}`);
+          
+          await this.updateVideoStatus(videoInfo.videoId, null, {
+            thumbnailGenerationStatus: 'Generating'
+          });
+          
+          // Generate and upload 2 thumbnails
+          youtubeThumbnailResults = await this.thumbnailService.processVideoThumbnails(videoData, videoDisplayId);
+          
+          // Update status with results
+          await this.updateVideoStatus(videoInfo.videoId, null, {
+            thumbnailGenerationStatus: `Completed (${youtubeThumbnailResults.uploaded}/${youtubeThumbnailResults.generated})`,
+            thumbnail1Url: youtubeThumbnailResults.thumbnails.thumbnail1?.upload?.directLink || null,
+            thumbnail2Url: youtubeThumbnailResults.thumbnails.thumbnail2?.upload?.directLink || null,
+            thumbnailDriveFolder: youtubeThumbnailResults.driveFolder
+          });
+          
+          // Use reliable metadata for thumbnail notification
+          const youtubeThumbnailMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
+          
+          await this.telegramService.sendMessage(
+            '🎨 <b>YouTube Thumbnails Generated</b>\n\n' +
+            `🎬 ${videoDisplayId} - ${youtubeThumbnailMetadata.title}\n` +
+            `🖼️ Generated: ${youtubeThumbnailResults.generated} thumbnails\n` +
+            `✅ Uploaded: ${youtubeThumbnailResults.uploaded} successfully\n` +
+            `📐 Size: ${youtubeThumbnailResults.specifications.width}x${youtubeThumbnailResults.specifications.height}\n` +
+            `🎨 Styles: ${youtubeThumbnailResults.thumbnails.thumbnail1.style} & ${youtubeThumbnailResults.thumbnails.thumbnail2.style}\n` +
+            `📁 [Drive Folder](${youtubeThumbnailResults.driveFolder})\n\n` +
+            '💡 <i>Both thumbnails ready for YouTube upload</i>'
+          );
+          
+          logger.info(`🎨 YouTube thumbnails completed for ${videoDisplayId}: ${youtubeThumbnailResults.uploaded}/${youtubeThumbnailResults.generated} uploaded`);
+          
+        } catch (thumbnailError) {
+          logger.error(`❌ Failed to generate YouTube thumbnails for ${videoDisplayId}:`, thumbnailError);
+          
+          await this.updateVideoStatus(videoInfo.videoId, null, {
+            thumbnailGenerationStatus: 'Failed',
+            thumbnailError: thumbnailError.message
+          });
+          
+          // Send error notification
+          const thumbnailErrorMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
+          await this.telegramService.sendMessage(
+            '❌ <b>Thumbnail Generation Failed</b>\n\n' +
+            `🎬 ${videoDisplayId} - ${thumbnailErrorMetadata.title}\n` +
+            `🚨 Error: ${thumbnailError.message}\n\n` +
+            '💡 <i>Processing continues - thumbnails can be generated manually</i>'
+          );
+        }
+      } else {
+        logger.info(`Thumbnail generation disabled for ${videoDisplayId}`);
+        await this.updateVideoStatus(videoInfo.videoId, null, {
+          thumbnailGenerationStatus: 'Disabled'
+        });
+      }
+
       // Update status to Completed with enhanced metadata (workflow ends here)
       await this.updateVideoStatus(videoInfo.videoId, 'Completed', {
         imagesGenerated: generatedImages.length,
@@ -964,7 +1047,9 @@ class WorkflowService {
         imageFormat: '1920x1080',
         storageProvider: 'Digital Ocean Spaces',
         thumbnailUrl: thumbnailResult?.url,
-        processingCompletedAt: new Date().toISOString()
+        youtubeThumbnailsGenerated: youtubeThumbnailResults?.generated || 0,
+        youtubeThumbnailsUploaded: youtubeThumbnailResults?.uploaded || 0,
+        processingCompletedAt: this.getCurrentTimestamp()
       });
 
       // Auto-update workflow statuses after automation completion
@@ -979,6 +1064,7 @@ class WorkflowService {
         imageUrls,
         generatedImages,
         thumbnailResult,
+        youtubeThumbnailResults,
         costSummary 
       };
     } catch (error) {
@@ -994,7 +1080,7 @@ class WorkflowService {
       await this.updateVideoStatus(video.videoId, 'Error', {
         errorMessage: error.message,
         errorStage: stage,
-        errorTime: new Date().toISOString(),
+        errorTime: this.getCurrentTimestamp(),
         retryCount: (video.retryCount || 0) + 1
       });
 
@@ -1190,7 +1276,7 @@ class WorkflowService {
     return {
       ...this.stats,
       queueSize: this.processingQueue.size,
-      timestamp: new Date().toISOString()
+      timestamp: this.getCurrentTimestamp()
     };
   }
 
@@ -1408,7 +1494,7 @@ class WorkflowService {
     return {
       healthy: overallHealth,
       services: checks,
-      timestamp: new Date().toISOString(),
+      timestamp: this.getCurrentTimestamp(),
       costSummary: this.getCostSummary(),
       statusMonitoring: this.getStatusMonitoringStats()
     };

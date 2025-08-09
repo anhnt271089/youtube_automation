@@ -66,6 +66,11 @@ export const config = {
     enableScriptBreakdown: process.env.ENABLE_SCRIPT_BREAKDOWN === 'true', // Default false
     imageGenerationLimit: parseInt(process.env.IMAGE_GENERATION_LIMIT) || 0, // 0 = no limit
     autoApproveScripts: process.env.AUTO_APPROVE_SCRIPTS === 'true', // Default false
+    // YouTube thumbnail generation settings
+    enableThumbnailGeneration: process.env.ENABLE_THUMBNAIL_GENERATION !== 'false', // Default true
+    thumbnailCount: parseInt(process.env.THUMBNAIL_COUNT) || 2, // Number of thumbnails to generate
+    thumbnailFormat: process.env.THUMBNAIL_FORMAT || 'PNG', // PNG or JPG
+    thumbnailQuality: process.env.THUMBNAIL_QUALITY || 'standard', // standard or hd for DALL-E 3
     // Timezone configuration for cron jobs
     timezone: process.env.TIMEZONE || 'Asia/Bangkok', // GMT+7
     // Image generation settings

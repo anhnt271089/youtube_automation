@@ -5,6 +5,24 @@ import GoogleDriveService from './googleDriveService.js';
 import AIService from './aiService.js';
 
 class GoogleSheetsService {
+  /**
+   * Get current timestamp in configured timezone for Google Sheets display
+   * @returns {string} Formatted timestamp in Asia/Bangkok (GMT+7) timezone
+   */
+  getCurrentTimestamp() {
+    const now = new Date();
+    // Convert to Asia/Bangkok timezone and format for Google Sheets
+    return now.toLocaleString('sv-SE', { 
+      timeZone: config.app.timezone,
+      year: 'numeric',
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).replace(' ', 'T');
+  }
+
   constructor() {
     // Use OAuth JWT for authentication (avoids service account storage quota issue)
     const auth = new google.auth.OAuth2({
@@ -46,9 +64,13 @@ class GoogleSheetsService {
       videoEditingStatus: 11, // L: 👤 Video Editing Status
       driveFolder: 12,      // M: 🤖 Drive Folder Link
       detailWorkbookUrl: 13, // N: 🤖 Detail Workbook URL
-      createdTime: 14,      // O: 🤖 Created Time
-      lastEditedTime: 15,   // P: 🤖 Last Edited Time
-      isRegenerating: 16    // Q: 🤖 Is Regenerating Flag (internal use)
+      thumbnailGenerationStatus: 14, // O: 🤖 Thumbnail Generation Status
+      thumbnail1Url: 15,    // P: 🤖 Thumbnail 1 URL
+      thumbnail2Url: 16,    // Q: 🤖 Thumbnail 2 URL
+      thumbnailDriveFolder: 17, // R: 🤖 Thumbnail Drive Folder
+      createdTime: 18,      // S: 🤖 Created Time
+      lastEditedTime: 19,   // T: 🤖 Last Edited Time
+      isRegenerating: 20    // U: 🤖 Is Regenerating Flag (internal use)
     };
 
     // Detail workbook sheet structure
@@ -68,6 +90,16 @@ class GoogleSheetsService {
       status: 5,            // F: Status
       wordCount: 6          // G: Word Count
     };
+  }
+
+  /**
+   * Escape special characters for Google Drive API queries
+   * Google Drive queries need special characters to be escaped with backslashes
+   */
+  escapeDriveQuery(str) {
+    if (!str) return str;
+    // Escape single quotes, backslashes, and other special characters that cause issues in Drive queries
+    return str.replace(/['\\]/g, '\\$&');
   }
 
   /**
@@ -123,7 +155,7 @@ class GoogleSheetsService {
   async createVideoEntry(videoData) {
     return this.retryOperation(async () => {
       const videoId = await this.getNextVideoId();
-      const timestamp = new Date().toISOString();
+      const timestamp = this.getCurrentTimestamp();
 
       const rowData = new Array(16).fill(''); // Initialize 16 columns (A-P)
       rowData[this.masterColumns.videoId] = videoId;
@@ -187,7 +219,7 @@ class GoogleSheetsService {
       }
 
       const updates = [];
-      const timestamp = new Date().toISOString();
+      const timestamp = this.getCurrentTimestamp();
 
       // Update status
       updates.push({
@@ -247,7 +279,7 @@ class GoogleSheetsService {
       }
 
       const column = String.fromCharCode(65 + this.masterColumns[fieldName]); // Convert to A, B, C...
-      const timestamp = new Date().toISOString();
+      const timestamp = this.getCurrentTimestamp();
 
       const updates = [
         // Update the specified field
@@ -335,7 +367,7 @@ class GoogleSheetsService {
       const folderId = folderUrl.split('/folders/')[1];
       
       // Create the backup file content with header
-      const timestamp = new Date().toISOString();
+      const timestamp = this.getCurrentTimestamp();
       const fileContent = `BACKUP - Voice Script for ${videoTitle}
 Generated: ${timestamp}
 Video ID: ${videoId}
@@ -412,7 +444,7 @@ END OF BACKUP - Original script preserved before regeneration`;
       
       // Check if folder already exists
       const existingFolders = await this.drive.files.list({
-        q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and parents in '${config.google.videosRootFolderId}' and trashed=false`,
+        q: `name='${this.escapeDriveQuery(folderName)}' and mimeType='application/vnd.google-apps.folder' and parents in '${config.google.videosRootFolderId}' and trashed=false`,
         fields: 'files(id, name, webViewLink)'
       });
 
@@ -520,7 +552,7 @@ END OF BACKUP - Original script preserved before regeneration`;
         ['Published Date', videoData.publishedAt || ''],
         ['', ''], // Empty row
         ['Script Style', enhancedContent.videoStyle?.style || ''],
-        ['Processing Date', new Date().toISOString()],
+        ['Processing Date', this.getCurrentTimestamp()],
         ['', ''], // Empty row
         ['CLEAN VOICE SCRIPT', cleanVoiceScript + '\n\n(Use this clean version for voice generation - no editing instructions)']
       ];
@@ -630,24 +662,30 @@ END OF BACKUP - Original script preserved before regeneration`;
         }
       });
 
-      // Create and upload voice script file to Google Drive
+      // Create and upload voice script file to Google Drive - ONLY if Script Approved = "Approved"
       try {
-        // Check if this video is being regenerated (force recreate voice script)
-        const isRegenerating = videoRow.data[this.masterColumns.isRegenerating] === 'true';
-        const voiceScriptFile = await this.createAndUploadVoiceScript(videoId, isRegenerating);
-        
-        if (voiceScriptFile) {
-          if (voiceScriptFile.skipped) {
-            logger.info(`Voice script already exists for ${videoId}: ${voiceScriptFile.fileName} (skipped duplicate creation)`);
-          } else {
-            logger.info(`Voice script file created for ${videoId}: ${voiceScriptFile.fileName}`);
+        // Only create voice script if Script Approved = "Approved" 
+        const scriptApproved = videoRow.data[this.masterColumns.scriptApproved];
+        if (scriptApproved === 'Approved') {
+          // Check if this video is being regenerated (force recreate voice script)
+          const isRegenerating = videoRow.data[this.masterColumns.isRegenerating] === 'true';
+          const voiceScriptFile = await this.createAndUploadVoiceScript(videoId, isRegenerating);
+          
+          if (voiceScriptFile) {
+            if (voiceScriptFile.skipped) {
+              logger.info(`Voice script already exists for ${videoId}: ${voiceScriptFile.fileName} (skipped duplicate creation)`);
+            } else {
+              logger.info(`Voice script file created for ${videoId}: ${voiceScriptFile.fileName}`);
+            }
           }
-        }
-        
-        // Clear regeneration flag after successful voice script creation
-        if (isRegenerating) {
-          await this.updateVideoField(videoId, 'isRegenerating', '');
-          logger.info(`${videoId}: Regeneration flag cleared after voice script recreation`);
+          
+          // Clear regeneration flag after successful voice script creation
+          if (isRegenerating) {
+            await this.updateVideoField(videoId, 'isRegenerating', '');
+            logger.info(`Cleared regeneration flag for ${videoId}`);
+          }
+        } else {
+          logger.info(`Voice script creation skipped for ${videoId} - Script not approved yet (status: ${scriptApproved || 'Pending'})`);
         }
       } catch (error) {
         logger.warn(`Failed to create voice script file for ${videoId}:`, error.message);
@@ -707,13 +745,13 @@ END OF BACKUP - Original script preserved before regeneration`;
 
       const analyticsData = [
         ['Metric', 'Value', 'Date'],
-        ['View Count', videoData.viewCount || 0, videoData.publishedAt || new Date().toISOString()],
+        ['View Count', videoData.viewCount || 0, videoData.publishedAt || this.getCurrentTimestamp()],
         ['Duration', videoData.duration || 'N/A', ''],
         ['Channel', videoData.channelTitle || 'N/A', ''],
         ['Category', videoData.category || 'N/A', ''],
         ['Language', videoData.language || 'N/A', ''],
-        ['Processing Cost', '$0.00', new Date().toISOString()],
-        ['Generated Images', '0 (Image generation disabled)', new Date().toISOString()]
+        ['Processing Cost', '$0.00', this.getCurrentTimestamp()],
+        ['Generated Images', '0 (Image generation disabled)', this.getCurrentTimestamp()]
       ];
 
       await this.sheets.spreadsheets.values.update({
@@ -1242,7 +1280,7 @@ END OF BACKUP - Original script preserved before regeneration`;
           
           // Search for actual folders in Google Drive with this name
           const driveResponse = await this.drive.files.list({
-            q: `name='${group.folderName}' and mimeType='application/vnd.google-apps.folder' and parents in '${config.google.videosRootFolderId}' and trashed=false`,
+            q: `name='${this.escapeDriveQuery(group.folderName)}' and mimeType='application/vnd.google-apps.folder' and parents in '${config.google.videosRootFolderId}' and trashed=false`,
             fields: 'files(id, name, webViewLink, createdTime, modifiedTime)',
             orderBy: 'createdTime desc'
           });
