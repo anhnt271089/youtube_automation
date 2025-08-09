@@ -430,6 +430,40 @@ END OF BACKUP - Original script preserved before regeneration`;
   }
 
   /**
+   * Get videos with Script Approved = "Approved" regardless of main status
+   * This finds videos that have approved scripts but may have missed thumbnail generation
+   */
+  async getVideosWithApprovedScripts() {
+    return this.retryOperation(async () => {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.masterSheetId,
+        range: 'Videos!A:Q' // Updated to Q column
+      });
+
+      const values = response.data.values || [];
+      const videos = [];
+
+      for (let i = 1; i < values.length; i++) { // Skip header row
+        const row = values[i];
+        if (row[this.masterColumns.scriptApproved] === 'Approved') {
+          videos.push({
+            videoId: row[this.masterColumns.videoId],
+            title: row[this.masterColumns.title],
+            youtubeUrl: row[this.masterColumns.youtubeUrl],
+            status: row[this.masterColumns.status],
+            scriptApproved: row[this.masterColumns.scriptApproved],
+            voiceGenerationStatus: row[this.masterColumns.voiceGenerationStatus],
+            detailWorkbookUrl: row[this.masterColumns.detailWorkbookUrl],
+            driveFolder: row[this.masterColumns.driveFolder]
+          });
+        }
+      }
+
+      return videos;
+    }, 'getVideosWithApprovedScripts');
+  }
+
+  /**
    * Create detail workbook for video from template
    */
   async createVideoDetailWorkbook(videoId, videoTitle) {

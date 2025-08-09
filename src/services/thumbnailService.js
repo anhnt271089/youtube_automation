@@ -375,14 +375,117 @@ Create a thumbnail that captures attention in YouTube feed and encourages clicks
   }
 
   /**
+   * Check if thumbnails already exist for a video
+   * @param {string} videoId - Video identifier
+   * @param {string} videoTitle - Video title for folder identification
+   * @returns {Promise<object>} Existing thumbnail information
+   */
+  async checkExistingThumbnails(videoId, videoTitle) {
+    try {
+      logger.info(`🔍 Checking existing thumbnails for ${videoId}`);
+      
+      // Find the video folder
+      const sanitizedTitle = this.googleDriveService.sanitizeFolderName(videoTitle);
+      const folderName = `${sanitizedTitle} (${videoId})`;
+      
+      // Search for existing video folder
+      const videoFolder = await this.findVideoFolder(folderName);
+      if (!videoFolder) {
+        return {
+          exists: false,
+          reason: 'Video folder not found',
+          thumbnails: []
+        };
+      }
+      
+      // Check for thumbnail folder
+      const response = await this.googleDriveService.drive.files.list({
+        q: `name='Generated Thumbnails' and mimeType='application/vnd.google-apps.folder' and parents in '${videoFolder.folderId}'`,
+        fields: 'files(id, name, webViewLink)'
+      });
+      
+      if (response.data.files.length === 0) {
+        return {
+          exists: false,
+          reason: 'Thumbnail folder not found',
+          thumbnails: []
+        };
+      }
+      
+      const thumbnailFolder = response.data.files[0];
+      
+      // Check for thumbnail files
+      const thumbnailFiles = await this.googleDriveService.drive.files.list({
+        q: `parents in '${thumbnailFolder.id}' and (name contains 'thumbnail' or name contains '.jpg' or name contains '.png')`,
+        fields: 'files(id, name, webViewLink, size, createdTime)'
+      });
+      
+      const existingThumbnails = thumbnailFiles.data.files.map(file => ({
+        fileId: file.id,
+        fileName: file.name,
+        viewLink: file.webViewLink,
+        directLink: `https://drive.google.com/uc?id=${file.id}`,
+        size: file.size,
+        createdTime: file.createdTime
+      }));
+      
+      const result = {
+        exists: existingThumbnails.length > 0,
+        count: existingThumbnails.length,
+        thumbnails: existingThumbnails,
+        folderUrl: thumbnailFolder.webViewLink,
+        videoFolderUrl: videoFolder.folderUrl
+      };
+      
+      if (result.exists) {
+        logger.info(`✅ Found ${result.count} existing thumbnails for ${videoId}`);
+      } else {
+        logger.info(`📋 No existing thumbnails found for ${videoId}`);
+      }
+      
+      return result;
+      
+    } catch (error) {
+      logger.warn(`⚠️ Error checking existing thumbnails for ${videoId}:`, error);
+      return {
+        exists: false,
+        reason: `Error: ${error.message}`,
+        thumbnails: []
+      };
+    }
+  }
+
+  /**
    * Generate complete thumbnail workflow for a video
    * @param {object} videoData - Complete video data
    * @param {string} videoId - Video identifier
+   * @param {boolean} forceRegenerate - Force regeneration even if thumbnails exist
    * @returns {Promise<object>} Complete thumbnail generation and upload results
    */
-  async processVideoThumbnails(videoData, videoId) {
+  async processVideoThumbnails(videoData, videoId, forceRegenerate = false) {
     try {
       logger.info(`🎨 Starting thumbnail workflow for ${videoId}`);
+      
+      // Step 0: Check if thumbnails already exist (unless forcing regeneration)
+      if (!forceRegenerate) {
+        const existingThumbnails = await this.checkExistingThumbnails(videoId, videoData.title);
+        
+        if (existingThumbnails.exists) {
+          logger.info(`♻️ Thumbnails already exist for ${videoId}, skipping generation`);
+          return {
+            generated: 0,
+            uploaded: 0,
+            skipped: true,
+            existing: {
+              count: existingThumbnails.count,
+              thumbnails: existingThumbnails.thumbnails,
+              folderUrl: existingThumbnails.folderUrl
+            },
+            success: true,
+            message: 'Thumbnails already exist - skipped generation'
+          };
+        }
+      }
       
       // Step 1: Generate 2 thumbnails
       const thumbnails = await this.generateTwoThumbnails(videoData, videoId);

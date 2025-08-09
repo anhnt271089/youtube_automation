@@ -414,46 +414,227 @@ class WorkflowService {
       logger.info('✅ Processing approved scripts...');
       
       // Process both "Approved" and "Generating Images" status videos to handle interrupted workflows
-      const [approvedVideos, generatingVideos] = await Promise.all([
+      // PLUS get all videos with approved scripts (regardless of status) for comprehensive coverage
+      const [approvedVideos, generatingVideos, allApprovedScriptVideos] = await Promise.all([
         this.sheetsService.getVideosByStatus('Approved'),
-        this.sheetsService.getVideosByStatus('Generating Images')
+        this.sheetsService.getVideosByStatus('Generating Images'),
+        this.sheetsService.getVideosWithApprovedScripts()
       ]);
       
-      const allVideosToProcess = [...approvedVideos, ...generatingVideos];
+      // Combine and deduplicate videos (prioritize status-based videos for main processing)
+      const statusBasedVideos = [...approvedVideos, ...generatingVideos];
+      const statusBasedIds = new Set(statusBasedVideos.map(v => v.videoId));
+      
+      // Find approved scripts that aren't in the main processing queue (missing thumbnails case)
+      const additionalApprovedScripts = allApprovedScriptVideos.filter(
+        video => !statusBasedIds.has(video.videoId)
+      );
+      
+      const allVideosToProcess = [...statusBasedVideos, ...additionalApprovedScripts];
       
       if (allVideosToProcess.length === 0) {
         logger.info('✅ No approved scripts to process');
         return { success: true, processed: 0, message: 'No approved scripts to process' };
       }
 
-      logger.info(`✅ Found ${approvedVideos.length} approved + ${generatingVideos.length} generating`);
+      logger.info(`✅ Found ${approvedVideos.length} approved + ${generatingVideos.length} generating + ${additionalApprovedScripts.length} missing thumbnails`);
       let processedCount = 0;
+      let thumbnailOnlyCount = 0;
       
       for (const video of allVideosToProcess) {
         try {
-          if (video.status === 'Generating Images') {
-            logger.info(`🔄 Resuming ${video.videoId}`);
+          const isStatusBased = statusBasedIds.has(video.videoId);
+          
+          if (isStatusBased) {
+            // Regular workflow processing (full script processing)
+            if (video.status === 'Generating Images') {
+              logger.info(`🔄 Resuming ${video.videoId}`);
+            }
+            await this.processApprovedScript(video);
+            processedCount++;
+          } else {
+            // Thumbnail-only processing for approved scripts that missed thumbnail generation
+            logger.info(`🎨 Processing thumbnails for approved script: ${video.videoId}`);
+            
+            const metadata = await this.getReliableVideoMetadata(video.videoId);
+            
+            // Check if thumbnails already exist
+            const existingThumbnails = await this.thumbnailService.checkExistingThumbnails(
+              video.videoId, 
+              metadata.title
+            );
+            
+            if (!existingThumbnails.exists) {
+              // Generate missing thumbnails
+              const videoData = await this.youtubeService.getCompleteVideoData(video.youtubeUrl);
+              videoData.videoId = video.videoId;
+              
+              const thumbnailResult = await this.thumbnailService.processVideoThumbnails(
+                videoData, 
+                video.videoId, 
+                false
+              );
+              
+              if (thumbnailResult.success) {
+                await this.telegramService.sendMessage(
+                  '🎨 <b>Missing Thumbnails Generated</b>\n\n' +
+                  `🎬 ${video.videoId} - ${metadata.title}\n` +
+                  `📊 Current Status: ${video.status}\n` +
+                  `🖼️ Generated: ${thumbnailResult.generated} thumbnails\n` +
+                  `📁 [View Thumbnails](${thumbnailResult.driveFolder})\n` +
+                  '✨ <i>Approved script now has thumbnails</i>'
+                );
+              }
+            } else {
+              logger.info(`✅ ${video.videoId}: Thumbnails already exist (${existingThumbnails.count} files)`);
+            }
+            
+            thumbnailOnlyCount++;
           }
-          await this.processApprovedScript(video);
-          processedCount++;
         } catch (error) {
           logger.error(`Error processing approved script for ${video.videoId} - ${video.title}:`, error);
           await this.handleVideoError(video, error, 'Script Processing');
         }
       }
 
-      logger.info('✅ Scripts completed');
+      logger.info('✅ Scripts processing completed');
       return { 
         success: true, 
-        processed: processedCount, 
+        processed: processedCount + thumbnailOnlyCount, 
         total: allVideosToProcess.length,
         breakdown: {
           approvedScripts: approvedVideos.length,
-          resumedImageGeneration: generatingVideos.length
+          resumedImageGeneration: generatingVideos.length,
+          thumbnailOnlyProcessing: thumbnailOnlyCount
         }
       };
     } catch (error) {
       logger.error('Error in processApprovedScripts:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Process approved scripts that may have missed thumbnail generation
+   * This handles cases where videos have Script Approved = "Approved" but haven't gone through thumbnail generation
+   */
+  async processApprovedScriptsWithThumbnailCheck() {
+    try {
+      logger.info('🎨 Processing approved scripts with thumbnail check...');
+      
+      // Get ALL videos with Script Approved = "Approved" (regardless of main status)
+      const approvedScriptVideos = await this.sheetsService.getVideosWithApprovedScripts();
+      
+      if (approvedScriptVideos.length === 0) {
+        logger.info('🎨 No approved scripts found');
+        return { success: true, processed: 0, message: 'No approved scripts found' };
+      }
+
+      logger.info(`🎨 Found ${approvedScriptVideos.length} videos with approved scripts`);
+      
+      let processedCount = 0;
+      let thumbnailsGenerated = 0;
+      let thumbnailsSkipped = 0;
+      let errors = 0;
+      
+      const results = [];
+      
+      for (const video of approvedScriptVideos) {
+        try {
+          // Get reliable metadata first
+          const metadata = await this.getReliableVideoMetadata(video.videoId);
+          
+          // Check if thumbnails already exist
+          const existingThumbnails = await this.thumbnailService.checkExistingThumbnails(
+            video.videoId, 
+            metadata.title
+          );
+          
+          if (existingThumbnails.exists) {
+            logger.info(`✅ ${video.videoId}: Thumbnails already exist (${existingThumbnails.count} files)`);
+            thumbnailsSkipped++;
+            results.push({
+              videoId: video.videoId,
+              title: metadata.title,
+              action: 'skipped',
+              reason: `${existingThumbnails.count} thumbnails already exist`,
+              thumbnailCount: existingThumbnails.count
+            });
+          } else {
+            // Generate thumbnails for videos that don't have them
+            logger.info(`🎨 ${video.videoId}: Generating missing thumbnails`);
+            
+            // Get complete video data for thumbnail generation
+            const videoData = await this.youtubeService.getCompleteVideoData(video.youtubeUrl);
+            videoData.videoId = video.videoId;
+            
+            // Generate thumbnails specifically
+            const thumbnailResult = await this.thumbnailService.processVideoThumbnails(
+              videoData, 
+              video.videoId, 
+              false // Don't force regeneration
+            );
+            
+            if (thumbnailResult.success) {
+              thumbnailsGenerated++;
+              logger.info(`✅ ${video.videoId}: Generated ${thumbnailResult.generated} thumbnails successfully`);
+              
+              // Send Telegram notification for newly generated thumbnails
+              await this.telegramService.sendMessage(
+                '🎨 <b>Thumbnails Generated</b> (Retroactive)\n\n' +
+                `🎬 ${video.videoId} - ${metadata.title}\n` +
+                `📊 Status: ${video.status}\n` +
+                `🖼️ Generated: ${thumbnailResult.generated} thumbnails\n` +
+                `📁 [View Thumbnails](${thumbnailResult.driveFolder})\n` +
+                '🔄 <i>Retroactive thumbnail generation completed</i>'
+              );
+              
+              results.push({
+                videoId: video.videoId,
+                title: metadata.title,
+                action: 'generated',
+                thumbnailCount: thumbnailResult.generated,
+                driveFolder: thumbnailResult.driveFolder
+              });
+            } else {
+              errors++;
+              results.push({
+                videoId: video.videoId,
+                title: metadata.title,
+                action: 'failed',
+                error: 'Thumbnail generation failed'
+              });
+            }
+          }
+          
+          processedCount++;
+        } catch (error) {
+          logger.error(`Error processing approved script thumbnails for ${video.videoId}:`, error);
+          errors++;
+          results.push({
+            videoId: video.videoId,
+            title: video.title,
+            action: 'error',
+            error: error.message
+          });
+        }
+      }
+
+      logger.info(`🎨 Approved scripts thumbnail check completed: ${processedCount} processed, ${thumbnailsGenerated} generated, ${thumbnailsSkipped} skipped, ${errors} errors`);
+      
+      return { 
+        success: true, 
+        processed: processedCount, 
+        total: approvedScriptVideos.length,
+        breakdown: {
+          thumbnailsGenerated,
+          thumbnailsSkipped,
+          errors
+        },
+        results
+      };
+    } catch (error) {
+      logger.error('Error in processApprovedScriptsWithThumbnailCheck:', error);
       return { success: false, error: error.message };
     }
   }

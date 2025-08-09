@@ -300,6 +300,71 @@ class YouTubeAutomation {
     }
   }
 
+  async forceProcessThumbnailsForApprovedScripts() {
+    try {
+      logger.info('Force processing thumbnails for approved scripts...');
+      return await this.workflowService.processApprovedScriptsWithThumbnailCheck();
+    } catch (error) {
+      logger.error('Error in force processing thumbnails for approved scripts:', error);
+      throw error;
+    }
+  }
+
+  async checkThumbnailsForVideo(videoId) {
+    try {
+      logger.info(`Checking thumbnails for video: ${videoId}`);
+      
+      // Get video details first
+      const videoRow = await this.workflowService.sheetsService.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data) {
+        throw new Error(`Video ${videoId} not found in sheets`);
+      }
+      
+      const videoTitle = videoRow.data[this.workflowService.sheetsService.masterColumns.title];
+      const thumbnailCheck = await this.workflowService.thumbnailService.checkExistingThumbnails(videoId, videoTitle);
+      
+      return thumbnailCheck;
+    } catch (error) {
+      logger.error(`Error checking thumbnails for ${videoId}:`, error);
+      throw error;
+    }
+  }
+
+  async generateThumbnailsForVideo(videoId, forceRegenerate = false) {
+    try {
+      logger.info(`Generating thumbnails for video: ${videoId}`);
+      
+      // Get video details
+      const videoRow = await this.workflowService.sheetsService.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data) {
+        throw new Error(`Video ${videoId} not found in sheets`);
+      }
+      
+      const youtubeUrl = videoRow.data[this.workflowService.sheetsService.masterColumns.youtubeUrl];
+      const scriptApproved = videoRow.data[this.workflowService.sheetsService.masterColumns.scriptApproved];
+      
+      if (scriptApproved !== 'Approved') {
+        throw new Error(`Script must be approved first. Current status: ${scriptApproved}`);
+      }
+      
+      // Get complete video data for thumbnail generation
+      const videoData = await this.workflowService.youtubeService.getCompleteVideoData(youtubeUrl);
+      videoData.videoId = videoId;
+      
+      // Generate thumbnails
+      const thumbnailResult = await this.workflowService.thumbnailService.processVideoThumbnails(
+        videoData, 
+        videoId, 
+        forceRegenerate
+      );
+      
+      return thumbnailResult;
+    } catch (error) {
+      logger.error(`Error generating thumbnails for ${videoId}:`, error);
+      throw error;
+    }
+  }
+
   async refreshStatusCache() {
     try {
       logger.info('Force refreshing status cache...');
