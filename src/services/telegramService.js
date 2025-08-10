@@ -267,6 +267,47 @@ ${hashtags}
     return await this.sendMessage(message);
   }
 
+  // MERGED METHOD: Replaces sendScriptGenerated + sendKeywordResearchResults + sendScriptApprovalRequest
+  async sendScriptGeneratedWithApproval(videoTitle, workbookUrl = null, masterSheetUrl = null, keywords = null) {
+    let message = `✍️ <b>Script Generated & Approval Required</b>
+
+🎬 ${videoTitle}
+✅ Script separated and ready for review`;
+
+    // Add keyword information if available
+    if (keywords) {
+      const primaryKeywords = keywords.primaryKeywords?.slice(0, 3).join(', ') || '';
+      const hashtags = keywords.trendingHashtags?.slice(0, 3).join(' ') || '';
+      
+      if (primaryKeywords || hashtags) {
+        message += `\n\n🔍 <b>Keywords Applied:</b>`;
+        if (primaryKeywords) {
+          message += `\n🎯 <code>${primaryKeywords}</code>`;
+        }
+        if (hashtags) {
+          message += `\n📱 ${hashtags}`;
+        }
+      }
+    }
+
+    message += `\n\n⚠️ <b>Action Required:</b> Please review and approve script`;
+
+    // Add relevant links
+    const links = [];
+    if (workbookUrl) {
+      links.push(`📋 <a href="${workbookUrl}">Review & Approve Script</a>`);
+    }
+    if (masterSheetUrl) {
+      links.push(`📊 <a href="${masterSheetUrl}">Update Status in Master Sheet</a>`);
+    }
+    
+    if (links.length > 0) {
+      message += `\n\n${links.join('\n')}`;
+    }
+    
+    return await this.sendMessage(message);
+  }
+
   async sendDriveFilesCreated(videoTitle, driveFolder, subfolders, workbookUrl = null) {
     const folderList = Object.keys(subfolders).map(folder => `📁 ${folder}`).join('\n');
 

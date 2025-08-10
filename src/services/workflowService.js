@@ -472,7 +472,8 @@ class WorkflowService {
               const thumbnailResult = await this.thumbnailService.processVideoThumbnails(
                 videoData, 
                 video.videoId, 
-                false
+                false,
+                this.sheetsService
               );
               
               if (thumbnailResult.success) {
@@ -572,7 +573,8 @@ class WorkflowService {
             const thumbnailResult = await this.thumbnailService.processVideoThumbnails(
               videoData, 
               video.videoId, 
-              false // Don't force regeneration
+              false, // Don't force regeneration
+              this.sheetsService
             );
             
             if (thumbnailResult.success) {
@@ -866,18 +868,11 @@ class WorkflowService {
       // Use reliable metadata for consistent title display
       const scriptMetadata = await this.getReliableVideoMetadata(videoDisplayId);
       
-      await this.telegramService.sendScriptGenerated(
+      // MERGED: Script generated + keyword research notification
+      await this.telegramService.sendScriptGeneratedWithApproval(
         `${videoDisplayId} - ${scriptMetadata.title}`, 
-        enhancedContent.attractiveScript,
         workbookUrl,
-        masterSheetUrl
-      );
-
-      // Use reliable metadata for keyword research results
-      const keywordMetadata = await this.getReliableVideoMetadata(videoDisplayId);
-      
-      await this.telegramService.sendKeywordResearchResults(
-        `${videoDisplayId} - ${keywordMetadata.title}`, 
+        masterSheetUrl,
         enhancedContent.keywords
       );
 
@@ -941,7 +936,7 @@ class WorkflowService {
         try {
           const breakdownEnabled = config.app.enableScriptBreakdown;
           await this.telegramService.sendMessage(
-            '✅ Complete script structure created in Notion!\n\n' +
+            '✅ Complete script structure created in Google Sheets!\n\n' +
             `📋 Video: ${videoDisplayId} - ${videoData.title}\n` +
             (breakdownEnabled ? `📊 Sentences: ${enhancedContent.scriptSentences.length}\n` : '') +
             (breakdownEnabled ? `🎨 Image Prompts: ${enhancedContent.imagePrompts.length}\n` : '🚫 Script breakdown disabled in configuration\n') +
@@ -956,6 +951,37 @@ class WorkflowService {
         } catch (telegramError) {
           logger.warn('Failed to send Telegram notification:', telegramError.message);
         }
+      }
+
+      // Generate thumbnail concepts for optimization (if enabled)
+      if (config.app.enableThumbnailConceptGeneration) {
+        try {
+          logger.info(`🎨 Pre-generating thumbnail concepts for ${videoDisplayId} (optimization)`);
+          
+          // Create video data object for thumbnail concept generation
+          const thumbnailVideoData = {
+            title: videoData.title,
+            transcriptText: videoData.transcriptText,
+            optimizedScript: enhancedContent.attractiveScript
+          };
+          
+          // Generate and cache thumbnail concepts
+          const conceptsJson = await this.thumbnailService.generateThumbnailConceptsForCaching(
+            thumbnailVideoData, 
+            videoDisplayId
+          );
+          
+          // Store concepts in Google Sheets for later use
+          await this.sheetsService.storeThumbnailConcepts(videoId, conceptsJson);
+          
+          logger.info(`✅ Cached thumbnail concepts for ${videoDisplayId} - will enable 90% faster thumbnail generation after approval`);
+          
+        } catch (conceptError) {
+          logger.warn(`Failed to generate thumbnail concepts for ${videoDisplayId}:`, conceptError.message);
+          // Don't fail the entire workflow if concept generation fails
+        }
+      } else {
+        logger.info(`🎨 Thumbnail concept pre-generation disabled for ${videoDisplayId}`);
       }
 
       // Don't update master sheet with optimized content - it goes to Video Detail sheet
@@ -991,11 +1017,7 @@ class WorkflowService {
         const workbookUrl = scriptStructure.originalScriptPage?.pageUrl || null;
         const requestMetadata = await this.getReliableVideoMetadata(videoDisplayId);
         
-        await this.telegramService.sendScriptApprovalRequest(
-          `${videoDisplayId} - ${requestMetadata.title}`,
-          workbookUrl,
-          masterSheetUrl
-        );
+        // Note: Script approval request now handled in the merged notification above
       }
 
       logger.info(`🎬 Initial processing completed for: ${videoData.title}`);
@@ -1028,12 +1050,17 @@ class WorkflowService {
         // Send notification with reliable metadata
         const completionMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
         
+        // Get video details for Google Sheets link
+        const videoDetails = await this.sheetsService.getVideoDetails(videoInfo.videoId);
+        const viewRecordLink = videoDetails?.detailWorkbookUrl || 
+                               `https://docs.google.com/spreadsheets/d/${config.google.masterSpreadsheetId}`;
+        
         await this.telegramService.sendMessage(
           '✅ <b>Processing Completed</b> (Images Disabled)\n\n' +
           `🎬 ${videoDisplayId} - ${completionMetadata.title}\n` +
           '🚫 Image generation is disabled in configuration\n' +
           '📝 <i>Script is ready for voice generation</i>\n' +
-          `🔗 [View Record](https://notion.so/${videoInfo.videoId.replace(/-/g, '')})`
+          `🔗 [View Record](${viewRecordLink})`
         );
 
         // Update status to Completed without image generation
@@ -1107,7 +1134,7 @@ class WorkflowService {
         }\n\n` +
         `💡 <i>Total processing cost for this video: $${costSummary.totalCost.toFixed(4)}</i>\n` +
         '📝 <i>Ready for voice generation - check Voice Status when complete</i>\n' +
-        `🔗 [View Record](https://notion.so/${videoInfo.videoId.replace(/-/g, '')})`
+        `🔗 [View Record](${await this.getVideoRecordLink(videoInfo.videoId)})`
       );
 
       // Thumbnail is already generated by enhanceContentWithAI
@@ -1165,11 +1192,25 @@ class WorkflowService {
       let youtubeThumbnailResults = null;
       if (config.app.enableThumbnailGeneration === true) { // Only if explicitly enabled
         try {
-          logger.info(`🎨 Generating 2 YouTube thumbnails for ${videoDisplayId}`);
+          // Check for cached thumbnail concepts (optimization)
+          let storedConcepts = null;
+          if (config.app.enableThumbnailConceptGeneration) {
+            try {
+              storedConcepts = await this.sheetsService.getStoredThumbnailConcepts(videoInfo.videoId);
+              if (storedConcepts) {
+                logger.info(`🎨 Using cached thumbnail concepts for ${videoDisplayId} (90% faster generation)`);
+              } else {
+                logger.info(`🎨 No cached concepts found for ${videoDisplayId}, generating fresh concepts`);
+              }
+            } catch (conceptError) {
+              logger.warn(`Failed to retrieve cached concepts for ${videoDisplayId}:`, conceptError.message);
+            }
+          }
           
+          logger.info(`🎨 Generating 2 YouTube thumbnails for ${videoDisplayId}${storedConcepts ? ' (using pre-computed concepts)' : ''}`);
           
-          // Generate and upload 2 thumbnails
-          youtubeThumbnailResults = await this.thumbnailService.processVideoThumbnails(videoData, videoDisplayId);
+          // Generate and upload 2 thumbnails (with cached concepts if available)
+          youtubeThumbnailResults = await this.thumbnailService.processVideoThumbnails(videoData, videoDisplayId, false, this.sheetsService, storedConcepts);
           
           // Thumbnail results available in youtubeThumbnailResults for Telegram notifications
           
@@ -1371,7 +1412,8 @@ class WorkflowService {
     try {
       const checks = {
         youtube: false,
-        notion: false,
+        googleSheets: false,
+        googleDrive: false,
         ai: false,
         telegram: false
       };
@@ -1384,12 +1426,20 @@ class WorkflowService {
         logger.error('YouTube service health check failed:', error);
       }
 
-      // Test Notion API (both databases)
+      // Test Google Sheets API
       try {
-        await this.healthCheck();
-        checks.notion = true;
+        await this.sheetsService.healthCheck();
+        checks.googleSheets = true;
       } catch (error) {
-        logger.error('Notion service health check failed:', error);
+        logger.error('Google Sheets service health check failed:', error);
+      }
+
+      // Test Google Drive API
+      try {
+        await this.driveService.healthCheck();
+        checks.googleDrive = true;
+      } catch (error) {
+        logger.error('Google Drive service health check failed:', error);
       }
 
       // Test AI Service
@@ -1595,6 +1645,178 @@ class WorkflowService {
   }
 
   /**
+   * Process thumbnails for approved scripts that may have missed thumbnail generation
+   * This handles legacy videos and videos that had thumbnail generation disabled
+   */
+  async forceProcessThumbnailsForApprovedScripts(maxConcurrent = 2) {
+    try {
+      logger.info('🎨 Starting batch thumbnail processing for approved scripts...');
+      
+      const approvedVideos = await this.sheetsService.getVideosWithApprovedScripts();
+      logger.info(`Found ${approvedVideos.length} videos with approved scripts`);
+      
+      if (approvedVideos.length === 0) {
+        return {
+          total: 0,
+          processed: 0,
+          results: [],
+          breakdown: {
+            thumbnailsGenerated: 0,
+            thumbnailsSkipped: 0,
+            errors: 0
+          }
+        };
+      }
+      
+      const results = [];
+      let thumbnailsGenerated = 0;
+      let thumbnailsSkipped = 0;
+      let errors = 0;
+      
+      // Process in batches to avoid API limits
+      for (let i = 0; i < approvedVideos.length; i += maxConcurrent) {
+        const batch = approvedVideos.slice(i, i + maxConcurrent);
+        const batchNumber = Math.floor(i / maxConcurrent) + 1;
+        const totalBatches = Math.ceil(approvedVideos.length / maxConcurrent);
+        
+        logger.info(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} videos)`);
+        
+        const batchResults = await Promise.allSettled(
+          batch.map(async (video) => {
+            try {
+              // Get reliable metadata for the video
+              const metadata = await this.getReliableVideoMetadata(video.videoId);
+              
+              // Process thumbnails using enhanced ThumbnailService
+              const thumbnailResult = await this.thumbnailService.processVideoThumbnails(
+                metadata, 
+                video.videoId, 
+                false, // Don't force regeneration - skip if thumbnails exist
+                this.sheetsService
+              );
+              
+              if (thumbnailResult.skipped) {
+                thumbnailsSkipped++;
+                return {
+                  videoId: video.videoId,
+                  title: video.title,
+                  action: 'skipped',
+                  reason: thumbnailResult.message,
+                  thumbnailCount: thumbnailResult.existing?.count || 0,
+                  driveFolder: thumbnailResult.existing?.folderUrl || video.driveFolder
+                };
+              } else if (thumbnailResult.success) {
+                thumbnailsGenerated += thumbnailResult.uploaded;
+                return {
+                  videoId: video.videoId,
+                  title: video.title,
+                  action: 'generated',
+                  thumbnailCount: thumbnailResult.uploaded,
+                  driveFolder: thumbnailResult.driveFolder || thumbnailResult.videoFolderUrl
+                };
+              } else {
+                errors++;
+                return {
+                  videoId: video.videoId,
+                  title: video.title,
+                  action: 'failed',
+                  error: thumbnailResult.error
+                };
+              }
+              
+            } catch (error) {
+              errors++;
+              logger.error(`Failed to process thumbnails for ${video.videoId}:`, error);
+              return {
+                videoId: video.videoId,
+                title: video.title,
+                action: 'failed',
+                error: error.message
+              };
+            }
+          })
+        );
+        
+        // Process batch results
+        batchResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            results.push(result.value);
+          } else {
+            const video = batch[index];
+            errors++;
+            results.push({
+              videoId: video.videoId,
+              title: video.title,
+              action: 'failed',
+              error: result.reason?.message || 'Batch processing failed'
+            });
+          }
+        });
+        
+        // Brief pause between batches
+        if (i + maxConcurrent < approvedVideos.length) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      logger.info(`🎨 Batch thumbnail processing completed: ${thumbnailsGenerated} generated, ${thumbnailsSkipped} skipped, ${errors} errors`);
+      
+      return {
+        total: approvedVideos.length,
+        processed: results.length,
+        results,
+        breakdown: {
+          thumbnailsGenerated,
+          thumbnailsSkipped,
+          errors
+        }
+      };
+      
+    } catch (error) {
+      logger.error('Failed to process thumbnails for approved scripts:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check thumbnails for a specific video
+   */
+  async checkThumbnailsForVideo(videoId) {
+    try {
+      const videoDetails = await this.sheetsService.getVideoDetails(videoId);
+      if (!videoDetails) {
+        throw new Error(`Video not found: ${videoId}`);
+      }
+      
+      return await this.thumbnailService.checkExistingThumbnails(videoId, videoDetails.title);
+      
+    } catch (error) {
+      logger.error(`Failed to check thumbnails for ${videoId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate thumbnails for a specific video
+   */
+  async generateThumbnailsForVideo(videoId, forceRegenerate = false) {
+    try {
+      const metadata = await this.getReliableVideoMetadata(videoId);
+      
+      return await this.thumbnailService.processVideoThumbnails(
+        metadata, 
+        videoId, 
+        forceRegenerate,
+        this.sheetsService
+      );
+      
+    } catch (error) {
+      logger.error(`Failed to generate thumbnails for ${videoId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Health check including Digital Ocean Spaces and Status Monitoring
    * @returns {Promise<object>} Health check results
    */
@@ -1674,6 +1896,30 @@ class WorkflowService {
       costSummary: this.getCostSummary(),
       statusMonitoring: this.getStatusMonitoringStats()
     };
+  }
+
+  /**
+   * Get the appropriate Google Sheets/Drive link for a video record
+   * @param {string} videoId - Video ID
+   * @returns {Promise<string>} URL to view the video record
+   */
+  async getVideoRecordLink(videoId) {
+    try {
+      const videoDetails = await this.sheetsService.getVideoDetails(videoId);
+      
+      // Prefer detail workbook if available, otherwise use master spreadsheet
+      if (videoDetails?.detailWorkbookUrl) {
+        return videoDetails.detailWorkbookUrl;
+      }
+      
+      // Fallback to master spreadsheet
+      return `https://docs.google.com/spreadsheets/d/${config.google.masterSpreadsheetId}`;
+      
+    } catch (error) {
+      logger.warn(`Failed to get video record link for ${videoId}:`, error.message);
+      // Fallback to master spreadsheet
+      return `https://docs.google.com/spreadsheets/d/${config.google.masterSpreadsheetId}`;
+    }
   }
 }
 
