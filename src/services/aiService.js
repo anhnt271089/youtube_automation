@@ -207,6 +207,15 @@ Focus on preserving the essence while enabling development and enhancement.`;
       const prompt = `
 You are a viral YouTube content strategist and scriptwriter with expertise in algorithm optimization and audience psychology. Transform the original video into breakthrough content that maximizes engagement and viral potential.
 
+⚠️ CRITICAL FACELESS CHANNEL REQUIREMENT ⚠️
+This script is for a FACELESS YouTube channel. You MUST follow these rules:
+❌ NEVER use "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested", "I analyzed"
+❌ NEVER include personal stories, experiences, or individual achievements  
+❌ NEVER reference the presenter or creator personally
+✅ ALWAYS use universal language: "you", "this method", "research shows", "studies indicate"
+✅ ALWAYS focus on viewer benefits and evidence-based claims
+✅ ALWAYS maintain authority through data and proven methodologies
+
 CONTEXT ANALYSIS:
 - Original Script Intent: ${context.originalScriptIntent}
 - Target Audience: ${context.targetAudience}
@@ -246,7 +255,7 @@ VIRAL CONTENT TRANSFORMATION FRAMEWORK:
 🎯 ADVANCED HOOK ARCHITECTURE (First 3-5 seconds - CRITICAL for algorithm):
 - Multi-Layered Pattern Interrupt: Break expectations + create curiosity + establish stakes
 - Nested Curiosity Gaps: "The thing everyone gets wrong about X that even experts miss..."
-- Authority Challenge Hooks: "I've been doing X for 10 years, but this changed everything..."
+- Authority Challenge Hooks: "This method has been proven effective for years, but this changes everything..."
 - Identity Disruption: "If you think you're a [identity], this will shock you..."
 - Future Pacing with Specificity: "30 days from now, you'll thank yourself for the next 3 minutes..."
 - Embedded Commands: "As you watch this, you'll discover..." / "Notice how this changes..."
@@ -330,6 +339,16 @@ CREATIVE TRANSFORMATION REQUIREMENTS:
 ✅ Structure for maximum algorithm performance with retention engineering
 ✅ Integrate social currency and shareable moments throughout narrative
 
+FACELESS CHANNEL REQUIREMENTS (CRITICAL):
+❌ NEVER use first-person language: "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested"
+❌ NEVER include personal stories, experiences, or anecdotes from the presenter
+❌ NEVER reference personal credentials or individual achievements
+✅ ALWAYS use third-person or universal language: "you", "this method", "research shows", "studies indicate"
+✅ ALWAYS use evidence-based claims without personal attribution: "This has been proven effective"
+✅ ALWAYS focus on viewer benefits and actionable content rather than presenter experience
+✅ ALWAYS maintain authority through data, research, and proven methodologies
+✅ ALWAYS use universal examples that apply to the audience, not personal experiences
+
 ENHANCED PERFORMANCE TARGETS:
 - 95%+ retention at 15 seconds (algorithm boost threshold)
 - 15%+ click-through rate potential (viral threshold)
@@ -358,6 +377,8 @@ CRITICAL SUCCESS FACTORS:
 - Build emotional progression from curiosity to action with smooth transitions
 - Integrate authority establishment, social proof, and identity alignment seamlessly
 - End with multi-layered CTA including next action, community invitation, and session extension
+
+⚠️ FINAL CHECK: Before returning the script, ensure it contains ZERO first-person language ("I", "me", "my", etc.) and focuses entirely on the viewer and universal principles.
 
 Return only the breakthrough script - no commentary, explanations, or meta-information.`;
 
@@ -390,6 +411,15 @@ Return only the breakthrough script - no commentary, explanations, or meta-infor
         const fallbackPrompt = `
 You are an advanced YouTube scriptwriter and viral content strategist specializing in algorithm optimization and audience psychology. Transform the original content into a breakthrough script with superior engagement potential.
 
+⚠️ CRITICAL FACELESS CHANNEL REQUIREMENT ⚠️
+This script is for a FACELESS YouTube channel. You MUST follow these rules:
+❌ NEVER use "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested", "I analyzed"
+❌ NEVER include personal stories, experiences, or individual achievements  
+❌ NEVER reference the presenter or creator personally
+✅ ALWAYS use universal language: "you", "this method", "research shows", "studies indicate"
+✅ ALWAYS focus on viewer benefits and evidence-based claims
+✅ ALWAYS maintain authority through data and proven methodologies
+
 Original Video Information:
 - Title: ${videoMetadata.title}
 - Description: ${videoMetadata.description?.substring(0, 500)}
@@ -412,7 +442,7 @@ ADVANCED SCRIPT ARCHITECTURE:
 🎯 HOOK REQUIREMENTS (0-10s):
 - Pattern interrupt that breaks viewer expectations immediately
 - Multi-layered curiosity gap: "The thing about X that even experts miss..."
-- Authority challenge: "I've been doing this for years, but this changed everything..."
+- Authority challenge: "This method has been proven effective for years, but this changes everything..."
 - Future pacing: "By the end of this video, you'll..."
 
 📚 NARRATIVE STRUCTURE (Hero's Journey Integration):
@@ -442,6 +472,18 @@ ADVANCED SCRIPT ARCHITECTURE:
 - Embedded commands: "As you watch this, notice how..."
 - Progressive disclosure of complexity
 - Emotional trigger words aligned with transformation
+
+FACELESS CHANNEL REQUIREMENTS (CRITICAL):
+❌ NEVER use first-person language: "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested"
+❌ NEVER include personal stories, experiences, or anecdotes from the presenter
+❌ NEVER reference personal credentials or individual achievements
+✅ ALWAYS use third-person or universal language: "you", "this method", "research shows", "studies indicate"
+✅ ALWAYS use evidence-based claims without personal attribution: "This has been proven effective"
+✅ ALWAYS focus on viewer benefits and actionable content rather than presenter experience
+✅ ALWAYS maintain authority through data, research, and proven methodologies
+✅ ALWAYS use universal examples that apply to the audience, not personal experiences
+
+⚠️ FINAL CHECK: Before returning the script, ensure it contains ZERO first-person language ("I", "me", "my", etc.) and focuses entirely on the viewer and universal principles.
 
 Create a breakthrough script that demonstrates these advanced techniques while serving the same audience. Focus on maximum engagement, retention, and viral potential. Return only the script without commentary.`;
 
@@ -485,6 +527,14 @@ Create a breakthrough script that demonstrates these advanced techniques while s
       const hashtagKeywords = keywords.slice(0, 6);
       
       const prompt = `
+⚠️ CRITICAL FACELESS CHANNEL REQUIREMENT ⚠️
+This description is for a FACELESS YouTube channel. You MUST follow these rules:
+❌ NEVER use "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested", "I analyzed"
+❌ NEVER include personal stories, experiences, or channel creator references
+❌ NEVER reference personal credentials or individual achievements
+✅ ALWAYS use universal language: "you", "this method", "research shows", "studies indicate"
+✅ ALWAYS focus on viewer benefits and evidence-based claims
+
 Create a completely NEW and original YouTube video description optimized for SEO and engagement based on this enhanced script content:
 
 Enhanced Script Content:
@@ -544,6 +594,15 @@ CONTENT STRATEGY:
 - Include urgency or scarcity elements where appropriate
 - Emphasize transformation or results viewer will achieve
 
+FACELESS CHANNEL REQUIREMENTS (CRITICAL):
+❌ NEVER use first-person language: "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested"
+❌ NEVER include personal stories, experiences, or channel creator references
+❌ NEVER reference personal credentials or individual achievements
+✅ ALWAYS use third-person or universal language: "you", "this method", "research shows", "studies indicate"
+✅ ALWAYS use evidence-based claims without personal attribution
+✅ ALWAYS focus on viewer benefits and actionable content
+✅ ALWAYS maintain authority through data, research, and proven methodologies
+
 Return the complete SEO-optimized description ready for YouTube upload.`;
 
       const completion = await this.openai.chat.completions.create({
@@ -579,6 +638,13 @@ Return the complete SEO-optimized description ready for YouTube upload.`;
       const longTailKeywords = keywords.slice(3, 6); // More specific terms
       
       const prompt = `
+⚠️ CRITICAL FACELESS CHANNEL REQUIREMENT ⚠️
+These titles are for a FACELESS YouTube channel. You MUST follow these rules:
+❌ NEVER use "I", "me", "my", "I've", "I discovered", "my secret", "How I did X"
+❌ NEVER reference personal achievements, experiences, or presenter credentials
+✅ ALWAYS use universal language: "How to", "The secret to", "This method", "Anyone can"
+✅ ALWAYS focus on viewer-centric benefits and outcomes
+
 You are a viral YouTube title optimization expert with proven track record of 15%+ CTR titles. Create 5 high-converting titles based SPECIFICALLY on this new generated script content with advanced SEO keyword integration.
 
 SCRIPT ANALYSIS:
@@ -599,7 +665,7 @@ VIRAL TITLE FRAMEWORK:
 - Authority: "Experts Don't Want You to Know"
 - Personal Stakes: "This Will Change Your [X]"
 - Pattern Interrupt: "Stop [Common Action]"
-- Results Preview: "How I [Achievement] in [Timeframe]"
+- Results Preview: "How to [Achievement] in [Timeframe]"
 - Controversy: "Unpopular Opinion About [X]"
 
 📊 CTR OPTIMIZATION STRATEGIES:
@@ -634,6 +700,14 @@ TITLE CREATION RULES:
 ✅ Target high-intent keywords from script
 ✅ Appeal to specific audience pain points/desires from content
 ✅ Avoid generic/overused phrases
+
+FACELESS CHANNEL REQUIREMENTS (CRITICAL):
+❌ NEVER use first-person language: "I", "me", "my", "I've", "I discovered", "my secret"
+❌ NEVER reference personal achievements or experiences: "How I did X", "My journey", "My results"
+❌ NEVER include presenter-specific credentials or personal branding
+✅ ALWAYS use universal language: "How to", "The secret to", "This method", "Anyone can"
+✅ ALWAYS focus on viewer-centric benefits and outcomes
+✅ ALWAYS use third-person or instructional framing
 
 ANALYZE THE SCRIPT FIRST:
 - What's the core transformation/value?
