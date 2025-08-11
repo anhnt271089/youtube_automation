@@ -1,0 +1,86 @@
+{
+  "videoId": "VID-0002",
+  "version": "1.0",
+  "createdAt": "2025-08-11T14:40:04.166Z",
+  "originalMetadata": {
+    "videoId": "HeuABY9f8Qo",
+    "title": "Who is your Enemy ? ",
+    "description": "The only enemy that stops you is the one inside you.\nKimbo Slice knew this truth — now it’s your turn.\n\n📌 Telegram: [ https://t.me/beyondbeing11 ]\n📸 Instagram: [ https://www.instagram.com/beyondbeing.in? ]\n\n• Who is your real enemy\n• The enemy within you\n• Kimbo Slice mindset\n• Inner enemy motivation\n• Fight the enemy inside\n\n#Mindset #KimboSlice #Motivation #InnerEnemy #SelfDiscipline",
+    "channelTitle": "BeyondBeing",
+    "publishedAt": "2025-07-18T12:37:00Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/HeuABY9f8Qo/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/HeuABY9f8Qo/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/HeuABY9f8Qo/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/HeuABY9f8Qo/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      },
+      "maxres": {
+        "url": "https://i.ytimg.com/vi/HeuABY9f8Qo/maxresdefault.jpg",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "duration": "1:08",
+    "viewCount": 7716,
+    "likeCount": 438,
+    "tags": [],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "The only enemy that stops you is the one inside you",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "Kimbo Slice knew this truth — now it’s your turn",
+        "start": 3000,
+        "duration": 3000
+      },
+      {
+        "text": "📌 Telegram: [  ] 📸 Instagram: [  ] • Who is your real enemy • The enemy within you • Kimbo Slice mindset • Inner enemy motivation • Fight the enemy inside #Mindset #KimboSlice #Motivation #InnerEnemy #SelfDiscipline",
+        "start": 6000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "The only enemy that stops you is the one inside you Kimbo Slice knew this truth — now it’s your turn 📌 Telegram: [  ] 📸 Instagram: [  ] • Who is your real enemy • The enemy within you • Kimbo Slice mindset • Inner enemy motivation • Fight the enemy inside #Mindset #KimboSlice #Motivation #InnerEnemy #SelfDiscipline",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 318,
+      "segments": 3,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/HeuABY9f8Qo/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=HeuABY9f8Qo",
+    "fetchedAt": "2025-08-11T14:40:04.166Z",
+    "checksum": "f943785756fe3a870103ef19cba8ca43ab64788a5388c77024fcd7d39ff2d68f"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-08-11T14:40:04.166Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}
