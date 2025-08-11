@@ -1,0 +1,132 @@
+[
+  {
+    "videoId": "VID-0008",
+    "timestamp": "2025-08-09T15:29:12.476Z",
+    "masterSheetData": {
+      "found": true,
+      "data": {
+        "id": "VID-0008",
+        "title": "How to Control your Brain ( before it's TOO late )",
+        "youtubeUrl": "https://www.youtube.com/watch?v=H67kfrqHP2A",
+        "status": "Error",
+        "channel": "BeyondBeing",
+        "duration": "1:25",
+        "viewCount": 285048,
+        "publishedDate": "2025-05-23T12:30:47Z",
+        "youtubeVideoId": "H67kfrqHP2A"
+      },
+      "issues": [
+        "Detail workbook URL is missing",
+        "Drive folder URL is missing"
+      ]
+    },
+    "detailWorkbook": {
+      "exists": false,
+      "accessible": false,
+      "workbookUrl": null,
+      "workbookId": null,
+      "sheets": [],
+      "videoInfoContent": null,
+      "issues": [
+        "No detail workbook URL in master sheet"
+      ]
+    },
+    "driveFolder": {
+      "exists": false,
+      "accessible": false,
+      "folderUrl": null,
+      "folderId": null,
+      "contents": [],
+      "issues": [
+        "No Drive folder URL in master sheet"
+      ]
+    },
+    "scriptBreakdown": {
+      "exists": false,
+      "sentenceCount": 0,
+      "completedCount": 0,
+      "sentences": [],
+      "issues": [
+        "Detail workbook not accessible for script breakdown check"
+      ]
+    },
+    "issues": [],
+    "recommendations": [
+      {
+        "priority": "MEDIUM",
+        "category": "SCRIPT_REPAIR",
+        "action": "Fix script breakdown issues",
+        "steps": [
+          "Regenerate script breakdown if empty",
+          "Fill in missing script text or image prompts",
+          "Update sentence statuses correctly"
+        ]
+      }
+    ]
+  },
+  {
+    "videoId": "VID-0013",
+    "timestamp": "2025-08-09T15:29:13.895Z",
+    "masterSheetData": {
+      "found": true,
+      "data": {
+        "id": "VID-0013",
+        "title": "The Art of Being Unbothered By Opinions ( Don't let them Shape you )",
+        "youtubeUrl": "https://www.youtube.com/watch?v=4-KKcOT9DL0",
+        "status": "Error",
+        "channel": "BeyondBeing",
+        "duration": "1:23",
+        "viewCount": 6627,
+        "publishedDate": "2025-07-29T12:32:00Z",
+        "youtubeVideoId": "4-KKcOT9DL0"
+      },
+      "issues": [
+        "Detail workbook URL is missing",
+        "Drive folder URL is missing"
+      ]
+    },
+    "detailWorkbook": {
+      "exists": false,
+      "accessible": false,
+      "workbookUrl": null,
+      "workbookId": null,
+      "sheets": [],
+      "videoInfoContent": null,
+      "issues": [
+        "No detail workbook URL in master sheet"
+      ]
+    },
+    "driveFolder": {
+      "exists": false,
+      "accessible": false,
+      "folderUrl": null,
+      "folderId": null,
+      "contents": [],
+      "issues": [
+        "No Drive folder URL in master sheet"
+      ]
+    },
+    "scriptBreakdown": {
+      "exists": false,
+      "sentenceCount": 0,
+      "completedCount": 0,
+      "sentences": [],
+      "issues": [
+        "Detail workbook not accessible for script breakdown check"
+      ]
+    },
+    "issues": [],
+    "recommendations": [
+      {
+        "priority": "MEDIUM",
+        "category": "SCRIPT_REPAIR",
+        "action": "Fix script breakdown issues",
+        "steps": [
+          "Regenerate script breakdown if empty",
+          "Fill in missing script text or image prompts",
+          "Update sentence statuses correctly"
+        ]
+      }
+    ]
+  }
+]

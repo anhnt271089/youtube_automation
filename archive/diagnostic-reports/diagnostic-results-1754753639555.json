@@ -1,0 +1,348 @@
+[
+  {
+    "videoId": "VID-0008",
+    "timestamp": "2025-08-09T15:33:52.916Z",
+    "masterSheetData": {
+      "found": true,
+      "data": {
+        "id": "VID-0008",
+        "title": "How to Control your Brain ( before it's TOO late )",
+        "youtubeUrl": "https://www.youtube.com/watch?v=H67kfrqHP2A",
+        "status": "Ready for Processing",
+        "channel": "BeyondBeing",
+        "duration": "1:25",
+        "viewCount": 285048,
+        "publishedDate": "2025-05-23T12:30:47Z",
+        "youtubeVideoId": "H67kfrqHP2A",
+        "scriptApproved": "Pending",
+        "voiceGenerationStatus": "",
+        "videoEditingStatus": "",
+        "driveFolder": "https://drive.google.com/drive/folders/1MFxnLNgX2KxzyX4_APD2pykWfOHvv0XF",
+        "detailWorkbookUrl": "https://docs.google.com/spreadsheets/d/15QSdOp0tOo79AD_OTb9X3OYI2H_ik0OSq7OwgvonHXg",
+        "createdTime": "",
+        "lastEditedTime": "2025-08-09 22:33:37"
+      },
+      "issues": []
+    },
+    "detailWorkbook": {
+      "exists": true,
+      "accessible": true,
+      "workbookUrl": "https://docs.google.com/spreadsheets/d/15QSdOp0tOo79AD_OTb9X3OYI2H_ik0OSq7OwgvonHXg",
+      "workbookId": "15QSdOp0tOo79AD_OTb9X3OYI2H_ik0OSq7OwgvonHXg",
+      "sheets": [
+        "Video Info",
+        "Script Breakdown",
+        "Analytics"
+      ],
+      "videoInfoContent": [
+        [
+          "Video Title",
+          "How to Control your Brain ( before it's TOO late )"
+        ],
+        [
+          "YouTube URL",
+          "https://www.youtube.com/watch?v=H67kfrqHP2A"
+        ],
+        [
+          "YouTube Video ID",
+          "H67kfrqHP2A"
+        ],
+        [
+          "Channel",
+          "BeyondBeing"
+        ],
+        [
+          "Duration",
+          "1:25"
+        ],
+        [
+          "View Count",
+          "285048"
+        ],
+        [
+          "Published Date",
+          "2025-05-23T12:30:47Z"
+        ],
+        [],
+        [
+          "Status",
+          "Workbook created - ready for script generation"
+        ],
+        [
+          "Processing Date",
+          "2025-08-09T15:33:36.203Z"
+        ],
+        [],
+        [
+          "NEXT STEPS",
+          "Run main workflow to generate script content"
+        ],
+        [
+          "Keywords"
+        ],
+        [
+          "Total Sentences"
+        ],
+        [
+          "Completed Sentences"
+        ],
+        [
+          "Progress %",
+          "0"
+        ],
+        [
+          "Thumbnail URLs"
+        ],
+        [
+          "Thumbnail Prompt"
+        ],
+        [
+          "Script Approved"
+        ],
+        [
+          "Voice Status"
+        ],
+        [
+          "Voice Generation Status"
+        ],
+        [
+          "Video Editing Status"
+        ],
+        [
+          "Drive Folder"
+        ],
+        [
+          "Created Time"
+        ],
+        [
+          "Last Edited Time"
+        ]
+      ],
+      "issues": []
+    },
+    "driveFolder": {
+      "exists": true,
+      "accessible": true,
+      "folderUrl": "https://drive.google.com/drive/folders/1MFxnLNgX2KxzyX4_APD2pykWfOHvv0XF",
+      "folderId": "1MFxnLNgX2KxzyX4_APD2pykWfOHvv0XF",
+      "contents": [
+        {
+          "id": "15QSdOp0tOo79AD_OTb9X3OYI2H_ik0OSq7OwgvonHXg",
+          "name": "VID-0008 How to Control your Brain  before it's TOO late  - Video Detail",
+          "mimeType": "application/vnd.google-apps.spreadsheet",
+          "createdTime": "2025-08-09T15:33:30.874Z",
+          "modifiedTime": "2025-08-09T15:33:30.874Z",
+          "size": "2434"
+        }
+      ],
+      "issues": [
+        "Missing expected file: voice_script.txt"
+      ]
+    },
+    "scriptBreakdown": {
+      "exists": true,
+      "sentenceCount": 0,
+      "completedCount": 0,
+      "sentences": [],
+      "issues": [
+        "Script breakdown is empty - no sentences found"
+      ]
+    },
+    "issues": [],
+    "recommendations": [
+      {
+        "priority": "MEDIUM",
+        "category": "FILE_RECOVERY",
+        "action": "Regenerate missing files",
+        "steps": [
+          "Re-run script generation if voice_script.txt is missing",
+          "Check if video is in approved status before generating voice files",
+          "Verify Drive folder permissions and access"
+        ]
+      },
+      {
+        "priority": "MEDIUM",
+        "category": "SCRIPT_REPAIR",
+        "action": "Fix script breakdown issues",
+        "steps": [
+          "Regenerate script breakdown if empty",
+          "Fill in missing script text or image prompts",
+          "Update sentence statuses correctly"
+        ]
+      }
+    ]
+  },
+  {
+    "videoId": "VID-0013",
+    "timestamp": "2025-08-09T15:33:56.957Z",
+    "masterSheetData": {
+      "found": true,
+      "data": {
+        "id": "VID-0013",
+        "title": "The Art of Being Unbothered By Opinions ( Don't let them Shape you )",
+        "youtubeUrl": "https://www.youtube.com/watch?v=4-KKcOT9DL0",
+        "status": "Ready for Processing",
+        "channel": "BeyondBeing",
+        "duration": "1:23",
+        "viewCount": 6627,
+        "publishedDate": "2025-07-29T12:32:00Z",
+        "youtubeVideoId": "4-KKcOT9DL0",
+        "scriptApproved": "Pending",
+        "voiceGenerationStatus": "",
+        "videoEditingStatus": "",
+        "driveFolder": "https://drive.google.com/drive/folders/1YtM9AugW8EiwYbP8C0db-T-bNffzUDra",
+        "detailWorkbookUrl": "https://docs.google.com/spreadsheets/d/1mDSmKUWaXo8LJFMScrWhnRDnhPdUec5746giU8UY52A",
+        "createdTime": "",
+        "lastEditedTime": "2025-08-09 22:33:45"
+      },
+      "issues": []
+    },
+    "detailWorkbook": {
+      "exists": true,
+      "accessible": true,
+      "workbookUrl": "https://docs.google.com/spreadsheets/d/1mDSmKUWaXo8LJFMScrWhnRDnhPdUec5746giU8UY52A",
+      "workbookId": "1mDSmKUWaXo8LJFMScrWhnRDnhPdUec5746giU8UY52A",
+      "sheets": [
+        "Video Info",
+        "Script Breakdown",
+        "Analytics"
+      ],
+      "videoInfoContent": [
+        [
+          "Video Title",
+          "The Art of Being Unbothered By Opinions ( Don't let them Shape you )"
+        ],
+        [
+          "YouTube URL",
+          "https://www.youtube.com/watch?v=4-KKcOT9DL0"
+        ],
+        [
+          "YouTube Video ID",
+          "4-KKcOT9DL0"
+        ],
+        [
+          "Channel",
+          "BeyondBeing"
+        ],
+        [
+          "Duration",
+          "1:23"
+        ],
+        [
+          "View Count",
+          "6627"
+        ],
+        [
+          "Published Date",
+          "2025-07-29T12:32:00Z"
+        ],
+        [],
+        [
+          "Status",
+          "Workbook created - ready for script generation"
+        ],
+        [
+          "Processing Date",
+          "2025-08-09T15:33:44.984Z"
+        ],
+        [],
+        [
+          "NEXT STEPS",
+          "Run main workflow to generate script content"
+        ],
+        [
+          "Keywords"
+        ],
+        [
+          "Total Sentences"
+        ],
+        [
+          "Completed Sentences"
+        ],
+        [
+          "Progress %",
+          "0"
+        ],
+        [
+          "Thumbnail URLs"
+        ],
+        [
+          "Thumbnail Prompt"
+        ],
+        [
+          "Script Approved"
+        ],
+        [
+          "Voice Status"
+        ],
+        [
+          "Voice Generation Status"
+        ],
+        [
+          "Video Editing Status"
+        ],
+        [
+          "Drive Folder"
+        ],
+        [
+          "Created Time"
+        ],
+        [
+          "Last Edited Time"
+        ]
+      ],
+      "issues": []
+    },
+    "driveFolder": {
+      "exists": true,
+      "accessible": true,
+      "folderUrl": "https://drive.google.com/drive/folders/1YtM9AugW8EiwYbP8C0db-T-bNffzUDra",
+      "folderId": "1YtM9AugW8EiwYbP8C0db-T-bNffzUDra",
+      "contents": [
+        {
+          "id": "1mDSmKUWaXo8LJFMScrWhnRDnhPdUec5746giU8UY52A",
+          "name": "VID-0013 The Art of Being Unbothered By Opinions  Don't let - Video Detail",
+          "mimeType": "application/vnd.google-apps.spreadsheet",
+          "createdTime": "2025-08-09T15:33:40.821Z",
+          "modifiedTime": "2025-08-09T15:33:40.821Z",
+          "size": "2434"
+        }
+      ],
+      "issues": [
+        "Missing expected file: voice_script.txt"
+      ]
+    },
+    "scriptBreakdown": {
+      "exists": true,
+      "sentenceCount": 0,
+      "completedCount": 0,
+      "sentences": [],
+      "issues": [
+        "Script breakdown is empty - no sentences found"
+      ]
+    },
+    "issues": [],
+    "recommendations": [
+      {
+        "priority": "MEDIUM",
+        "category": "FILE_RECOVERY",
+        "action": "Regenerate missing files",
+        "steps": [
+          "Re-run script generation if voice_script.txt is missing",
+          "Check if video is in approved status before generating voice files",
+          "Verify Drive folder permissions and access"
+        ]
+      },
+      {
+        "priority": "MEDIUM",
+        "category": "SCRIPT_REPAIR",
+        "action": "Fix script breakdown issues",
+        "steps": [
+          "Regenerate script breakdown if empty",
+          "Fill in missing script text or image prompts",
+          "Update sentence statuses correctly"
+        ]
+      }
+    ]
+  }
+]

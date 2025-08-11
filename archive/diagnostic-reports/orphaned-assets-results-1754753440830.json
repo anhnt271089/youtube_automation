@@ -1,0 +1,102 @@
+{
+  "videoIds": [
+    "VID-0008",
+    "VID-0013"
+  ],
+  "potentialFolders": [
+    {
+      "videoId": "VID-0013",
+      "folder": {
+        "id": "13cMFfj-t-Pz8xiwCfuYr7TahQb5Sz2lQ",
+        "name": "ALH2384418 Chess Vintage We Are All Being Played Chess",
+        "url": "https://drive.google.com/drive/folders/13cMFfj-t-Pz8xiwCfuYr7TahQb5Sz2lQ",
+        "webViewLink": "https://drive.google.com/drive/folders/13cMFfj-t-Pz8xiwCfuYr7TahQb5Sz2lQ",
+        "createdTime": "2024-12-12T08:58:09.128Z",
+        "parents": [
+          "1Re57jJY8C1OYn_Pr5q2d3GaRFTT35_T1"
+        ]
+      },
+      "confidence": 20,
+      "foundBy": "keyword: Being"
+    }
+  ],
+  "potentialWorkbooks": [
+    {
+      "videoId": "VID-0008",
+      "workbook": {
+        "id": "1ZbKx2eGBOACFSxT-v-8PPa3Quoty3HNBjOur4FOQlFI",
+        "name": "G-Feed Control-SNK",
+        "url": "https://docs.google.com/spreadsheets/d/1ZbKx2eGBOACFSxT-v-8PPa3Quoty3HNBjOur4FOQlFI",
+        "webViewLink": "https://docs.google.com/spreadsheets/d/1ZbKx2eGBOACFSxT-v-8PPa3Quoty3HNBjOur4FOQlFI/edit?usp=drivesdk",
+        "createdTime": "2022-08-14T05:00:07.220Z"
+      },
+      "confidence": 25,
+      "foundBy": "keyword: Control"
+    }
+  ],
+  "recommendations": [
+    {
+      "videoId": "VID-0008",
+      "type": "CREATE_FOLDER",
+      "priority": "HIGH",
+      "action": "Create new folder for VID-0008",
+      "steps": [
+        "Run workflow to create new Drive folder",
+        "Create folder structure for video assets",
+        "Update master sheet with new folder URL"
+      ]
+    },
+    {
+      "videoId": "VID-0008",
+      "type": "VERIFY_WORKBOOK",
+      "priority": "MEDIUM",
+      "action": "Manually verify potential workbook for VID-0008",
+      "asset": {
+        "id": "1ZbKx2eGBOACFSxT-v-8PPa3Quoty3HNBjOur4FOQlFI",
+        "name": "G-Feed Control-SNK",
+        "url": "https://docs.google.com/spreadsheets/d/1ZbKx2eGBOACFSxT-v-8PPa3Quoty3HNBjOur4FOQlFI",
+        "webViewLink": "https://docs.google.com/spreadsheets/d/1ZbKx2eGBOACFSxT-v-8PPa3Quoty3HNBjOur4FOQlFI/edit?usp=drivesdk",
+        "createdTime": "2022-08-14T05:00:07.220Z"
+      },
+      "confidence": 25,
+      "steps": [
+        "Manually inspect workbook structure",
+        "Check if workbook contains video-specific data",
+        "Consider renaming workbook if it matches"
+      ]
+    },
+    {
+      "videoId": "VID-0013",
+      "type": "VERIFY_FOLDER",
+      "priority": "MEDIUM",
+      "action": "Manually verify potential folder for VID-0013",
+      "asset": {
+        "id": "13cMFfj-t-Pz8xiwCfuYr7TahQb5Sz2lQ",
+        "name": "ALH2384418 Chess Vintage We Are All Being Played Chess",
+        "url": "https://drive.google.com/drive/folders/13cMFfj-t-Pz8xiwCfuYr7TahQb5Sz2lQ",
+        "webViewLink": "https://drive.google.com/drive/folders/13cMFfj-t-Pz8xiwCfuYr7TahQb5Sz2lQ",
+        "createdTime": "2024-12-12T08:58:09.128Z",
+        "parents": [
+          "1Re57jJY8C1OYn_Pr5q2d3GaRFTT35_T1"
+        ]
+      },
+      "confidence": 20,
+      "steps": [
+        "Manually inspect folder contents",
+        "Check if folder structure matches video requirements",
+        "Consider renaming folder if it matches"
+      ]
+    },
+    {
+      "videoId": "VID-0013",
+      "type": "CREATE_WORKBOOK",
+      "priority": "HIGH",
+      "action": "Create new workbook for VID-0013",
+      "steps": [
+        "Run workflow to create new detail workbook from template",
+        "Populate workbook with video data",
+        "Update master sheet with new workbook URL"
+      ]
+    }
+  ]
+}

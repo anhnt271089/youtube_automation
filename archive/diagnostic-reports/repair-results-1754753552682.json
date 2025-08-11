@@ -1,0 +1,85 @@
+{
+  "videoIds": [
+    "VID-0008",
+    "VID-0013"
+  ],
+  "repairResults": [
+    {
+      "videoId": "VID-0008",
+      "timestamp": "2025-08-09T15:31:50.180Z",
+      "originalState": {
+        "exists": true,
+        "data": {
+          "videoId": "VID-0008",
+          "title": "How to Control your Brain ( before it's TOO late )",
+          "status": "Error",
+          "youtubeUrl": "https://www.youtube.com/watch?v=H67kfrqHP2A",
+          "youtubeVideoId": "H67kfrqHP2A"
+        }
+      },
+      "actions": [
+        {
+          "action": "CLEAR_ERROR_STATUS",
+          "success": true,
+          "details": "Changed status from \"Error\" to \"New\", reset script approval to \"Pending\""
+        },
+        {
+          "action": "CREATE_DRIVE_FOLDER",
+          "success": false,
+          "error": "Invalid Value"
+        },
+        {
+          "action": "CREATE_DETAIL_WORKBOOK",
+          "success": false,
+          "error": "Invalid Value"
+        }
+      ],
+      "finalState": null,
+      "success": false,
+      "errors": [
+        "Invalid Value"
+      ]
+    },
+    {
+      "videoId": "VID-0013",
+      "timestamp": "2025-08-09T15:32:11.810Z",
+      "originalState": {
+        "exists": true,
+        "data": {
+          "videoId": "VID-0013",
+          "title": "The Art of Being Unbothered By Opinions ( Don't let them Shape you )",
+          "status": "Error",
+          "youtubeUrl": "https://www.youtube.com/watch?v=4-KKcOT9DL0",
+          "youtubeVideoId": "4-KKcOT9DL0"
+        }
+      },
+      "actions": [
+        {
+          "action": "CLEAR_ERROR_STATUS",
+          "success": true,
+          "details": "Changed status from \"Error\" to \"New\", reset script approval to \"Pending\""
+        },
+        {
+          "action": "CREATE_DRIVE_FOLDER",
+          "success": false,
+          "error": "Invalid Value"
+        },
+        {
+          "action": "CREATE_DETAIL_WORKBOOK",
+          "success": false,
+          "error": "Invalid Value"
+        }
+      ],
+      "finalState": null,
+      "success": false,
+      "errors": [
+        "Invalid Value"
+      ]
+    }
+  ],
+  "summary": {
+    "totalRepaired": 2,
+    "successful": 0,
+    "failed": 2
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "videoIds": [
+    "VID-0008",
+    "VID-0013"
+  ],
+  "fixes": [
+    {
+      "videoId": "VID-0008",
+      "timestamp": "2025-08-09T15:33:26.558Z",
+      "actions": [
+        {
+          "action": "CLEAR_ERROR_STATUS",
+          "success": true
+        },
+        {
+          "action": "CREATE_FOLDER",
+          "success": true,
+          "folderId": "1MFxnLNgX2KxzyX4_APD2pykWfOHvv0XF",
+          "folderUrl": "https://drive.google.com/drive/folders/1MFxnLNgX2KxzyX4_APD2pykWfOHvv0XF"
+        },
+        {
+          "action": "CREATE_WORKBOOK",
+          "success": true,
+          "workbookId": "15QSdOp0tOo79AD_OTb9X3OYI2H_ik0OSq7OwgvonHXg",
+          "workbookUrl": "https://docs.google.com/spreadsheets/d/15QSdOp0tOo79AD_OTb9X3OYI2H_ik0OSq7OwgvonHXg"
+        },
+        {
+          "action": "POPULATE_BASIC_INFO",
+          "success": true
+        },
+        {
+          "action": "UPDATE_STATUS",
+          "success": true
+        }
+      ],
+      "success": true,
+      "errors": []
+    },
+    {
+      "videoId": "VID-0013",
+      "timestamp": "2025-08-09T15:33:37.678Z",
+      "actions": [
+        {
+          "action": "CLEAR_ERROR_STATUS",
+          "success": true
+        },
+        {
+          "action": "CREATE_FOLDER",
+          "success": true,
+          "folderId": "1YtM9AugW8EiwYbP8C0db-T-bNffzUDra",
+          "folderUrl": "https://drive.google.com/drive/folders/1YtM9AugW8EiwYbP8C0db-T-bNffzUDra"
+        },
+        {
+          "action": "CREATE_WORKBOOK",
+          "success": true,
+          "workbookId": "1mDSmKUWaXo8LJFMScrWhnRDnhPdUec5746giU8UY52A",
+          "workbookUrl": "https://docs.google.com/spreadsheets/d/1mDSmKUWaXo8LJFMScrWhnRDnhPdUec5746giU8UY52A"
+        },
+        {
+          "action": "POPULATE_BASIC_INFO",
+          "success": true
+        },
+        {
+          "action": "UPDATE_STATUS",
+          "success": true
+        }
+      ],
+      "success": true,
+      "errors": []
+    }
+  ],
+  "summary": {
+    "successful": 2,
+    "failed": 0
+  }
+}
