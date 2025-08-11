@@ -6,6 +6,9 @@ class ThumbnailService {
     this.aiService = aiService;
     this.googleDriveService = googleDriveService;
     
+    // Processing locks to prevent concurrent thumbnail generation for same video
+    this.processingLocks = new Map();
+    
     // Note: Removed caching system since Claude Sonnet is 85% cheaper than GPT-4o
     // Making it cost-effective to generate fresh prompts each time for better results
     
@@ -114,7 +117,7 @@ class ThumbnailService {
           jsonConcepts.usingStoredConcepts = true;
           return jsonConcepts;
         }
-      } catch (parseError) {
+      } catch {
         // Not JSON, continue with legacy text parsing
         logger.info('📋 Using legacy text format parsing');
       }
@@ -418,6 +421,7 @@ FOCUS ON CONTENT RELEVANCE: Make thumbnails visually represent what the video is
       }
       
       // Additional cleanup: remove any control characters or invisible characters
+      // eslint-disable-next-line no-control-regex
       responseText = responseText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
       
       const parsedContext = JSON.parse(responseText);
@@ -527,8 +531,8 @@ ${humanFacesNeeded ? `- Human Element: ${context.humanElements.join(', ')}` : '-
 
 CONTENT-SPECIFIC REQUIREMENTS:
 ${humanFacesNeeded ? 
-'🎯 HUMAN ELEMENT: Include relevant human expression if it enhances content understanding' : 
-'🎯 CONTENT FOCUS: Prioritize visual elements that represent the actual topic'}
+    '🎯 HUMAN ELEMENT: Include relevant human expression if it enhances content understanding' : 
+    '🎯 CONTENT FOCUS: Prioritize visual elements that represent the actual topic'}
 🎯 RELEVANCE: Visual elements must relate directly to the video subject matter
 🎯 CLARITY: Instantly communicate what the video is about through imagery
 🎯 CURIOSITY: Create intrigue about the specific content, not generic emotions
@@ -656,14 +660,14 @@ Create a thumbnail that immediately shows what the video is about and compels cl
                     folderUrl: folderExists.data.webViewLink
                   };
                   
-                  // Look for existing "Generated Thumbnails" subfolder
+                  // Look for existing 'Generated Thumbnails' subfolder
                   thumbnailFolder = await this.findExistingThumbnailFolder(parentFolderId);
                   
                   if (!thumbnailFolder) {
-                    logger.info(`🖼️ "Generated Thumbnails" folder not found, creating in existing video folder`);
+                    logger.info('🖼️ \'Generated Thumbnails\' folder not found, creating in existing video folder');
                     thumbnailFolder = await this.findOrCreateThumbnailFolder(parentFolderId);
                   } else {
-                    logger.info(`🖼️ Using existing "Generated Thumbnails" folder in video directory`);
+                    logger.info('🖼️ Using existing \'Generated Thumbnails\' folder in video directory');
                   }
                 }
               } catch (verifyError) {
@@ -894,7 +898,7 @@ Create a thumbnail that immediately shows what the video is about and compels cl
 
       if (response.data.files.length > 0) {
         const folder = response.data.files[0];
-        logger.info(`Found existing "Generated Thumbnails" folder in video directory`);
+        logger.info('Found existing \'Generated Thumbnails\' folder in video directory');
         return {
           folderId: folder.id,
           folderName: folder.name,
@@ -935,7 +939,7 @@ Create a thumbnail that immediately shows what the video is about and compels cl
       }
 
       // Create folder if it doesn't exist (for legacy videos)
-      logger.info(`Creating "Generated Thumbnails" subfolder for legacy video`);
+      logger.info('Creating \'Generated Thumbnails\' subfolder for legacy video');
       const folderMetadata = {
         name: thumbnailFolderName,
         mimeType: 'application/vnd.google-apps.folder',
@@ -1004,12 +1008,13 @@ Create a thumbnail that immediately shows what the video is about and compels cl
   }
 
   /**
-   * Check if thumbnails already exist for a video
+   * Check if thumbnails already exist for a video with retry logic for Google Drive API sync delays
    * @param {string} videoId - Video identifier
    * @param {string} videoTitle - Video title for folder identification
+   * @param {number} retryCount - Current retry attempt (for internal use)
    * @returns {Promise<object>} Existing thumbnail information
    */
-  async checkExistingThumbnails(videoId, videoTitle) {
+  async checkExistingThumbnails(videoId, videoTitle, retryCount = 0) {
     try {
       logger.info(`🔍 Checking existing thumbnails for ${videoId}`);
       
@@ -1081,10 +1086,17 @@ Create a thumbnail that immediately shows what the video is about and compels cl
         videoFolderUrl: videoFolder.folderUrl
       };
       
+      // If no thumbnails found and this is not a retry, wait for Google Drive sync and retry once
+      if (!result.exists && retryCount === 0) {
+        logger.info(`🔄 No thumbnails found on first check for ${videoId}, retrying after Drive API sync delay...`);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds for Drive API sync
+        return this.checkExistingThumbnails(videoId, videoTitle, 1);
+      }
+      
       if (result.exists) {
-        logger.info(`✅ Found ${result.count} existing thumbnails for ${videoId}`);
+        logger.info(`✅ Found ${result.count} existing thumbnails for ${videoId} ${retryCount > 0 ? '(after retry)' : ''}`);
       } else {
-        logger.info(`📋 No existing thumbnails found for ${videoId}`);
+        logger.info(`📋 No existing thumbnails found for ${videoId} ${retryCount > 0 ? '(confirmed after retry)' : ''}`);
       }
       
       return result;
@@ -1097,6 +1109,47 @@ Create a thumbnail that immediately shows what the video is about and compels cl
         thumbnails: []
       };
     }
+  }
+
+  /**
+   * Clean up stale processing locks (locks older than 5 minutes)
+   * Should be called periodically to prevent memory leaks
+   */
+  cleanupStaleLocks() {
+    const now = Date.now();
+    const staleThreshold = 5 * 60 * 1000; // 5 minutes
+    let cleaned = 0;
+    
+    for (const [videoId, lockInfo] of this.processingLocks.entries()) {
+      if (now - lockInfo.startTime > staleThreshold) {
+        this.processingLocks.delete(videoId);
+        cleaned++;
+        logger.warn(`🧹 Cleaned up stale processing lock for ${videoId} (${Math.round((now - lockInfo.startTime)/1000)}s old)`);
+      }
+    }
+    
+    if (cleaned > 0) {
+      logger.info(`🧹 Cleaned up ${cleaned} stale processing locks`);
+    }
+    
+    return cleaned;
+  }
+
+  /**
+   * Get current processing status for debugging
+   */
+  getProcessingStatus() {
+    const now = Date.now();
+    const activeLocks = Array.from(this.processingLocks.entries()).map(([videoId, lockInfo]) => ({
+      videoId,
+      age: Math.round((now - lockInfo.startTime) / 1000),
+      processId: lockInfo.processId
+    }));
+    
+    return {
+      activeLocks: activeLocks.length,
+      locks: activeLocks
+    };
   }
 
   /**
@@ -1126,8 +1179,32 @@ Create a thumbnail that immediately shows what the video is about and compels cl
       videoTitle: videoData?.title || 'Unknown Title'
     };
     
+    // CRITICAL: Check if another process is already generating thumbnails for this video
+    if (this.processingLocks.has(videoId)) {
+      const lockInfo = this.processingLocks.get(videoId);
+      const waitTime = Date.now() - lockInfo.startTime;
+      
+      if (waitTime < 300000) { // 5 minutes timeout
+        logger.warn(`🔒 Another process is already generating thumbnails for ${videoId} (${Math.round(waitTime/1000)}s ago), skipping to prevent duplication`);
+        result.skipped = true;
+        result.error = 'Another process is already generating thumbnails for this video';
+        result.processingTime = Date.now() - startTime;
+        return result;
+      } else {
+        // Lock is stale (older than 5 minutes), remove it
+        logger.warn(`🔓 Removing stale processing lock for ${videoId} (${Math.round(waitTime/1000)}s old)`);
+        this.processingLocks.delete(videoId);
+      }
+    }
+    
+    // Set processing lock
+    this.processingLocks.set(videoId, {
+      startTime: Date.now(),
+      processId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    });
+    
     try {
-      logger.info(`🎨 Starting enhanced thumbnail workflow for ${videoId}`);
+      logger.info(`🎨 Starting enhanced thumbnail workflow for ${videoId} (locked)`);
       
       // Validate input data
       if (!videoData) {
@@ -1255,6 +1332,12 @@ Create a thumbnail that immediately shows what the video is about and compels cl
       logger.error(`❌ Thumbnail workflow failed for ${videoId}:`, error);
       
       return result;
+    } finally {
+      // CRITICAL: Always release the processing lock, even if an error occurred
+      if (this.processingLocks.has(videoId)) {
+        this.processingLocks.delete(videoId);
+        logger.debug(`🔓 Released processing lock for ${videoId}`);
+      }
     }
   }
 }

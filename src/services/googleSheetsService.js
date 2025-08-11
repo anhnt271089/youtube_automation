@@ -1018,8 +1018,8 @@ END OF BACKUP - Original script preserved before regeneration`;
         return scriptSentences;
 
       } catch (error) {
-        logger.warn(`Could not extract script breakdown for ${videoId}:`, error.message);
-        return null;
+        logger.error(`❌ Failed to extract clean voice script for ${videoId}:`, error.message);
+        throw error;
       }
     }, 'extractCleanVoiceScript');
   }
@@ -1029,17 +1029,29 @@ END OF BACKUP - Original script preserved before regeneration`;
    */
   async createAndUploadVoiceScript(videoId, forceRecreate = false) {
     return this.retryOperation(async () => {
+      logger.info(`🗺 Starting voice script creation for ${videoId} (forceRecreate: ${forceRecreate})`);
+      
       const videoRow = await this.findVideoRow(videoId);
       if (!videoRow || !videoRow.data[this.masterColumns.driveFolder]) {
-        throw new Error(`Drive folder not found for video: ${videoId}`);
+        const errorMsg = `Drive folder not found for video: ${videoId}`;
+        logger.error(errorMsg);
+        throw new Error(errorMsg);
       }
+      
+      logger.info(`📁 Found drive folder for ${videoId}: ${videoRow.data[this.masterColumns.driveFolder]}`);
 
       // Get the clean voice script sentences array
       const scriptSentences = await this.extractCleanVoiceScript(videoId);
       if (!scriptSentences || scriptSentences.length === 0) {
-        logger.warn(`No clean voice script available for ${videoId}`);
-        return null;
+        const errorMsg = `No clean voice script available for ${videoId}. This usually means:
+1. Script Breakdown sheet is empty
+2. Detail workbook doesn't exist
+3. Script hasn't been processed yet`;
+        logger.error(errorMsg);
+        throw new Error(errorMsg);
       }
+      
+      logger.info(`📦 Found ${scriptSentences.length} script sentences for ${videoId}`);
 
       // Extract folder ID from folder URL
       const folderUrl = videoRow.data[this.masterColumns.driveFolder];
@@ -1071,7 +1083,7 @@ END OF BACKUP - Original script preserved before regeneration`;
             };
           }
         } catch (error) {
-          logger.warn(`Failed to check for existing voice script file for ${videoId}, proceeding with creation:`, error.message);
+          logger.warn(`⚠️ Failed to check for existing voice script file for ${videoId}, proceeding with creation:`, error.message);
         }
       }
 
@@ -1112,7 +1124,11 @@ END OF BACKUP - Original script preserved before regeneration`;
         publicUrl: `https://drive.google.com/uc?id=${response.data.id}`
       };
 
-      logger.info(`Created and uploaded voice script file for ${videoId}: ${scriptSentences.length} sentences, ${fileResult.viewLink}`);
+      logger.info(`✅ Successfully created and uploaded voice script file for ${videoId}:`);
+      logger.info(`  • Sentences: ${scriptSentences.length}`);
+      logger.info(`  • File: ${fileResult.fileName}`);
+      logger.info(`  • View Link: ${fileResult.viewLink}`);
+      logger.info(`  • Public URL: ${fileResult.publicUrl}`);
       return fileResult;
 
     }, 'createAndUploadVoiceScript');
@@ -1383,6 +1399,127 @@ END OF BACKUP - Original script preserved before regeneration`;
       return { processedCount, cleanedCount };
       
     }, 'cleanupDuplicateDriveFolders');
+  }
+
+  /**
+   * Get complete script breakdown data including image prompts
+   */
+  async getScriptBreakdown(videoId) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data[this.masterColumns.detailWorkbookUrl]) {
+        logger.warn(`Detail workbook not found for video: ${videoId}`);
+        return null;
+      }
+
+      const workbookUrl = videoRow.data[this.masterColumns.detailWorkbookUrl];
+      const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
+
+      try {
+        // Get all data from Script Breakdown sheet (A:G covers all columns)
+        const response = await this.sheets.spreadsheets.values.get({
+          spreadsheetId: workbookId,
+          range: `${this.detailSheets.scriptBreakdown}!A:G`
+        });
+
+        const values = response.data.values || [];
+        
+        if (values.length <= 1) {
+          logger.warn(`No script breakdown data found for video: ${videoId}`);
+          return [];
+        }
+
+        // Skip header row and process data
+        const breakdownData = [];
+        for (let i = 1; i < values.length; i++) {
+          const row = values[i];
+          
+          // Skip empty rows
+          if (!row[this.scriptColumns.scriptText] || !row[this.scriptColumns.scriptText].trim()) {
+            continue;
+          }
+
+          breakdownData.push({
+            sentenceNumber: row[this.scriptColumns.sentenceNumber] || (i),
+            scriptText: row[this.scriptColumns.scriptText] || '',
+            imagePrompt: row[this.scriptColumns.imagePrompt] || '', // This should contain the image prompt
+            imageUrl: row[this.scriptColumns.imageUrl] || '',
+            editorKeywords: row[this.scriptColumns.editorKeywords] || '',
+            status: row[this.scriptColumns.status] || 'Pending',
+            wordCount: row[this.scriptColumns.wordCount] || ''
+          });
+        }
+
+        logger.info(`Retrieved script breakdown for ${videoId}: ${breakdownData.length} sentences`);
+        return breakdownData;
+
+      } catch (error) {
+        logger.error(`Failed to get script breakdown for ${videoId}:`, error.message);
+        return [];
+      }
+    }, 'getScriptBreakdown');
+  }
+
+  /**
+   * Get script breakdown entries that need image generation (status = "Need Generate")
+   */
+  async getEntriesNeedingImageGeneration(videoId) {
+    return this.retryOperation(async () => {
+      const breakdown = await this.getScriptBreakdown(videoId);
+      if (!breakdown || breakdown.length === 0) {
+        return [];
+      }
+
+      // Filter entries that have "Need Generate" status
+      const entriesNeedingGeneration = breakdown.filter(entry => 
+        entry.status && entry.status.toLowerCase() === 'need generate'
+      );
+
+      logger.info(`Found ${entriesNeedingGeneration.length} entries needing image generation for ${videoId}`);
+      return entriesNeedingGeneration;
+    }, 'getEntriesNeedingImageGeneration');
+  }
+
+  /**
+   * Update specific sentence status and image URL
+   */
+  async updateSentenceWithImage(videoId, sentenceNumber, imageUrl, status = 'Generated') {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data[this.masterColumns.detailWorkbookUrl]) {
+        throw new Error(`Detail workbook not found for video: ${videoId}`);
+      }
+
+      const workbookUrl = videoRow.data[this.masterColumns.detailWorkbookUrl];
+      const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
+
+      // Calculate the row number (sentence number + 1 for header row)
+      const rowNumber = parseInt(sentenceNumber) + 1;
+
+      // Update the specific cells for this sentence
+      const updates = [
+        {
+          range: `${this.detailSheets.scriptBreakdown}!D${rowNumber}`, // Image URL column
+          values: [[imageUrl || '']]
+        },
+        {
+          range: `${this.detailSheets.scriptBreakdown}!F${rowNumber}`, // Status column
+          values: [[status]]
+        }
+      ];
+
+      // Batch update the cells
+      await this.sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: workbookId,
+        resource: {
+          valueInputOption: 'USER_ENTERED',
+          data: updates
+        }
+      });
+
+      logger.info(`Updated sentence ${sentenceNumber} in ${videoId}: status=${status}, imageUrl=${imageUrl ? 'provided' : 'empty'}`);
+      return true;
+    }, 'updateSentenceWithImage');
   }
 
   /**

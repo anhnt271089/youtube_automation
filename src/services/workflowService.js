@@ -8,9 +8,62 @@ import StatusMonitorService from './statusMonitorService.js';
 import MetadataService from './metadataService.js';
 import ThumbnailService from './thumbnailService.js';
 import { config } from '../../config/config.js';
-import logger from '../utils/logger.js';
+import logger, { safeJsonStringify } from '../utils/logger.js';
 
 class WorkflowService {
+  /**
+   * Safely serialize error objects for logging, avoiding circular references
+   * @param {Error|object} error - Error object or any object to serialize safely
+   * @returns {object} Safe error object for logging
+   */
+  safeErrorSerialization(error) {
+    if (error instanceof Error) {
+      return {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        type: 'Error'
+      };
+    }
+    
+    if (typeof error === 'object' && error !== null) {
+      try {
+        // Try to extract useful information from HTTP errors
+        if (error.response) {
+          return {
+            message: error.message || 'HTTP Error',
+            status: error.response.status,
+            statusText: error.response.statusText,
+            url: error.config?.url,
+            method: error.config?.method,
+            type: 'HTTPError'
+          };
+        }
+        
+        if (error.request) {
+          return {
+            message: error.message || 'Network Error',
+            url: error.config?.url,
+            method: error.config?.method,
+            type: 'NetworkError'
+          };
+        }
+        
+        // For other objects, use the safe JSON stringifier
+        return JSON.parse(safeJsonStringify(error));
+      } catch {
+        return {
+          message: 'Error serialization failed',
+          originalError: error.toString(),
+          type: 'SerializationError'
+        };
+      }
+    }
+    
+    return { message: String(error), type: 'Unknown' };
+  }
+
   /**
    * Get current timestamp in configured timezone for consistent display
    * @returns {string} Formatted timestamp in Asia/Bangkok (GMT+7) timezone
@@ -56,6 +109,11 @@ class WorkflowService {
       failed: 0,
       pending: 0
     };
+    
+    // Clean up stale thumbnail processing locks every 10 minutes
+    setInterval(() => {
+      this.thumbnailService.cleanupStaleLocks();
+    }, 10 * 60 * 1000);
   }
 
   /**
@@ -816,18 +874,49 @@ class WorkflowService {
       // Step 2: Create entry in Google Sheets with video metadata
       const videoId = await this.createVideoEntry(videoData);
       
+      // Defensive programming: ensure video ID was created successfully
+      if (!videoId) {
+        throw new Error('Failed to create video entry - video ID is null/undefined');
+      }
+      
+      logger.info(`📝 Created video entry with ID: ${videoId}`);
+      
       // Step 3: Continue with workflow processing using the Google Sheets video ID
       const result = await this.processInitialVideo(videoData, videoId);
       
       return { success: true, videoData, videoId: videoId, ...result };
     } catch (error) {
-      logger.error('Error processing new URL:', error);
+      const safeError = this.safeErrorSerialization(error);
+      logger.error('Error processing new URL:', safeError);
       throw error;
     }
   }
 
   async processInitialVideo(videoData, videoId) {
     try {
+      // Defensive programming: ensure video ID is valid
+      if (!videoId) {
+        const errorMsg = 'Video ID is undefined or null in processInitialVideo';
+        logger.error(errorMsg, {
+          videoData: videoData ? {
+            title: videoData.title,
+            videoId: videoData.videoId,
+            youtubeUrl: videoData.youtubeUrl
+          } : 'undefined'
+        });
+        throw new Error(errorMsg);
+      }
+      
+      // Ensure videoData is valid before proceeding
+      if (!videoData || !videoData.title) {
+        const errorMsg = 'Invalid video data in processInitialVideo';
+        logger.error(errorMsg, {
+          videoId,
+          videoData: videoData ? Object.keys(videoData) : 'undefined'
+        });
+        throw new Error(errorMsg);
+      }
+      
       // The videoId is already in VID-XX format from Google Sheets
       const videoDisplayId = videoId;
 
@@ -837,15 +926,26 @@ class WorkflowService {
       // Save reliable metadata before processing starts
       await this.saveVideoMetadata(videoDisplayId, videoData);
       
-      // Use reliable metadata for Telegram notifications
-      const videoMetadata = await this.getReliableVideoMetadata(videoDisplayId);
-      
-      await this.telegramService.sendVideoProcessingStarted({
-        ...videoData,
-        ...videoMetadata, // Override with reliable metadata
-        recordId: videoDisplayId,
-        displayTitle: `${videoDisplayId} - ${videoMetadata.title}`
-      }, masterSheetUrl);
+      // Send initial processing notification (network-safe)
+      try {
+        // Use reliable metadata for Telegram notifications
+        const videoMetadata = await this.getReliableVideoMetadata(videoDisplayId);
+        
+        // Use graceful notification that never fails the workflow
+        await this.telegramService.sendNotificationSafe(
+          `🎬 <b>Processing Started</b>\n\n📹 ${videoDisplayId} - ${videoMetadata.title}\n📺 ${videoData.channelTitle}\n⏱️ ${videoData.duration}${masterSheetUrl ? `\n\n📊 <a href="${masterSheetUrl}">View Master Sheet</a>` : ''}`,
+          { parse_mode: 'HTML', disable_web_page_preview: true },
+          `Video Processing Started: ${videoDisplayId}`
+        );
+        
+        logger.info(`✅ Processing started notification sent for ${videoDisplayId}`);
+      } catch (telegramError) {
+        // This should never happen with sendNotificationSafe, but keep for safety
+        logger.warn(`⚠️ Telegram notification failed for ${videoDisplayId}, but workflow continues:`, {
+          error: telegramError.message,
+          code: telegramError.code
+        });
+      }
 
       // Set the proper VideoID (VID-XX format) for Digital Ocean operations
       videoData.videoId = videoDisplayId;
@@ -868,12 +968,11 @@ class WorkflowService {
       // Use reliable metadata for consistent title display
       const scriptMetadata = await this.getReliableVideoMetadata(videoDisplayId);
       
-      // MERGED: Script generated + keyword research notification
-      await this.telegramService.sendScriptGeneratedWithApproval(
-        `${videoDisplayId} - ${scriptMetadata.title}`, 
-        workbookUrl,
-        masterSheetUrl,
-        enhancedContent.keywords
+      // MERGED: Script generated + keyword research notification (graceful degradation)
+      await this.telegramService.sendNotificationSafe(
+        this.buildScriptGeneratedMessage(videoDisplayId, scriptMetadata.title, workbookUrl, masterSheetUrl, enhancedContent.keywords),
+        { parse_mode: 'HTML', disable_web_page_preview: true },
+        `Script Generated: ${videoDisplayId}`
       );
 
       // Create complete hierarchical script structure (script pages + breakdown database)
@@ -1012,11 +1111,6 @@ class WorkflowService {
           `✅ <b>Script Auto-Approved</b>\n\n🎬 ${videoDisplayId} - ${approvalMetadata.title}\n🤖 Automatically approved for processing`
         );
       } else {
-        // Get URLs for approval request with reliable metadata
-        const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
-        const workbookUrl = scriptStructure.originalScriptPage?.pageUrl || null;
-        const requestMetadata = await this.getReliableVideoMetadata(videoDisplayId);
-        
         // Note: Script approval request now handled in the merged notification above
       }
 
@@ -1030,7 +1124,8 @@ class WorkflowService {
         videoId
       };
     } catch (error) {
-      logger.error('Error in processInitialVideo:', error);
+      const safeError = this.safeErrorSerialization(error);
+      logger.error('Error in processInitialVideo:', safeError);
       throw error;
     }
   }
@@ -1046,6 +1141,20 @@ class WorkflowService {
       // Check if image generation is enabled
       if (!config.app.enableImageGeneration) {
         logger.info(`Image generation disabled - skipping image generation for ${videoDisplayId}`);
+        
+        // CRITICAL: Create voice script file even when image generation is disabled
+        try {
+          logger.info(`🎤 Creating voice script file (image generation disabled): ${videoDisplayId}`);
+          const voiceScriptResult = await this.createAndUploadVoiceScript(videoDisplayId, false);
+          
+          if (voiceScriptResult && !voiceScriptResult.skipped) {
+            logger.info(`✅ Voice script created successfully: ${voiceScriptResult.fileName}`);
+          } else if (voiceScriptResult && voiceScriptResult.skipped) {
+            logger.info(`ℹ️ Voice script already exists: ${voiceScriptResult.fileName}`);
+          }
+        } catch (voiceScriptError) {
+          logger.error(`❌ Failed to create voice script for ${videoDisplayId}:`, voiceScriptError);
+        }
         
         // Send notification with reliable metadata
         const completionMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
@@ -1095,6 +1204,24 @@ class WorkflowService {
       // Enhanced AI content processing with new features
       // Pass MetadataService to AIService for enhanced context reliability
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData, this.metadataService);
+      
+      // CRITICAL: Create and upload voice script file when script is approved
+      try {
+        logger.info(`🎤 Creating voice script file for approved video: ${videoDisplayId}`);
+        const voiceScriptResult = await this.createAndUploadVoiceScript(videoDisplayId, false);
+        
+        if (voiceScriptResult && !voiceScriptResult.skipped) {
+          logger.info(`✅ Voice script created successfully: ${voiceScriptResult.fileName}`);
+        } else if (voiceScriptResult && voiceScriptResult.skipped) {
+          logger.info(`ℹ️ Voice script already exists: ${voiceScriptResult.fileName}`);
+        }
+      } catch (voiceScriptError) {
+        logger.error(`❌ Failed to create voice script for ${videoDisplayId}:`, voiceScriptError);
+        // Send notification but don't fail the entire workflow
+        await this.telegramService.sendMessage(
+          `⚠️ <b>Voice Script Creation Warning</b>\n\n🎬 ${videoDisplayId}\n❌ Error: ${voiceScriptError.message}\n\n🔄 Will attempt again during next processing cycle`
+        );
+      }
 
       // All images are already generated and uploaded to Digital Ocean by enhanceContentWithAI
       const generatedImages = enhancedContent.generatedImages || [];
@@ -1294,39 +1421,77 @@ class WorkflowService {
 
   async handleVideoError(video, error, stage) {
     try {
-      await this.updateVideoStatus(video.videoId, 'Error', {
-        errorMessage: error.message,
+      // Use safe error serialization to avoid circular reference issues
+      const safeError = this.safeErrorSerialization(error);
+      
+      // Ensure video object has required fields
+      const videoId = video?.videoId || 'UNKNOWN';
+      const videoTitle = video?.title || `Video ${videoId}`;
+      
+      // Update status with comprehensive error information
+      await this.updateVideoStatus(videoId, 'Error', {
+        errorMessage: safeError.message || error.message || 'Unknown error',
         errorStage: stage,
         errorTime: this.getCurrentTimestamp(),
-        retryCount: (video.retryCount || 0) + 1
+        retryCount: (video.retryCount || 0) + 1,
+        errorCode: error.code || 'UNKNOWN',
+        errorType: safeError.type || 'Unknown'
       });
 
-      // Get reliable metadata and URLs for error notification
-      const errorMetadata = await this.getReliableVideoMetadata(video.videoId);
+      // Get reliable metadata and URLs for error notification (with fallbacks)
+      let errorMetadata;
+      try {
+        errorMetadata = await this.getReliableVideoMetadata(videoId);
+      } catch (metadataError) {
+        logger.warn(`Could not get reliable metadata for error ${videoId}:`, metadataError.message);
+        errorMetadata = { title: videoTitle };
+      }
+      
       const masterSheetUrl = this.telegramService.generateMasterSheetUrl(config.google.masterSheetId);
       
       let workbookUrl = null;
       try {
-        const videoRow = await this.sheetsService.findVideoRow(video.videoId);
+        const videoRow = await this.sheetsService.findVideoRow(videoId);
         workbookUrl = videoRow.data && videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl] 
           ? videoRow.data[this.sheetsService.masterColumns.detailWorkbookUrl]
           : null;
       } catch (urlError) {
-        logger.warn(`Could not retrieve workbook URL for error notification ${video.videoId}:`, urlError);
+        logger.warn(`Could not retrieve workbook URL for error notification ${videoId}:`, urlError.message);
       }
       
-      await this.telegramService.sendError(
-        errorMetadata.title,
-        error.message,
-        stage,
-        masterSheetUrl,
-        workbookUrl
-      );
+      // Send error notification (network-safe)
+      try {
+        await this.telegramService.sendError(
+          errorMetadata.title || videoTitle,
+          safeError.message || error.message || 'Unknown error',
+          stage,
+          masterSheetUrl,
+          workbookUrl
+        );
+      } catch (telegramError) {
+        logger.warn(`Failed to send error notification for ${videoId}:`, telegramError.message);
+        
+        // Send simplified error notification as fallback
+        await this.telegramService.sendMessageSafe(
+          `❌ <b>Processing Error</b>\n\n🎬 ${videoId} - ${errorMetadata.title || videoTitle}\n🔧 Stage: ${stage}\n⚠️ ${(safeError.message || error.message || 'Unknown error').substring(0, 100)}...`
+        );
+      }
 
       this.stats.failed++;
-      logger.error(`Video ${video.title} failed at stage: ${stage}`);
+      logger.error(`Video ${videoTitle} (${videoId}) failed at stage: ${stage}`, {
+        ...safeError,
+        videoId,
+        videoTitle,
+        stage,
+        retryCount: (video.retryCount || 0) + 1
+      });
     } catch (errorHandlingError) {
-      logger.error('Error in error handling:', errorHandlingError);
+      const safeErrorHandlingError = this.safeErrorSerialization(errorHandlingError);
+      logger.error('Error in error handling:', {
+        ...safeErrorHandlingError,
+        originalVideoId: video?.videoId || 'UNKNOWN',
+        originalError: error?.message || 'Unknown original error'
+      });
     }
   }
 
@@ -1493,7 +1658,8 @@ class WorkflowService {
         return { success: true, videoData, videoId: videoId, ...result };
       }
     } catch (error) {
-      logger.error('Error in processSingleVideo:', error);
+      const safeError = this.safeErrorSerialization(error);
+      logger.error('Error in processSingleVideo:', safeError);
       throw error;
     }
   }
@@ -1817,6 +1983,85 @@ class WorkflowService {
   }
 
   /**
+   * Process selective image generation for entries with "Need Generate" status
+   * @param {string} videoId - Video identifier
+   * @returns {Promise<object>} Generation results
+   */
+  async processSelectiveImageGeneration(videoId) {
+    try {
+      logger.info(`🎨 Processing selective image generation for ${videoId}`);
+      
+      if (!config.app.enableImageGeneration) {
+        logger.info(`Image generation disabled - skipping selective generation for ${videoId}`);
+        return { generated: 0, message: 'Image generation disabled' };
+      }
+
+      // Get video metadata for context
+      const metadata = await this.getReliableVideoMetadata(videoId);
+      const videoDisplayId = metadata ? `${videoId} - ${metadata.title}` : videoId;
+
+      // Use AI service to generate images selectively
+      const generatedImages = await this.aiService.generateSelectiveImages(videoId, {
+        googleSheetsService: this.sheetsService
+      });
+
+      if (generatedImages.length === 0) {
+        logger.info(`No images needed generation for ${videoDisplayId}`);
+        return { generated: 0, message: 'No entries with "Need Generate" status found' };
+      }
+
+      const totalCost = generatedImages.reduce((sum, img) => sum + (img.cost || 0), 0);
+
+      // Send notification about completed image generation
+      try {
+        const message = `🎨 <b>Images Generated Successfully</b>
+
+🎬 ${videoDisplayId}
+📊 Generated: ${generatedImages.length} images
+💰 Cost: $${totalCost.toFixed(4)}
+
+Generated images for sentences: ${generatedImages.map(img => img.sentenceNumber).join(', ')}
+
+✅ Images have been uploaded and links updated in Script Breakdown sheet.
+
+📋 <a href="${metadata.detailWorkbookUrl || await this.getVideoRecordLink(videoId)}">View Script Breakdown</a>`;
+
+        await this.telegramService.sendMessage(message, { parse_mode: 'HTML' });
+      } catch (notificationError) {
+        logger.warn(`Failed to send image generation notification for ${videoId}:`, notificationError.message);
+      }
+
+      logger.info(`✅ Generated ${generatedImages.length} images for ${videoDisplayId} (Cost: $${totalCost.toFixed(4)})`);
+      
+      return {
+        generated: generatedImages.length,
+        totalCost: totalCost,
+        images: generatedImages,
+        message: `Generated ${generatedImages.length} images successfully`
+      };
+
+    } catch (error) {
+      logger.error(`Failed selective image generation for ${videoId}:`, error);
+      
+      // Send error notification
+      try {
+        const message = `❌ <b>Image Generation Failed</b>
+
+🎬 ${videoId}
+🚨 Error: ${error.message}
+
+Please check logs and try again.`;
+
+        await this.telegramService.sendMessage(message, { parse_mode: 'HTML' });
+      } catch (notificationError) {
+        logger.warn(`Failed to send error notification for ${videoId}:`, notificationError.message);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * Health check including Digital Ocean Spaces and Status Monitoring
    * @returns {Promise<object>} Health check results
    */
@@ -1920,6 +2165,49 @@ class WorkflowService {
       // Fallback to master spreadsheet
       return `https://docs.google.com/spreadsheets/d/${config.google.masterSpreadsheetId}`;
     }
+  }
+
+  /**
+   * Helper method to build script generated message for Telegram
+   */
+  buildScriptGeneratedMessage(videoId, title, workbookUrl, masterSheetUrl, keywords) {
+    let message = `✍️ <b>Script Generated & Approval Required</b>
+
+🎬 ${videoId} - ${title}
+✅ Script separated and ready for review`;
+
+    // Add keyword information if available
+    if (keywords) {
+      const primaryKeywords = keywords.primaryKeywords?.slice(0, 3).join(', ') || '';
+      const hashtags = keywords.trendingHashtags?.slice(0, 3).join(' ') || '';
+      
+      if (primaryKeywords || hashtags) {
+        message += '\n\n🔍 <b>Keywords Applied:</b>';
+        if (primaryKeywords) {
+          message += `\n🎯 <code>${primaryKeywords}</code>`;
+        }
+        if (hashtags) {
+          message += `\n📱 ${hashtags}`;
+        }
+      }
+    }
+
+    message += '\n\n⚠️ <b>Action Required:</b> Please review and approve script';
+
+    // Add relevant links
+    const links = [];
+    if (workbookUrl) {
+      links.push(`📋 <a href="${workbookUrl}">Review & Approve Script</a>`);
+    }
+    if (masterSheetUrl) {
+      links.push(`📊 <a href="${masterSheetUrl}">Update Status in Master Sheet</a>`);
+    }
+    
+    if (links.length > 0) {
+      message += `\n\n${links.join('\n')}`;
+    }
+    
+    return message;
   }
 }
 
