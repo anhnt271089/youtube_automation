@@ -498,16 +498,72 @@ class WorkflowService {
       logger.info(`✅ Found ${approvedVideos.length} approved + ${generatingVideos.length} generating + ${additionalApprovedScripts.length} missing thumbnails`);
       let processedCount = 0;
       let thumbnailOnlyCount = 0;
+      let autoAdvancedCount = 0;
       
       for (const video of allVideosToProcess) {
         try {
           const isStatusBased = statusBasedIds.has(video.videoId);
           
           if (isStatusBased) {
-            // Regular workflow processing (full script processing)
+            // DEADLOCK PREVENTION: Check if "Generating Images" status but no images actually need generation
             if (video.status === 'Generating Images') {
-              logger.info(`🔄 Resuming ${video.videoId}`);
+              logger.info(`🔍 Checking image generation requirements for ${video.videoId}`);
+              
+              // Check if any entries actually need image generation
+              const entriesNeedingGeneration = await this.sheetsService.getEntriesNeedingImageGeneration(video.videoId);
+              
+              if (entriesNeedingGeneration.length === 0) {
+                logger.info(`🚀 Auto-advancing ${video.videoId}: No entries need image generation`);
+                
+                // Auto-advance to next step - mark as completed since no images need generation
+                await this.updateVideoStatus(video.videoId, 'Completed', {
+                  imagesGenerated: 0,
+                  imageGenerationSkipped: true,
+                  autoAdvanced: true,
+                  autoAdvancedAt: this.getCurrentTimestamp(),
+                  autoAdvanceReason: 'No entries with "Need Generate" status found',
+                  processingCompletedAt: this.getCurrentTimestamp()
+                });
+                
+                // CRITICAL: Create voice script file even when no images need generation
+                try {
+                  logger.info(`🎤 Creating voice script file (auto-advanced): ${video.videoId}`);
+                  const voiceScriptResult = await this.createAndUploadVoiceScript(video.videoId, false);
+                  
+                  if (voiceScriptResult && !voiceScriptResult.skipped) {
+                    logger.info(`✅ Voice script created during auto-advance: ${voiceScriptResult.fileName}`);
+                  }
+                } catch (voiceScriptError) {
+                  logger.error(`❌ Failed to create voice script during auto-advance for ${video.videoId}:`, voiceScriptError);
+                }
+                
+                // Auto-update workflow statuses after auto-advancement
+                await this.autoUpdateWorkflowStatuses(video.videoId, 'Completed');
+                
+                // Get reliable metadata for notification
+                const metadata = await this.getReliableVideoMetadata(video.videoId);
+                
+                // Send Telegram notification about auto-advancement
+                await this.telegramService.sendMessage(
+                  '🚀 <b>Workflow Auto-Advanced</b> (Deadlock Prevention)\n\n' +
+                  `🎬 ${video.videoId} - ${metadata.title}\n` +
+                  '📊 Previous Status: Generating Images\n' +
+                  '✅ New Status: Completed\n\n' +
+                  '🔍 <b>Reason:</b> No entries with "Need Generate" status found\n' +
+                  '💡 System automatically progressed to prevent workflow deadlock\n' +
+                  '📝 <i>Voice script created and ready for next steps</i>\n\n' +
+                  `🔗 [View Record](${await this.getVideoRecordLink(video.videoId)})`
+                );
+                
+                autoAdvancedCount++;
+                processedCount++;
+                continue; // Skip normal processing since we auto-advanced
+              } else {
+                logger.info(`🔄 Resuming ${video.videoId}: ${entriesNeedingGeneration.length} entries need generation`);
+              }
             }
+            
+            // Regular workflow processing (full script processing)
             await this.processApprovedScript(video);
             processedCount++;
           } else {
@@ -563,8 +619,9 @@ class WorkflowService {
         total: allVideosToProcess.length,
         breakdown: {
           approvedScripts: approvedVideos.length,
-          resumedImageGeneration: generatingVideos.length,
-          thumbnailOnlyProcessing: thumbnailOnlyCount
+          resumedImageGeneration: generatingVideos.length - autoAdvancedCount, // Subtract auto-advanced from resumed
+          thumbnailOnlyProcessing: thumbnailOnlyCount,
+          autoAdvancedDeadlocks: autoAdvancedCount // New metric for deadlock prevention
         }
       };
     } catch (error) {
@@ -1983,6 +2040,109 @@ class WorkflowService {
   }
 
   /**
+   * Validate "Generating Images" status and auto-advance if no images need generation
+   * This method prevents workflow deadlocks by checking if any entries actually need generation
+   * @param {string} videoId - Video identifier
+   * @returns {Promise<object>} Validation result with auto-advance status
+   */
+  async validateAndAutoAdvanceImageGeneration(videoId) {
+    try {
+      logger.info(`🔍 Validating image generation status for ${videoId}`);
+      
+      // Get current video status
+      const videoDetails = await this.sheetsService.getVideoDetails(videoId);
+      if (!videoDetails) {
+        throw new Error(`Video not found: ${videoId}`);
+      }
+      
+      // Only apply deadlock prevention for "Generating Images" status
+      if (videoDetails.status !== 'Generating Images') {
+        return {
+          needsAutoAdvance: false,
+          currentStatus: videoDetails.status,
+          message: `Video status is "${videoDetails.status}" - no deadlock prevention needed`
+        };
+      }
+      
+      // Check if any entries actually need image generation
+      const entriesNeedingGeneration = await this.sheetsService.getEntriesNeedingImageGeneration(videoId);
+      
+      if (entriesNeedingGeneration.length > 0) {
+        return {
+          needsAutoAdvance: false,
+          currentStatus: videoDetails.status,
+          entriesNeedingGeneration: entriesNeedingGeneration.length,
+          message: `${entriesNeedingGeneration.length} entries need image generation - processing should continue normally`
+        };
+      }
+      
+      // DEADLOCK DETECTED: Status is "Generating Images" but no entries need generation
+      logger.info(`🚀 Deadlock detected for ${videoId}: Status is "Generating Images" but no entries need generation`);
+      
+      // Get reliable metadata for logging and notifications
+      const metadata = await this.getReliableVideoMetadata(videoId);
+      
+      // Auto-advance to Completed status
+      await this.updateVideoStatus(videoId, 'Completed', {
+        imagesGenerated: 0,
+        imageGenerationSkipped: true,
+        autoAdvanced: true,
+        autoAdvancedAt: this.getCurrentTimestamp(),
+        autoAdvanceReason: 'Deadlock prevention - No entries with "Need Generate" status found',
+        deadlockPrevention: true,
+        processingCompletedAt: this.getCurrentTimestamp()
+      });
+      
+      // CRITICAL: Create voice script file during auto-advance
+      try {
+        logger.info(`🎤 Creating voice script file (deadlock prevention): ${videoId}`);
+        const voiceScriptResult = await this.createAndUploadVoiceScript(videoId, false);
+        
+        if (voiceScriptResult && !voiceScriptResult.skipped) {
+          logger.info(`✅ Voice script created during deadlock prevention: ${voiceScriptResult.fileName}`);
+        }
+      } catch (voiceScriptError) {
+        logger.error(`❌ Failed to create voice script during deadlock prevention for ${videoId}:`, voiceScriptError);
+      }
+      
+      // Auto-update workflow statuses
+      await this.autoUpdateWorkflowStatuses(videoId, 'Completed');
+      
+      // Send Telegram notification about deadlock prevention
+      await this.telegramService.sendMessage(
+        '🚀 <b>Deadlock Prevention Activated</b>\n\n' +
+        `🎬 ${videoId} - ${metadata.title}\n` +
+        '🔒 <b>Issue:</b> Workflow stuck on "Generating Images"\n' +
+        '🔍 <b>Root Cause:</b> No entries with "Need Generate" status found\n' +
+        '✅ <b>Resolution:</b> Auto-advanced to "Completed" status\n\n' +
+        '💡 This prevents workflow deadlocks when no images actually need generation\n' +
+        '📝 Voice script created and workflow ready for next steps\n\n' +
+        `🔗 [View Record](${await this.getVideoRecordLink(videoId)})`
+      );
+      
+      logger.info(`✅ Deadlock prevention completed for ${videoId}: Auto-advanced to Completed status`);
+      
+      return {
+        needsAutoAdvance: true,
+        autoAdvanced: true,
+        previousStatus: 'Generating Images',
+        newStatus: 'Completed',
+        entriesNeedingGeneration: 0,
+        message: 'Deadlock prevented - workflow auto-advanced to Completed status',
+        voiceScriptCreated: true
+      };
+      
+    } catch (error) {
+      logger.error(`Failed to validate/auto-advance image generation for ${videoId}:`, error);
+      return {
+        needsAutoAdvance: false,
+        error: error.message,
+        message: `Validation failed: ${error.message}`
+      };
+    }
+  }
+
+  /**
    * Process selective image generation for entries with "Need Generate" status
    * @param {string} videoId - Video identifier
    * @returns {Promise<object>} Generation results
@@ -2000,14 +2160,75 @@ class WorkflowService {
       const metadata = await this.getReliableVideoMetadata(videoId);
       const videoDisplayId = metadata ? `${videoId} - ${metadata.title}` : videoId;
 
+      // DEADLOCK PREVENTION: First check if any entries actually need generation
+      const entriesNeedingGeneration = await this.sheetsService.getEntriesNeedingImageGeneration(videoId);
+      
+      if (entriesNeedingGeneration.length === 0) {
+        logger.info(`🚀 Auto-advancing workflow: No entries need image generation for ${videoDisplayId}`);
+        
+        // Check current video status to see if we need to advance workflow
+        const videoDetails = await this.sheetsService.getVideoDetails(videoId);
+        
+        if (videoDetails && videoDetails.status === 'Generating Images') {
+          // Auto-advance from "Generating Images" to "Completed" since no images need generation
+          await this.updateVideoStatus(videoId, 'Completed', {
+            imagesGenerated: 0,
+            imageGenerationSkipped: true,
+            autoAdvanced: true,
+            autoAdvancedAt: this.getCurrentTimestamp(),
+            autoAdvanceReason: 'No entries with "Need Generate" status found (manual trigger)',
+            processingCompletedAt: this.getCurrentTimestamp()
+          });
+          
+          // CRITICAL: Create voice script file during auto-advance
+          try {
+            logger.info(`🎤 Creating voice script file (manual auto-advance): ${videoId}`);
+            const voiceScriptResult = await this.createAndUploadVoiceScript(videoId, false);
+            
+            if (voiceScriptResult && !voiceScriptResult.skipped) {
+              logger.info(`✅ Voice script created during manual auto-advance: ${voiceScriptResult.fileName}`);
+            }
+          } catch (voiceScriptError) {
+            logger.error(`❌ Failed to create voice script during manual auto-advance for ${videoId}:`, voiceScriptError);
+          }
+          
+          // Auto-update workflow statuses
+          await this.autoUpdateWorkflowStatuses(videoId, 'Completed');
+          
+          // Send notification about auto-advancement
+          await this.telegramService.sendMessage(
+            '🚀 <b>Workflow Auto-Advanced</b> (Manual Trigger)\n\n' +
+            `🎬 ${videoDisplayId}\n` +
+            '📊 Previous Status: Generating Images\n' +
+            '✅ New Status: Completed\n\n' +
+            '🔍 <b>Reason:</b> No entries with "Need Generate" status found\n' +
+            '🔧 <b>Trigger:</b> Manual selective image generation call\n' +
+            '💡 System automatically progressed to prevent workflow deadlock\n' +
+            '📝 <i>Voice script created and ready for next steps</i>\n\n' +
+            `🔗 [View Record](${await this.getVideoRecordLink(videoId)})`
+          );
+          
+          return { 
+            generated: 0, 
+            autoAdvanced: true,
+            message: 'No entries with "Need Generate" status - workflow auto-advanced to prevent deadlock' 
+          };
+        }
+        
+        return { 
+          generated: 0, 
+          message: 'No entries with "Need Generate" status found' 
+        };
+      }
+
       // Use AI service to generate images selectively
       const generatedImages = await this.aiService.generateSelectiveImages(videoId, {
         googleSheetsService: this.sheetsService
       });
 
       if (generatedImages.length === 0) {
-        logger.info(`No images needed generation for ${videoDisplayId}`);
-        return { generated: 0, message: 'No entries with "Need Generate" status found' };
+        logger.info(`No images generated for ${videoDisplayId} despite having entries needing generation`);
+        return { generated: 0, message: 'Image generation failed or no valid prompts found' };
       }
 
       const totalCost = generatedImages.reduce((sum, img) => sum + (img.cost || 0), 0);
