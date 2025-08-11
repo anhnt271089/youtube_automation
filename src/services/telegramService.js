@@ -4,23 +4,127 @@ import logger from '../utils/logger.js';
 
 class TelegramService {
   constructor() {
-    this.bot = new TelegramBot(config.telegram.botToken, { polling: false });
+    this.bot = new TelegramBot(config.telegram.botToken, { 
+      polling: false,
+      request: {
+        timeout: config.telegram.requestTimeout,
+        // Enable connection reuse
+        forever: true,
+        pool: {
+          maxSockets: 5
+        },
+        // Additional network resilience
+        keepAlive: true,
+        keepAliveMsecs: 30000,
+        // DNS settings
+        family: 0, // Allow both IPv4 and IPv6
+        lookup: undefined // Use default DNS lookup
+      }
+    });
     this.chatId = config.telegram.chatId;
+    this.maxRetries = Math.max(config.telegram.maxRetries, 5); // Minimum 5 retries for network issues
+    this.retryDelay = config.telegram.retryDelay;
+    this.fallbackEnabled = true;
+    this.networkTimeoutCount = 0;
+    this.lastSuccessfulMessage = null;
   }
 
+  /**
+   * Send message with enhanced retry logic and network error handling
+   */
   async sendMessage(message, options = {}) {
-    try {
-      const response = await this.bot.sendMessage(this.chatId, message, {
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-        ...options
-      });
-      
-      logger.info('Telegram sent');
-      return response;
-    } catch (error) {
-      logger.error('Error sending Telegram message:', error);
-      throw error;
+    // Track network timeout occurrences for adaptive behavior
+    let isTimeoutRetry = false;
+    
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        // Use longer timeout for retry attempts after network failures
+        const adaptiveTimeout = isTimeoutRetry ? 
+          Math.min(config.telegram.requestTimeout * 2, 60000) : 
+          config.telegram.requestTimeout;
+        
+        // Create a fresh bot instance for critical retries
+        const botInstance = attempt > 2 ? 
+          new TelegramBot(config.telegram.botToken, {
+            polling: false,
+            request: {
+              timeout: adaptiveTimeout,
+              forever: false, // Disable connection reuse for retries
+              keepAlive: false
+            }
+          }) : this.bot;
+        
+        const response = await botInstance.sendMessage(this.chatId, message, {
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+          ...options
+        });
+        
+        // Reset timeout counter on success
+        this.networkTimeoutCount = 0;
+        this.lastSuccessfulMessage = Date.now();
+        
+        if (attempt > 1) {
+          logger.info(`✅ Telegram sent successfully on attempt ${attempt} (timeout: ${adaptiveTimeout}ms)`);
+        } else {
+          logger.info('✅ Telegram sent successfully');
+        }
+        return response;
+      } catch (error) {
+        const isNetworkError = this.isNetworkError(error);
+        const isRetryable = this.isRetryableError(error);
+        const isTimeoutError = this.isTimeoutError(error);
+        const isLastAttempt = attempt === this.maxRetries;
+        
+        // Track timeout occurrences for adaptive behavior
+        if (isTimeoutError) {
+          this.networkTimeoutCount++;
+          isTimeoutRetry = true;
+        }
+        
+        if (isNetworkError || isRetryable) {
+          logger.warn(`🔄 Telegram attempt ${attempt}/${this.maxRetries} failed:`, {
+            error: error.message,
+            code: error.code,
+            response: error.response?.status,
+            isNetworkError,
+            isRetryable,
+            isTimeoutError,
+            timeoutCount: this.networkTimeoutCount
+          });
+          
+          if (!isLastAttempt) {
+            const delay = this.calculateRetryDelay(attempt, isTimeoutError);
+            logger.info(`⏳ Retrying Telegram message in ${delay}ms (adaptive timeout: ${isTimeoutRetry})...`);
+            await this.sleep(delay);
+            continue;
+          }
+        }
+        
+        // Enhanced error logging with network analysis
+        logger.error('❌ Telegram message failed after all retries:', {
+          attempts: attempt,
+          error: error.message,
+          code: error.code,
+          errno: error.errno,
+          syscall: error.syscall,
+          address: error.address,
+          port: error.port,
+          networkTimeoutCount: this.networkTimeoutCount,
+          lastSuccess: this.lastSuccessfulMessage,
+          response: error.response ? {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            data: error.response.data
+          } : 'No response',
+          diagnosticSuggestion: this.getDiagnosticSuggestion(error)
+        });
+        
+        // Enable fallback logging if all retries failed
+        this.logToFallback(message, error);
+        
+        throw error;
+      }
     }
   }
 
@@ -280,7 +384,7 @@ ${hashtags}
       const hashtags = keywords.trendingHashtags?.slice(0, 3).join(' ') || '';
       
       if (primaryKeywords || hashtags) {
-        message += `\n\n🔍 <b>Keywords Applied:</b>`;
+        message += '\n\n🔍 <b>Keywords Applied:</b>';
         if (primaryKeywords) {
           message += `\n🎯 <code>${primaryKeywords}</code>`;
         }
@@ -290,7 +394,7 @@ ${hashtags}
       }
     }
 
-    message += `\n\n⚠️ <b>Action Required:</b> Please review and approve script`;
+    message += '\n\n⚠️ <b>Action Required:</b> Please review and approve script';
 
     // Add relevant links
     const links = [];
@@ -684,19 +788,214 @@ Please review and approve the script to continue processing, or the video will b
     return match ? (match[1] || match[2]) : null;
   }
 
+  /**
+   * Enhanced network error detection
+   */
+  isNetworkError(error) {
+    const networkCodes = [
+      'ECONNRESET',
+      'ECONNREFUSED', 
+      'ETIMEDOUT',
+      'ENOTFOUND',
+      'ENETUNREACH',
+      'EHOSTUNREACH',
+      'EPIPE',
+      'EAI_AGAIN',
+      'EFATAL' // Additional Telegram-specific error
+    ];
+    
+    // Check error code
+    if (error.code && networkCodes.includes(error.code)) {
+      return true;
+    }
+    
+    // Check error message for network-related keywords
+    const message = error.message?.toLowerCase() || '';
+    return message.includes('timeout') ||
+           message.includes('socket hang up') ||
+           message.includes('network') ||
+           message.includes('connection') ||
+           message.includes('etimedout') ||
+           message.includes('efatal');
+  }
+  
+  /**
+   * Check if error is specifically a timeout
+   */
+  isTimeoutError(error) {
+    const timeoutCodes = ['ETIMEDOUT', 'EFATAL'];
+    const message = error.message?.toLowerCase() || '';
+    
+    return (error.code && timeoutCodes.includes(error.code)) ||
+           message.includes('timeout') ||
+           message.includes('etimedout') ||
+           message.includes('efatal');
+  }
+  
+  /**
+   * Check if error is retryable
+   */
+  isRetryableError(error) {
+    if (this.isNetworkError(error)) return true;
+    
+    // HTTP status codes that are retryable
+    const retryableHttpCodes = [429, 500, 502, 503, 504];
+    const statusCode = error.response?.status;
+    
+    return retryableHttpCodes.includes(statusCode);
+  }
+  
+  /**
+   * Calculate adaptive retry delay based on error type
+   */
+  calculateRetryDelay(attempt, isTimeoutError = false) {
+    const baseDelay = this.retryDelay;
+    
+    if (isTimeoutError || this.networkTimeoutCount > 0) {
+      // Longer delays for timeout errors: 5s, 10s, 15s, 20s, 30s
+      const timeoutDelay = Math.min(baseDelay * 5 * attempt, 30000);
+      const jitter = Math.random() * 2000; // Up to 2s jitter
+      return timeoutDelay + jitter;
+    }
+    
+    // Standard exponential backoff: 1s, 2s, 4s, 8s...
+    const exponentialDelay = baseDelay * Math.pow(2, attempt - 1);
+    // Add jitter to prevent thundering herd
+    const jitter = Math.random() * baseDelay;
+    return Math.min(exponentialDelay + jitter, 30000); // Max 30 seconds
+  }
+  
+  /**
+   * Provide diagnostic suggestions based on error type
+   */
+  getDiagnosticSuggestion(error) {
+    if (this.isTimeoutError(error)) {
+      return 'Network timeout detected. Consider increasing TELEGRAM_REQUEST_TIMEOUT or checking firewall/proxy settings.';
+    }
+    
+    if (error.code === 'ENOTFOUND') {
+      return 'DNS resolution failed. Check internet connection and DNS settings.';
+    }
+    
+    if (error.code === 'ECONNREFUSED') {
+      return 'Connection refused. Check proxy settings or network restrictions.';
+    }
+    
+    if (error.response?.status === 401) {
+      return 'Unauthorized. Check TELEGRAM_BOT_TOKEN validity.';
+    }
+    
+    if (error.response?.status === 403) {
+      return 'Forbidden. Bot may be blocked or lacks permissions.';
+    }
+    
+    if (error.response?.status === 429) {
+      return 'Rate limited. Reduce message frequency.';
+    }
+    
+    return 'Unknown error. Run diagnostic tool: node tools/diagnose-telegram-connectivity.js';
+  }
+  
+  /**
+   * Log failed messages to fallback system (file-based)
+   */
+  logToFallback(message, error, context = 'Unknown') {
+    if (!this.fallbackEnabled) return;
+    
+    try {
+      const fallbackEntry = {
+        timestamp: new Date().toISOString(),
+        context: context,
+        message: message.substring(0, 200) + (message.length > 200 ? '...' : ''),
+        error: {
+          message: error.message,
+          code: error.code,
+          type: 'telegram_failure'
+        },
+        networkTimeoutCount: this.networkTimeoutCount,
+        lastSuccess: this.lastSuccessfulMessage
+      };
+      
+      logger.warn('📁 Logging failed Telegram message to fallback system', fallbackEntry);
+      
+      // TODO: Could implement file-based logging or alternative notification here
+      // For now, we just log it extensively for debugging
+      
+    } catch (fallbackError) {
+      logger.error('❌ Fallback logging also failed:', fallbackError.message);
+    }
+  }
+  
+  /**
+   * Sleep utility
+   */
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  
+  /**
+   * Safe message sending - never throws, logs errors instead with enhanced fallback
+   */
+  async sendMessageSafe(message, options = {}) {
+    try {
+      return await this.sendMessage(message, options);
+    } catch (error) {
+      logger.warn('🔄 Failed to send Telegram message (non-critical - workflow continues):', {
+        message: message.substring(0, 100) + '...',
+        error: error.message,
+        code: error.code,
+        networkTimeouts: this.networkTimeoutCount,
+        lastSuccess: this.lastSuccessfulMessage ? new Date(this.lastSuccessfulMessage).toISOString() : 'Never'
+      });
+      
+      // Log to fallback system for manual review
+      this.logToFallback(message, error);
+      
+      return null;
+    }
+  }
+  
+  /**
+   * Send message with graceful degradation - workflow continues regardless
+   */
+  async sendNotificationSafe(message, options = {}, context = 'Unknown') {
+    try {
+      const result = await this.sendMessage(message, options);
+      logger.info(`📱 Telegram notification sent successfully (${context})`);
+      return result;
+    } catch (error) {
+      logger.warn(`⚠️ Telegram notification failed for ${context}, but workflow continues:`, {
+        error: error.message,
+        code: error.code,
+        suggestion: this.getDiagnosticSuggestion(error)
+      });
+      
+      // Store for potential batch retry later
+      this.logToFallback(message, error, context);
+      
+      // Return success indicator so workflow doesn't fail
+      return { graceful_degradation: true, context, timestamp: Date.now() };
+    }
+  }
+  
   async healthCheck() {
     try {
-      // Test Telegram bot by getting bot info
+      // Test Telegram bot by getting bot info with timeout
       const botInfo = await this.bot.getMe();
       
       if (botInfo && botInfo.username) {
-        logger.info(`Bot: @${botInfo.username}`);
+        logger.info(`Bot: @${botInfo.username} (timeout: ${config.telegram.requestTimeout}ms)`);
         return true;
       } else {
         throw new Error('Invalid response from Telegram API');
       }
     } catch (error) {
-      logger.error('Telegram service health check failed:', error);
+      logger.error('Telegram service health check failed:', {
+        error: error.message,
+        code: error.code,
+        isNetworkError: this.isNetworkError(error),
+        timeout: config.telegram.requestTimeout
+      });
       throw error;
     }
   }

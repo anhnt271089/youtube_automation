@@ -29,6 +29,43 @@ const addIconPrefix = winston.format((info) => {
   return info;
 });
 
+// Safe JSON serialization function to handle circular references
+function safeJsonStringify(obj, space) {
+  const seen = new Set();
+  const replacer = (key, value) => {
+    if (value !== null && typeof value === 'object') {
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      seen.add(value);
+      
+      // Handle specific objects that commonly cause circular references
+      if (value.constructor && value.constructor.name === 'ClientRequest') {
+        return `[ClientRequest to ${value.host || 'unknown'}]`;
+      }
+      if (value.constructor && value.constructor.name === 'IncomingMessage') {
+        return `[IncomingMessage ${value.statusCode || 'unknown status'}]`;
+      }
+      if (value instanceof Error) {
+        return {
+          name: value.name,
+          message: value.message,
+          stack: value.stack,
+          code: value.code
+        };
+      }
+    }
+    return value;
+  };
+  
+  try {
+    return JSON.stringify(obj, replacer, space);
+  } catch (error) {
+    // Fallback for any remaining serialization issues
+    return `[Serialization Error: ${error.message}]`;
+  }
+}
+
 const logger = winston.createLogger({
   level: config.app.logLevel,
   format: winston.format.combine(
@@ -67,11 +104,14 @@ if (config.app.nodeEnv !== 'production') {
       addIconPrefix(),
       winston.format.colorize(),
       winston.format.printf(({ timestamp, level, message, ...meta }) => {
-        const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+        const metaStr = Object.keys(meta).length ? ` ${safeJsonStringify(meta)}` : '';
         return `[${level}]: ${message}${metaStr} ${timestamp}`;
       })
     )
   }));
 }
+
+// Export safe error serialization function for use in other modules
+export { safeJsonStringify };
 
 export default logger;
