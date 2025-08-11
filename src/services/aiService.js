@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 import DigitalOceanService from './digitalOceanService.js';
+import GoogleDriveService from './googleDriveService.js';
 import axios from 'axios';
 // import fs from 'fs';
 // import path from 'path';
@@ -18,6 +19,17 @@ class AIService {
     });
     
     this.digitalOceanService = new DigitalOceanService();
+    this.googleDriveService = new GoogleDriveService();
+    
+    // Leonardo AI HTTP client
+    this.leonardoClient = axios.create({
+      baseURL: config.leonardo.baseUrl,
+      headers: {
+        'Authorization': `Bearer ${config.leonardo.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: config.leonardo.requestTimeout
+    });
     
     // Cost tracking
     this.costTracker = {
@@ -26,23 +38,78 @@ class AIService {
       videoCosts: new Map()
     };
     
-    // Image model pricing (per image)
-    this.imagePricing = {
+    // Model pricing (per operation)
+    this.pricing = {
+      // Image generation models
       'dall-e-2': 0.02,
       'dall-e-3': 0.04, // standard quality
-      'dall-e-3-hd': 0.08 // HD quality
+      'dall-e-3-hd': 0.08, // HD quality
+      
+      // Leonardo AI models (based on API credits and plan pricing)
+      'leonardo-phoenix': 0.0018, // ~7 credits at $9/3500 credits = $0.0018
+      'leonardo-vision-xl': 0.0018,
+      'leonardo-diffusion-xl': 0.0018,
+      'leonardo-kino-xl': 0.0018,
+      'dreamshaper-v7': 0.0018,
+      
+      // Claude models (estimated per enhancement) - Much cheaper!
+      'claude-sonnet-prompt-enhancement': 0.0015, // Claude Sonnet cost per prompt enhancement (~85% cheaper)
+      'gpt-4o-mini': 0.005 // For thumbnail prompt generation
     };
     
-    // Enhanced style templates for professional video content
+    // Leonardo AI model configurations
+    this.leonardoModels = {
+      'leonardo-phoenix': {
+        id: 'b24e16ff-06e3-43eb-8d33-4416c2d75876', // Phoenix 1.0 model ID
+        name: 'Leonardo Phoenix',
+        maxWidth: 1472,
+        maxHeight: 832,
+        supportsAlchemy: true,
+        defaultPresetStyle: 'CINEMATIC'
+      },
+      'leonardo-vision-xl': {
+        id: '5c232a9e-9061-4777-980a-ddc8e65647c6', // Vision XL model ID
+        name: 'Leonardo Vision XL',
+        maxWidth: 1024,
+        maxHeight: 1024,
+        supportsAlchemy: true,
+        defaultPresetStyle: 'PHOTOGRAPHY'
+      },
+      'leonardo-diffusion-xl': {
+        id: '1e60896f-3c26-4296-8ecc-53e2afecc132', // Diffusion XL model ID
+        name: 'Leonardo Diffusion XL',
+        maxWidth: 1024,
+        maxHeight: 1024,
+        supportsAlchemy: true,
+        defaultPresetStyle: 'CREATIVE'
+      },
+      'leonardo-kino-xl': {
+        id: 'aa77f04e-3eec-4034-9c07-d0f619684628', // Kino XL model ID
+        name: 'Leonardo Kino XL',
+        maxWidth: 1024,
+        maxHeight: 1024,
+        supportsAlchemy: true,
+        defaultPresetStyle: 'CINEMATIC'
+      },
+      'dreamshaper-v7': {
+        id: 'ac614f96-1082-45bf-be9d-757f2d31c174', // DreamShaper v7 model ID
+        name: 'DreamShaper v7',
+        maxWidth: 1024,
+        maxHeight: 1024,
+        supportsAlchemy: false,
+        defaultPresetStyle: 'NONE'
+      }
+    };
+    
+    // Optimized style templates for high-converting video content
     this.styleTemplates = {
-      'minimalist': 'clean minimalist design with sophisticated color palette, modern geometric elements, premium aesthetic with subtle gradients, professional lighting, space for text overlay, high-contrast elements',
-      'realistic': 'cinematic photorealistic style with dramatic lighting, professional composition, rich textures, depth of field, premium quality aesthetics, inspiring and motivational mood',
-      'illustration': 'modern digital illustration with clean vector style, inspiring color schemes, professional design elements, sophisticated typography space, contemporary artistic approach',
-      'corporate': 'premium corporate aesthetic with modern design elements, professional color palette, clean composition, sophisticated visual hierarchy, inspiring business imagery',
-      'vibrant': 'energetic design with carefully balanced vibrant colors, modern gradients, dynamic composition, professional quality, optimized for social media engagement, inspiring energy',
-      'tech': 'cutting-edge technology aesthetic with futuristic elements, clean interface design, modern color schemes, professional lighting effects, sophisticated digital imagery',
-      'educational': 'premium educational design with clear visual hierarchy, professional infographic elements, inspiring learning aesthetics, modern teaching visuals, engaging instructional style',
-      'beyondbeing': 'inspiring motivational aesthetic with clean modern design, uplifting color palettes (blues, teals, warm whites), professional composition with space for text, cinematic quality lighting, sophisticated gradients, contemporary motivational imagery, premium self-development visual style'
+      'minimalist': 'ULTRA-CLEAN design with maximum contrast, single focal point, no decorative elements, edge-to-edge canvas usage, optimized for mobile clarity and engagement',
+      'realistic': 'clean photorealistic style with high contrast, simple composition, clear focal point, full canvas usage, mobile-optimized visibility and click-through appeal',
+      'illustration': 'simple vector illustration with bold contrast, minimal elements, clean composition, full canvas coverage, optimized for thumbnail clarity and engagement',
+      'corporate': 'clean professional design with maximum readability, single authoritative element, high contrast, full canvas usage, mobile-first optimization',
+      'vibrant': 'high-impact design with strategic color contrast, single bold element, full canvas usage edge-to-edge, maximum contrast, mobile-optimized for click-through rate',
+      'tech': 'clean technology aesthetic with high contrast, minimal elements, full canvas usage edge-to-edge, mobile-friendly clarity and professional appeal',
+      'educational': 'clear instructional design with maximum readability contrast, simple visual hierarchy, full canvas usage edge-to-edge, mobile engagement optimization'
     };
   }
 
@@ -903,7 +970,7 @@ Return only the style name (one word) that best matches this content.`;
       
       for (const sentence of scriptSentences) {
         const promptText = `
-Create a premium DALL-E image prompt for the following script sentence, designed for professional YouTube content:
+Create a premium DALL-E image prompt for the following script sentence, designed as standalone professional visual content:
 
 Sentence: "${sentence}"
 
@@ -913,7 +980,7 @@ ${baseStylePrompt}
 PROFESSIONAL ENHANCEMENT REQUIREMENTS:
 1. VISUAL EXCELLENCE: Create cinematically composed, premium quality imagery with professional lighting setup
 2. STYLE CONSISTENCY: MUST maintain the exact same ${styleInfo.style} aesthetic as all other images in this video
-3. FORMAT OPTIMIZATION: Perfect for YouTube video format (16:9 aspect ratio, optimized for 1920x1080 display)
+3. VISUAL COMPOSITION: Create compelling standalone artwork with professional composition and visual storytelling
 4. PREMIUM COMPOSITION: Apply rule of thirds, leading lines, depth of field, and professional framing techniques
 5. LIGHTING MASTERY: Implement studio-quality lighting with rim lighting, fill light, key light setup for dimensional depth
 6. COLOR SOPHISTICATION: Use carefully curated color palettes with complementary and analogous color schemes
@@ -1033,7 +1100,7 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
    * @returns {number} Cost in USD
    */
   calculateImageCost(model = config.app.imageModel, count = 1) {
-    const costPerImage = this.imagePricing[model] || this.imagePricing['dall-e-2'];
+    const costPerImage = this.pricing[model] || this.pricing['dall-e-2'];
     return costPerImage * count;
   }
 
@@ -1071,21 +1138,155 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
     return totalCost <= config.app.maxImageCostPerVideo;
   }
 
+  /**
+   * Generate image using Leonardo AI API
+   * @param {string} prompt - Image generation prompt
+   * @param {object} options - Generation options
+   * @returns {Promise<object>} Leonardo AI response with image URL
+   */
+  async generateLeonardoImage(prompt, options = {}) {
+    try {
+      const { 
+        model = config.leonardo.defaultModel,
+        width = config.app.imageWidth,
+        height = config.app.imageHeight,
+        numImages = 1,
+        enableAlchemy = config.leonardo.enableAlchemy,
+        presetStyle = null
+      } = options;
+
+      // Get model configuration
+      const modelConfig = this.leonardoModels[model];
+      if (!modelConfig) {
+        throw new Error(`Unsupported Leonardo AI model: ${model}`);
+      }
+
+      // Adjust dimensions to model limits and ensure divisible by 8
+      let finalWidth = Math.min(width, modelConfig.maxWidth);
+      let finalHeight = Math.min(height, modelConfig.maxHeight);
+      
+      // Ensure dimensions are divisible by 8 and within range [32, 1024]
+      finalWidth = Math.max(32, Math.min(1024, Math.floor(finalWidth / 8) * 8));
+      finalHeight = Math.max(32, Math.min(1024, Math.floor(finalHeight / 8) * 8));
+
+      // Build request body
+      const requestBody = {
+        modelId: modelConfig.id,
+        prompt: prompt,
+        width: finalWidth,
+        height: finalHeight,
+        num_images: numImages,
+        guidance_scale: 7, // Leonardo recommended default
+        contrastRatio: enableAlchemy ? 2.5 : undefined, // Required for alchemy
+        alchemy: enableAlchemy && modelConfig.supportsAlchemy,
+        enhancePrompt: false // We handle prompt enhancement with GPT-4o
+      };
+
+      // Add preset style if supported
+      if (presetStyle || modelConfig.defaultPresetStyle !== 'NONE') {
+        requestBody.presetStyle = presetStyle || modelConfig.defaultPresetStyle;
+      }
+
+      logger.info(`Generating Leonardo AI image: ${model} (${finalWidth}x${finalHeight})`);
+      
+      // Create generation
+      const createResponse = await this.leonardoClient.post('/generations', requestBody);
+      const generationId = createResponse.data.sdGenerationJob.generationId;
+      
+      logger.info(`Leonardo AI generation started: ${generationId}`);
+
+      // Poll for completion
+      const imageUrl = await this.pollLeonardoGeneration(generationId);
+      
+      return {
+        url: imageUrl,
+        generationId,
+        model: modelConfig.name,
+        modelId: modelConfig.id,
+        dimensions: `${finalWidth}x${finalHeight}`,
+        alchemy: requestBody.alchemy,
+        presetStyle: requestBody.presetStyle
+      };
+    } catch (error) {
+      logger.error('Error generating Leonardo AI image:', error);
+      if (error.response) {
+        logger.error('Leonardo API response:', error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Poll Leonardo AI generation until completion
+   * @param {string} generationId - Generation ID to poll
+   * @returns {Promise<string>} Image URL when complete
+   */
+  async pollLeonardoGeneration(generationId, maxAttempts = 30, pollInterval = 2000) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await this.leonardoClient.get(`/generations/${generationId}`);
+        const generation = response.data.generations_by_pk;
+        
+        if (generation.status === 'COMPLETE' && generation.generated_images?.length > 0) {
+          const imageUrl = generation.generated_images[0].url;
+          logger.info(`Leonardo AI generation completed: ${generationId}`);
+          return imageUrl;
+        } else if (generation.status === 'FAILED') {
+          throw new Error(`Leonardo AI generation failed: ${generationId}`);
+        }
+        
+        // Wait before next poll
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        logger.debug(`Polling Leonardo AI generation ${generationId} (attempt ${attempt + 1}/${maxAttempts})`);
+      } catch (error) {
+        if (attempt === maxAttempts - 1) {
+          throw new Error(`Leonardo AI polling timeout for generation ${generationId}: ${error.message}`);
+        }
+        logger.warn(`Poll attempt ${attempt + 1} failed:`, error.message);
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+    }
+    
+    throw new Error(`Leonardo AI generation timeout after ${maxAttempts} attempts`);
+  }
+
   async generateImage(prompt, options = {}) {
     try {
       // Default options for YouTube video format
       const defaultOptions = {
         size: `${config.app.imageWidth}x${config.app.imageHeight}`, // 1920x1080 for YouTube
-        model: config.app.imageModel, // Use configured model (dall-e-2 by default)
+        model: config.app.imageModel, // Use configured model
+        provider: config.app.imageProvider, // leonardo or openai
         quality: 'standard',
-        videoId: null
+        videoId: null,
+        enhanceWithClaudeSonnet: config.app.enhancePromptsWithClaudeSonnet !== 'false' // Default true for Leonardo AI optimization
       };
       
       const finalOptions = { ...defaultOptions, ...options };
       
-      // Check budget if video ID provided
+      // Enhance prompt with Claude Sonnet for Leonardo AI optimization (much cheaper!)
+      let enhancedPrompt = prompt;
+      if (finalOptions.enhanceWithClaudeSonnet && (finalOptions.videoId || options.isThumbnail)) {
+        try {
+          logger.info('🧠 Enhancing prompt with Claude Sonnet for Leonardo AI optimization...');
+          enhancedPrompt = await this.enhancePromptWithClaudeSonnet(prompt, {
+            ...options,
+            model: finalOptions.model,
+            size: finalOptions.size
+          });
+          logger.info('✨ Claude Sonnet enhanced prompt successfully');
+        } catch (enhanceError) {
+          logger.warn('Claude Sonnet prompt enhancement failed, using original:', enhanceError.message);
+          enhancedPrompt = prompt; // Fallback to original prompt
+        }
+      }
+      
+      // Check budget if video ID provided (including Claude Sonnet costs - much cheaper!)
       if (finalOptions.videoId) {
-        const estimatedCost = this.calculateImageCost(finalOptions.model, 1);
+        const imageModelCost = this.calculateImageCost(finalOptions.model, 1);
+        const claudeCost = finalOptions.enhanceWithClaudeSonnet ? 0.0015 : 0; // Claude Sonnet: $0.0015 (85% cheaper!)
+        const estimatedCost = imageModelCost + claudeCost;
+        
         if (!this.isWithinBudget(finalOptions.videoId, estimatedCost)) {
           const currentCost = this.costTracker.videoCosts.get(finalOptions.videoId)?.total || 0;
           logger.warn(`Image generation would exceed budget. Current: $${currentCost.toFixed(4)}, Max: $${config.app.maxImageCostPerVideo}`);
@@ -1093,11 +1294,40 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
         }
       }
 
-      // Generate image based on model
+      // Generate image based on provider
       let response;
       let actualCost = 0;
+      let imageUrl;
+      let revisedPrompt = enhancedPrompt;
       
-      if (finalOptions.model.startsWith('dall-e')) {
+      // Determine provider from model name or explicit provider option
+      const isLeonardoModel = finalOptions.model.startsWith('leonardo-') || finalOptions.model.startsWith('dreamshaper-');
+      const shouldUseLeonardo = finalOptions.provider === 'leonardo' || isLeonardoModel;
+      
+      if (shouldUseLeonardo) {
+        // Use Leonardo AI
+        logger.info(`Using Leonardo AI for image generation: ${finalOptions.model}`);
+        
+        const [width, height] = finalOptions.size.split('x').map(Number);
+        const leonardoResponse = await this.generateLeonardoImage(enhancedPrompt, {
+          model: finalOptions.model,
+          width,
+          height,
+          numImages: 1,
+          enableAlchemy: config.leonardo.enableAlchemy
+        });
+        
+        imageUrl = leonardoResponse.url;
+        actualCost = this.calculateImageCost(finalOptions.model, 1);
+        
+        response = {
+          leonardoData: leonardoResponse,
+          provider: 'leonardo'
+        };
+      } else if (finalOptions.model.startsWith('dall-e')) {
+        // Use OpenAI DALL-E
+        logger.info(`Using OpenAI DALL-E for image generation: ${finalOptions.model}`);
+        
         // Validate size for DALL-E models
         const validSizes = {
           'dall-e-2': ['256x256', '512x512', '1024x1024'],
@@ -1116,7 +1346,7 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
         // Build parameters based on model capabilities
         const generateParams = {
           model: finalOptions.model,
-          prompt: prompt,
+          prompt: enhancedPrompt, // Use GPT-4o enhanced prompt
           n: 1,
           size: imageSize,
           response_format: 'url'
@@ -1127,17 +1357,22 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
           generateParams.quality = finalOptions.quality;
         }
         
-        response = await this.openai.images.generate(generateParams);
+        const dalleResponse = await this.openai.images.generate(generateParams);
+        imageUrl = dalleResponse.data[0].url;
+        revisedPrompt = dalleResponse.data[0].revised_prompt || enhancedPrompt;
         
         actualCost = this.calculateImageCost(
           finalOptions.model === 'dall-e-3' && finalOptions.quality === 'hd' ? 'dall-e-3-hd' : finalOptions.model,
           1
         );
+        
+        response = {
+          dalleData: dalleResponse.data[0],
+          provider: 'openai'
+        };
       } else {
         throw new Error(`Unsupported image model: ${finalOptions.model}`);
       }
-
-      const imageUrl = response.data[0].url;
       
       // Track cost
       if (finalOptions.videoId) {
@@ -1145,18 +1380,154 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
       }
       this.costTracker.imagesGenerated++;
       
-      logger.info(`Generated ${finalOptions.model} image successfully (Cost: $${actualCost.toFixed(4)})`);
+      const enhancementInfo = finalOptions.enhanceWithClaudeSonnet && enhancedPrompt !== prompt ? ' (Claude Sonnet Enhanced)' : '';
+      const provider = response.provider === 'leonardo' ? 'Leonardo AI' : 'OpenAI DALL-E';
+      logger.info(`Generated ${provider} image successfully${enhancementInfo} (Cost: $${actualCost.toFixed(4)})`);
       
       return {
         url: imageUrl,
         prompt: prompt,
-        revisedPrompt: response.data[0].revised_prompt || prompt,
+        enhancedPrompt: enhancedPrompt,
+        revisedPrompt: revisedPrompt,
         model: finalOptions.model,
+        provider: response.provider,
         size: finalOptions.size,
-        cost: actualCost
+        cost: actualCost,
+        claudeEnhanced: finalOptions.enhanceWithClaudeSonnet && enhancedPrompt !== prompt,
+        ...response
       };
     } catch (error) {
       logger.error('Error generating image:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Enhance image generation prompts using Claude Sonnet specifically for Leonardo AI models
+   * @param {string} originalPrompt - The original image prompt
+   * @param {object} options - Context options (videoId, isThumbnail, model, etc.)
+   * @returns {string} Enhanced prompt optimized for Leonardo AI generation
+   */
+  async enhancePromptWithClaudeSonnet(originalPrompt, options = {}) {
+    try {
+      const { videoId, isThumbnail, model = 'leonardo-phoenix', size = '1792x1024' } = options;
+      
+      // Get Leonardo AI model configuration
+      const modelConfig = this.leonardoModels[model] || this.leonardoModels['leonardo-phoenix'];
+      const isPhoenixModel = model.includes('phoenix');
+      const isVisionXLModel = model.includes('vision-xl');
+      
+      const systemPrompt = `You are an expert Leonardo AI prompt optimization specialist with deep knowledge of Leonardo AI's models, particularly Phoenix, Vision XL, and Diffusion XL.
+
+Your expertise covers:
+- Leonardo AI model strengths and optimal prompt structures
+- Cinematic and photographic composition techniques
+- Mobile-first thumbnail optimization for maximum CTR
+- Leonardo AI's Alchemy engine capabilities and prompt enhancement
+
+Current Generation Context:
+- Target Model: ${modelConfig.name} (${modelConfig.id})
+- Model Specialty: ${modelConfig.defaultPresetStyle}
+- Alchemy Support: ${modelConfig.supportsAlchemy ? 'Enabled' : 'Disabled'}
+- Output Type: ${isThumbnail ? 'YouTube Thumbnail (MOBILE-FIRST)' : 'Video Content Image'}
+- Canvas Size: ${size} (${modelConfig.maxWidth}x${modelConfig.maxHeight} max)
+- Video Context: ${videoId || 'General Content'}
+
+LEONARDO AI OPTIMIZATION STRATEGY:
+
+🎨 MODEL-SPECIFIC ENHANCEMENTS:
+${isPhoenixModel ? `
+PHOENIX MODEL OPTIMIZATION:
+- CINEMATIC EXCELLENCE: Emphasize "cinematic lighting, dramatic composition, film-quality"
+- PHOTOREALISM: "hyperrealistic, professional photography, studio lighting"
+- DETAIL MASTERY: "intricate details, sharp focus, professional grade"
+- COLOR GRADING: "cinematic color grading, rich saturation, professional color palette"` : ''}
+
+${isVisionXLModel ? `
+VISION XL MODEL OPTIMIZATION:
+- PHOTOGRAPHY FOCUS: "professional photography, camera shot, photographic composition"
+- TECHNICAL SPECS: "shot with professional camera, perfect lighting, high resolution"
+- STYLE EMPHASIS: "photography style, professional photographer, studio quality"
+- COMPOSITION: "rule of thirds, professional framing, perfect exposure"` : ''}
+
+🚀 LEONARDO AI PROMPT STRUCTURE:
+1. STYLE DEFINITION: Lead with clear artistic style (cinematic/photographic/creative)
+2. SUBJECT FOCUS: Define main subject with specific descriptive details
+3. COMPOSITION: Specify camera angle, framing, and visual arrangement
+4. LIGHTING: Detailed lighting setup (studio/natural/dramatic/cinematic)
+5. QUALITY MARKERS: Professional grade, high resolution, masterpiece quality
+6. COLOR PALETTE: Specific color schemes that work well with Leonardo AI
+7. TECHNICAL SPECS: Camera settings, lens type, photography terminology
+
+📱 MOBILE THUMBNAIL OPTIMIZATION:
+- VISUAL HIERARCHY: Single dominant focal point with supporting elements
+- CONTRAST MASTERY: High contrast ratios for mobile screen visibility
+- SCALE CONSIDERATIONS: Elements readable at 156x88px mobile thumbnail size
+- EDGE-TO-EDGE: Full canvas utilization with no wasted space
+- CLARITY: Remove complex patterns that become noise at small sizes
+
+🎯 LEONARDO AI BEST PRACTICES:
+- Use specific photography/cinematography terminology
+- Include professional quality indicators ("masterpiece", "award-winning")
+- Specify exact lighting conditions Leonardo AI excels at
+- Include composition rules (rule of thirds, leading lines, symmetry)
+- Add technical photography details (depth of field, bokeh, focal length)
+- Use color temperature specifications (warm/cool lighting)
+- Include texture and material descriptions Leonardo AI renders well
+
+⚡ ALCHEMY ENGINE OPTIMIZATION:
+${modelConfig.supportsAlchemy ? '- Alchemy ENABLED: Use complex lighting scenarios and advanced compositions\n- Advanced materials: "metallic surfaces, glass reflections, fabric textures"\n- Complex lighting: "rim lighting, volumetric lighting, god rays, ambient occlusion"\n- Professional effects: "depth of field, motion blur, chromatic aberration"' : '- Alchemy DISABLED: Focus on clear, simple compositions\n- Direct lighting descriptions\n- Straightforward material descriptions\n- Avoid complex lighting terminology'}
+
+🎨 LEONARDO AI COLOR SCIENCE:
+- Warm Cinematics: "golden hour lighting, warm color temperature 3200K"
+- Cool Professionalism: "daylight balanced 5600K, cool blue undertones"
+- High Contrast: "dramatic lighting, deep shadows, bright highlights"
+- Saturated Vibrancy: "rich colors, high saturation, vivid palette"
+
+🏆 QUALITY ENHANCEMENT KEYWORDS:
+- "masterpiece quality, award-winning composition"
+- "professional photography, studio lighting setup"
+- "cinematic composition, film-quality rendering"
+- "hyperrealistic detail, sharp focus throughout"
+
+CRITICAL REQUIREMENTS:
+✅ Optimize specifically for Leonardo AI's strengths and rendering capabilities
+✅ Include model-appropriate style keywords (cinematic/photographic/creative)
+✅ Add professional quality markers Leonardo AI responds well to
+✅ Specify exact lighting conditions and technical details
+✅ Ensure mobile thumbnail optimization for maximum CTR
+✅ Remove any text overlay references (pure visual generation)
+✅ Full canvas utilization with edge-to-edge composition
+✅ Keep prompt length optimal for Leonardo AI processing (200-300 words)
+
+Transform the original prompt into a Leonardo AI-optimized masterpiece that leverages the model's specific strengths while maintaining mobile-first thumbnail effectiveness.`;
+
+      const completion = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 800,
+        messages: [
+          {
+            role: 'user',
+            content: `${systemPrompt}\n\nOriginal Prompt to Enhance:\n\n${originalPrompt}`
+          }
+        ]
+      });
+
+      const enhancedPrompt = completion.content[0].text.trim();
+      
+      // Track Claude Sonnet cost (much cheaper than GPT-4o!)
+      if (videoId) {
+        this.trackVideoCost(videoId, 0.0015, 'claude-sonnet-prompt-enhancement');
+      }
+      
+      logger.debug('Original prompt length:', originalPrompt.length);
+      logger.debug('Enhanced prompt length:', enhancedPrompt.length);
+      logger.info(`✨ Claude Sonnet enhanced prompt for ${modelConfig.name} ($${(0.0015).toFixed(4)} vs GPT-4o $0.01 - 85% savings!)`);
+      
+      return enhancedPrompt;
+      
+    } catch (error) {
+      logger.error('Error enhancing prompt with Claude Sonnet:', error);
       throw error;
     }
   }
@@ -1183,13 +1554,13 @@ VISUAL COMPOSITION:
 3. Inspiring and motivational visual elements that convey growth and transformation
 4. Contemporary color palette with uplifting blues, teals, warm whites, and subtle gradients
 5. High-contrast elements for maximum visibility in YouTube's interface
-6. Clean negative space optimized for bold, readable text overlay placement
+6. FULL CANVAS COVERAGE edge-to-edge with NO EMPTY SPACE or padding
 
 PROFESSIONAL QUALITY STANDARDS:
 7. Cinematic lighting with soft shadows and professional highlights
 8. Premium visual hierarchy that guides the viewer's eye naturally
 9. Modern, sophisticated design elements that feel current and inspiring
-10. Optimized for 16:9 aspect ratio (1792x1024 for DALL-E 3) with mobile visibility consideration
+10. Optimized for horizontal format (1792x1024 for DALL-E 3) with mobile visibility consideration
 11. High-resolution clarity that maintains quality at all sizes
 12. Psychology-driven color choices that evoke inspiration, growth, and positive transformation
 
@@ -1198,7 +1569,7 @@ ENGAGEMENT OPTIMIZATION:
 14. Emotionally resonant imagery that connects with personal development audience
 15. Professional polish that builds trust and authority
 16. Strategic use of visual metaphors related to growth, success, and self-improvement
-17. Clean typography areas that don't compete with the main visual elements
+17. NO TEXT OVERLAYS OR WRITTEN CONTENT - pure visual storytelling only
 18. Subtle texture and gradient work for premium feel without visual clutter
 
 STYLE CHARACTERISTICS (Professional Aesthetic):
@@ -1209,7 +1580,13 @@ STYLE CHARACTERISTICS (Professional Aesthetic):
 - Contemporary motivational imagery that feels aspirational
 - Premium finish that reflects high-value content
 
-Generate a detailed DALL-E prompt that creates this professional-style thumbnail.`;
+ABSOLUTE REQUIREMENTS:
+- NO TEXT OVERLAYS OR WRITTEN CONTENT whatsoever
+- FULL CANVAS COVERAGE edge-to-edge with NO EMPTY SPACE
+- Content must fill entire image area completely
+- Pure visual communication without any text elements
+
+Generate a detailed DALL-E prompt that creates this professional-style thumbnail focusing on visual storytelling only.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -1229,11 +1606,13 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
 
       const prompt = completion.choices[0].message.content.trim();
       
-      // Generate thumbnail with cost tracking
+      // Generate thumbnail with cost tracking and Claude Sonnet enhancement
       const thumbnailOptions = {
         size: '1792x1024', // Best 16:9 ratio for DALL-E 3
         videoId,
-        quality: 'standard'
+        quality: 'standard',
+        isThumbnail: true, // Mark as thumbnail for Claude Sonnet enhancement
+        enhanceWithClaudeSonnet: true // Explicitly enable Claude Sonnet enhancement for thumbnails
       };
       
       const thumbnailImage = await this.generateImage(prompt, thumbnailOptions);
@@ -1252,12 +1631,12 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
   }
 
   /**
-   * Download image from URL and upload to Digital Ocean Spaces
+   * Download image from URL and upload to storage (Google Drive primary, Digital Ocean fallback)
    * @param {string} imageUrl - URL of the image to download
    * @param {string} fileName - Name for the uploaded file
    * @param {string} videoId - Video identifier for folder organization
    * @param {string} folderType - Type of folder ('images' or 'thumbnails')
-   * @returns {Promise<{url: string, cdnUrl: string}>}
+   * @returns {Promise<{url: string, cdnUrl: string, driveUrl?: string}>}
    */
   async downloadAndUploadImage(imageUrl, fileName, videoId, folderType = 'images') {
     try {
@@ -1269,15 +1648,38 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
       
       const imageBuffer = Buffer.from(response.data);
       
-      // Upload to Digital Ocean Spaces with correct folder
-      const uploadResult = await this.digitalOceanService.uploadImage(
-        imageBuffer,
-        fileName,
-        `videos/${videoId}/${folderType}`
-      );
-      
-      logger.info(`DO ${folderType}: ${uploadResult.cdnUrl}`);
-      return uploadResult;
+      // Try Google Drive first (primary storage)
+      try {
+        const driveUploadResult = await this.googleDriveService.uploadImage(
+          imageBuffer,
+          fileName,
+          videoId,
+          folderType
+        );
+        
+        logger.info(`Google Drive ${folderType}: ${driveUploadResult.driveUrl}`);
+        return {
+          url: driveUploadResult.driveUrl,
+          cdnUrl: driveUploadResult.driveUrl, // For compatibility
+          driveUrl: driveUploadResult.driveUrl,
+          provider: 'google-drive'
+        };
+      } catch (driveError) {
+        logger.warn(`Google Drive upload failed, falling back to Digital Ocean: ${driveError.message}`);
+        
+        // Fallback to Digital Ocean Spaces
+        const uploadResult = await this.digitalOceanService.uploadImage(
+          imageBuffer,
+          fileName,
+          `videos/${videoId}/${folderType}`
+        );
+        
+        logger.info(`Digital Ocean ${folderType}: ${uploadResult.cdnUrl}`);
+        return {
+          ...uploadResult,
+          provider: 'digital-ocean'
+        };
+      }
     } catch (error) {
       logger.error(`Error downloading and uploading ${folderType}:`, error);
       throw error;
@@ -1300,7 +1702,7 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
       const estimatedCost = this.calculateImageCost(config.app.imageModel, promptsToGenerate.length);
       if (!this.isWithinBudget(videoId, estimatedCost)) {
         logger.warn(`Total estimated cost ($${estimatedCost.toFixed(4)}) would exceed budget for video ${videoId}`);
-        const maxAffordableImages = Math.floor(config.app.maxImageCostPerVideo / this.imagePricing[config.app.imageModel]);
+        const maxAffordableImages = Math.floor(config.app.maxImageCostPerVideo / this.pricing[config.app.imageModel]);
         logger.info(`Limiting to ${maxAffordableImages} images to stay within budget`);
         promptsToGenerate.splice(maxAffordableImages);
       }
@@ -1483,7 +1885,7 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
       videoCosts: Object.fromEntries(this.costTracker.videoCosts),
       budgetPerVideo: config.app.maxImageCostPerVideo,
       costSavingsVsDallE3: this.costTracker.imagesGenerated * 
-        (this.imagePricing['dall-e-3'] - this.imagePricing[config.app.imageModel])
+        (this.pricing['dall-e-3'] - this.pricing[config.app.imageModel])
     };
   }
 
@@ -1526,7 +1928,7 @@ COGNITIVE LOAD MANAGEMENT:
 VIEWING ENVIRONMENT CALCULATIONS:
 - Screen Size: 5.5" average mobile display
 - Viewing Distance: 12-16 inches from face
-- Thumbnail Size: 1280x720px rendered at 320x180px
+- Thumbnail Size: Image rendered at multiple sizes
 - Critical Zone: Central 60% of thumbnail area
 - Finger Scrolling: 0.3-second attention window
 
@@ -1651,6 +2053,12 @@ Style 2: Professional/Clean - Use minimal design, clear typography, and visual m
 
   async healthCheck() {
     try {
+      const healthResults = {
+        claude: false,
+        openai: false,
+        leonardo: false
+      };
+
       // Test Claude Sonnet API first (primary)
       try {
         const claudeCompletion = await this.anthropic.messages.create({
@@ -1665,38 +2073,64 @@ Style 2: Professional/Clean - Use minimal design, clear typography, and visual m
         });
 
         if (claudeCompletion.content && claudeCompletion.content.length > 0) {
+          healthResults.claude = true;
           logger.info('AI service health check passed (Claude Sonnet)');
-          return true;
         }
       } catch (claudeError) {
-        logger.warn('Claude Sonnet health check failed, trying OpenAI fallback:', claudeError.message);
+        logger.warn('Claude Sonnet health check failed:', claudeError.message);
       }
 
-      // Fallback to OpenAI API
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant.'
-          },
-          {
-            role: 'user',
-            content: 'Say "AI service is working" if you can respond.'
-          }
-        ],
-        max_tokens: 50,
-        temperature: 0.1
-      });
+      // Test OpenAI API
+      try {
+        const completion = await this.openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.'
+            },
+            {
+              role: 'user',
+              content: 'Say "AI service is working" if you can respond.'
+            }
+          ],
+          max_tokens: 50,
+          temperature: 0.1
+        });
 
-      if (completion.choices && completion.choices.length > 0) {
-        logger.info('AI service health check passed (OpenAI fallback)');
+        if (completion.choices && completion.choices.length > 0) {
+          healthResults.openai = true;
+          logger.info('AI service health check passed (OpenAI)');
+        }
+      } catch (openaiError) {
+        logger.warn('OpenAI health check failed:', openaiError.message);
+      }
+
+      // Test Leonardo AI API if configured
+      if (config.leonardo.apiKey) {
+        try {
+          const response = await this.leonardoClient.get('/me');
+          if (response.data) {
+            healthResults.leonardo = true;
+            logger.info('AI service health check passed (Leonardo AI)');
+          }
+        } catch (leonardoError) {
+          logger.warn('Leonardo AI health check failed:', leonardoError.message);
+        }
+      } else {
+        logger.info('Leonardo AI not configured, skipping health check');
+      }
+
+      // Return success if at least one service is working
+      const workingServices = Object.values(healthResults).filter(Boolean).length;
+      if (workingServices > 0) {
+        logger.info(`AI service health check: ${workingServices}/3 services working`);
         return true;
       } else {
-        throw new Error('Invalid response from both Claude and OpenAI APIs');
+        throw new Error('All AI services failed health check');
       }
     } catch (error) {
-      logger.error('AI service health check failed for both providers:', error);
+      logger.error('AI service health check failed:', error);
       throw error;
     }
   }
