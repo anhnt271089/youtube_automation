@@ -1,7 +1,7 @@
 {
   "videoId": "VID-0001",
   "version": "1.0",
-  "createdAt": "2025-08-08T17:08:31.341Z",
+  "createdAt": "2025-08-11T11:00:03.477Z",
   "originalMetadata": {
     "videoId": "yIarDv9G7JM",
     "title": "The Art Of Making A Plan ( That Actually Works )",
@@ -31,8 +31,8 @@
       }
     },
     "duration": "1:35",
-    "viewCount": 218674,
-    "likeCount": 17230,
+    "viewCount": 225521,
+    "likeCount": 17696,
     "tags": [],
     "categoryId": "27",
     "transcript": [
@@ -62,8 +62,8 @@
     },
     "thumbnailUrl": "https://img.youtube.com/vi/yIarDv9G7JM/maxresdefault.jpg",
     "originalUrl": "https://www.youtube.com/watch?v=yIarDv9G7JM",
-    "fetchedAt": "2025-08-08T17:08:31.343Z",
-    "checksum": "85087ccef9178839058ee474c0398e10f0b1b559cbb4fe0b6822b1b9d16901ba"
+    "fetchedAt": "2025-08-11T11:00:03.477Z",
+    "checksum": "8e98090d59b55034e97620665a5a390ef4d0b25ceaf1362eed24f533380228ba"
   },
   "workflowMetadata": {
     "processedAt": null,
@@ -74,7 +74,7 @@
     "processingAttempts": 0
   },
   "systemIntegrity": {
-    "lastValidated": "2025-08-08T17:08:31.344Z",
+    "lastValidated": "2025-08-11T11:00:03.477Z",
     "validationStatus": "verified",
     "backupCreated": false
   }
