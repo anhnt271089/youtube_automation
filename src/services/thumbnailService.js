@@ -9,18 +9,18 @@ class ThumbnailService {
     // Note: Removed caching system since Claude Sonnet is 85% cheaper than GPT-4o
     // Making it cost-effective to generate fresh prompts each time for better results
     
-    // HIGH-CTR YouTube thumbnail styles based on proven viral psychology
-    // Focus: Human faces, emotions, curiosity gaps, bold text, high contrast colors
+    // Content-driven thumbnail styles that adapt to video subject matter
+    // Maintains high CTR while being relevant to actual content
     this.thumbnailStyles = {
       style1: {
-        name: 'Viral Breakthrough',
-        description: 'Human-focused thumbnail with discovery/breakthrough emotional psychology',
-        prompt: 'Professional overhead photograph of an organized desk workspace. Show planning materials spread across wooden surface: open notebooks with diagrams, colorful sticky notes in patterns, calendar pages, pens, coffee cup, charts. Warm natural lighting with rich shadows and depth. Colors: warm wood tones, vibrant blues and oranges for papers, clean whites. Fill entire frame edge-to-edge with no borders or empty space. High-resolution photography style with inspiring organized aesthetic.'
+        name: 'Content Focus',
+        description: 'Primary content representation with optimized psychology',
+        adaptToContent: true
       },
       style2: {
-        name: 'Transformation Success',
-        description: 'Before/after transformation theme with proven success psychology', 
-        prompt: 'Professional portrait photograph of confident person with arms raised celebrating success. Person shows genuine joy and achievement with bright smile. Background filled with subtle success symbols: upward trending arrows, achievement badges, celebration elements. Dramatic lighting with person well-lit against dynamic background. Colors: deep blues for confidence, bright golds for success, warm skin tones. Fill entire frame edge-to-edge with no borders or empty space. High-energy portrait photography with motivational appeal.'
+        name: 'Transformation Angle', 
+        description: 'Before/after or problem/solution perspective',
+        adaptToContent: true
       }
     };
     
@@ -29,7 +29,8 @@ class ThumbnailService {
       width: 1280,
       height: 720,
       format: config.app.thumbnailFormat || 'JPG',
-      dalleSize: '1792x1024', // DALL-E 3 horizontal format
+      leonardoSize: '1280x720', // YouTube thumbnail format for Leonardo AI
+      dalleSize: '1792x1024', // DALL-E 3 horizontal format (legacy)
       quality: config.app.thumbnailQuality || 'standard'
     };
   }
@@ -70,12 +71,12 @@ class ThumbnailService {
       const result = {
         thumbnail1: {
           ...thumbnail1,
-          fileName: `thumbnail_1.${fileExtension}`,
+          fileName: `(${videoId}) thumbnail_1.${fileExtension}`,
           style: this.thumbnailStyles.style1.name
         },
         thumbnail2: {
           ...thumbnail2,
-          fileName: `thumbnail_2.${fileExtension}`, 
+          fileName: `(${videoId}) thumbnail_2.${fileExtension}`, 
           style: this.thumbnailStyles.style2.name
         },
         totalGenerated: 2,
@@ -145,13 +146,13 @@ class ThumbnailService {
         parsedContext.emotionalTone = 'educational';
       }
       
-      // Extract key visual elements
+      // Extract key visual elements (content-focused, not face-focused)
       const visualKeywords = [
-        'face', 'faces', 'expression', 'emotion', 'close-up',
+        'tools', 'charts', 'graphs', 'data', 'statistics', 'arrows',
         'text', 'typography', 'bold', 'contrast', 'bright',
         'colors', 'vibrant', 'professional', 'clean', 'minimal',
-        'charts', 'graphs', 'data', 'statistics', 'arrows',
-        'success', 'growth', 'transformation', 'achievement'
+        'success', 'growth', 'transformation', 'achievement',
+        'face', 'faces', 'expression', 'emotion', 'close-up'
       ];
       
       visualKeywords.forEach(keyword => {
@@ -196,25 +197,25 @@ class ThumbnailService {
         }
       });
       
-      // Default metaphors if none found
+      // Default metaphors if none found (content-focused)
       if (parsedContext.visualMetaphors.length === 0) {
-        parsedContext.visualMetaphors = ['success', 'engagement', 'value'];
+        parsedContext.visualMetaphors = ['relevant symbols', 'content tools', 'value indicators'];
       }
       
       // Extract style-specific information
-      if (concepts.includes('style 1') || concepts.includes('emotional')) {
+      if (concepts.includes('style 1') || concepts.includes('content focus')) {
         parsedContext.style1Details = {
-          approach: 'emotional/dramatic',
+          approach: 'content-focused',
           colors: parsedContext.colorSuggestions.slice(0, 2),
-          elements: ['close-up faces', 'bold text', 'high contrast']
+          elements: ['relevant visuals', 'content symbols', 'high contrast']
         };
       }
       
-      if (concepts.includes('style 2') || concepts.includes('professional')) {
+      if (concepts.includes('style 2') || concepts.includes('transformation')) {
         parsedContext.style2Details = {
-          approach: 'professional/clean',
+          approach: 'transformation/solution',
           colors: ['blue and white', 'minimal palette'],
-          elements: ['clean typography', 'visual metaphors', 'authority signals']
+          elements: ['before/after visuals', 'solution symbols', 'progress indicators']
         };
       }
       
@@ -234,14 +235,16 @@ class ThumbnailService {
     } catch (error) {
       logger.warn('Failed to parse stored concepts, using title-based fallback:', error.message);
       
-      // Fallback to basic parsing based on title
+      // Fallback to basic parsing based on title (content-aware)
       return {
-        mainTheme: title || 'Unknown Theme',
-        keyElements: ['engaging', 'professional', 'clickable'],
+        mainTheme: title || 'Valuable Content',
+        contentType: 'general',
+        keyElements: ['relevant', 'professional', 'clickable'],
         emotionalTone: 'inspiring',
-        visualMetaphors: ['success', 'value'],
+        visualMetaphors: ['content symbols', 'value indicators'],
         colorSuggestions: ['vibrant', 'high contrast'],
-        textElements: title || 'Engaging Content'
+        textElements: title || 'Content Focus',
+        humanElements: []
       };
     }
   }
@@ -279,7 +282,67 @@ class ThumbnailService {
   }
 
   /**
-   * Generate context-aware prompt for thumbnails
+   * Analyze content type and determine appropriate thumbnail approach
+   * @private
+   */
+  analyzeContentType(title, scriptContent) {
+    const content = `${title} ${scriptContent}`.toLowerCase();
+    
+    // Content type analysis - determines visual approach
+    const contentTypes = {
+      planning: {
+        keywords: ['plan', 'planning', 'strategy', 'organize', 'schedule', 'workflow', 'system', 'method'],
+        visualElements: ['calendars', 'checklists', 'charts', 'diagrams', 'organized workspace'],
+        humanAppropriate: false,
+        focusType: 'tools_and_systems'
+      },
+      educational: {
+        keywords: ['learn', 'tutorial', 'guide', 'how to', 'tips', 'tricks', 'course', 'lesson'],
+        visualElements: ['books', 'screens', 'diagrams', 'step indicators', 'knowledge symbols'],
+        humanAppropriate: false,
+        focusType: 'knowledge_transfer'
+      },
+      business: {
+        keywords: ['business', 'money', 'profit', 'investment', 'marketing', 'sales', 'growth', 'success'],
+        visualElements: ['graphs', 'charts', 'money symbols', 'growth arrows', 'business tools'],
+        humanAppropriate: true,
+        focusType: 'achievement_oriented'
+      },
+      personal: {
+        keywords: ['personal', 'life', 'mindset', 'habits', 'motivation', 'confidence', 'self'],
+        visualElements: ['transformation symbols', 'personal items', 'lifestyle elements'],
+        humanAppropriate: true,
+        focusType: 'personal_transformation'
+      },
+      technical: {
+        keywords: ['code', 'software', 'app', 'tech', 'programming', 'development', 'tools'],
+        visualElements: ['screens', 'code', 'devices', 'interfaces', 'technical diagrams'],
+        humanAppropriate: false,
+        focusType: 'technical_demonstration'
+      }
+    };
+    
+    // Find best matching content type
+    let bestMatch = { type: 'general', score: 0, config: contentTypes.business };
+    
+    Object.entries(contentTypes).forEach(([type, config]) => {
+      const matchCount = config.keywords.filter(keyword => content.includes(keyword)).length;
+      if (matchCount > bestMatch.score) {
+        bestMatch = { type, score: matchCount, config };
+      }
+    });
+    
+    return {
+      contentType: bestMatch.type,
+      humanFacesAppropriate: bestMatch.config.humanAppropriate,
+      visualElements: bestMatch.config.visualElements,
+      focusType: bestMatch.config.focusType,
+      matchStrength: bestMatch.score
+    };
+  }
+
+  /**
+   * Generate content-aware context for thumbnails
    * @private
    */
   async generateThumbnailContext(title, scriptContent) {
@@ -288,33 +351,40 @@ class ThumbnailService {
       const safeScriptContent = scriptContent || title || 'No content available';
       const contentPreview = safeScriptContent.toString().substring(0, 500);
       
+      // Analyze content type first
+      const contentAnalysis = this.analyzeContentType(title, contentPreview);
+      
       const prompt = `
-Analyze this YouTube video content for HIGH-CTR thumbnail generation using VIRAL PSYCHOLOGY principles:
+Analyze this YouTube video content for HIGH-CTR thumbnail generation that MATCHES THE ACTUAL CONTENT:
 
 Title: "${title || 'Unknown Title'}"
 Content: "${contentPreview}..."
+Content Type Detected: ${contentAnalysis.contentType}
+Human Faces Appropriate: ${contentAnalysis.humanFacesAppropriate}
+Visual Focus: ${contentAnalysis.focusType}
 
-Return JSON with thumbnail context optimized for maximum click-through rate:
+Return JSON with thumbnail context optimized for this SPECIFIC content type:
 {
-  "mainTheme": "Core value proposition/benefit",
-  "emotionalHook": "Primary emotional trigger (curiosity, urgency, transformation, discovery)",
-  "humanElements": ["facial expression", "body language", "emotion to convey"],
+  "mainTheme": "Core value proposition/benefit from the actual content",
+  "contentType": "${contentAnalysis.contentType}",
+  "emotionalHook": "Primary emotional trigger relevant to content type",
+  "humanElements": ${contentAnalysis.humanFacesAppropriate ? '["appropriate facial expression if relevant"]' : '[]'},
   "visualElements": {
-    "primary": "Main visual focal point or symbol",
-    "secondary": "Supporting visual elements",
-    "curiosityGap": "Visual intrigue element or compelling imagery"
+    "primary": "Main visual that represents the actual content topic",
+    "secondary": "Supporting visual elements from the content domain",
+    "contentSymbols": "Visual metaphors specific to this content type"
   },
   "colorPsychology": {
-    "primary": "High-contrast background color with hex code",
+    "primary": "High-contrast color with hex code appropriate for content type",
     "accent": "Text/element color with hex code",
-    "emotion": "Psychological impact of color choice"
+    "emotion": "Psychological impact relevant to content"
   },
-  "viralElements": ["arrows", "before/after", "shocking element", "social proof"],
-  "transformationAspect": "Before vs after or problem vs solution angle",
-  "mobileClarifty": "Key elements that must be visible at 156x88px"
+  "contentSpecific": ["visual elements from ${contentAnalysis.visualElements.join(', ')}"],
+  "transformationAspect": "Before vs after angle specific to this content type",
+  "mobileClarifty": "Key content-relevant elements visible at thumbnail size"
 }
 
-Focus on proven YouTube psychology: faces, emotions, curiosity gaps, transformation, urgency.`;
+FOCUS ON CONTENT RELEVANCE: Make thumbnails visually represent what the video is actually about, not generic psychology.`;
 
       const completion = await this.aiService.anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
@@ -352,24 +422,25 @@ Focus on proven YouTube psychology: faces, emotions, curiosity gaps, transformat
       
       const parsedContext = JSON.parse(responseText);
       
-      // Validate parsed context has required fields for viral psychology
+      // Validate parsed context has required fields for content-aware generation
       const validatedContext = {
-        mainTheme: parsedContext.mainTheme || title || 'Success Method',
-        emotionalHook: parsedContext.emotionalHook || 'breakthrough',
-        humanElements: Array.isArray(parsedContext.humanElements) ? parsedContext.humanElements : ['confident expression', 'direct eye contact', 'discovery emotion'],
+        mainTheme: parsedContext.mainTheme || title || 'Valuable Content',
+        contentType: parsedContext.contentType || 'general',
+        emotionalHook: parsedContext.emotionalHook || 'compelling benefit',
+        humanElements: Array.isArray(parsedContext.humanElements) ? parsedContext.humanElements : [],
         visualElements: parsedContext.visualElements || {
-          primary: 'Compelling visual symbol',
+          primary: 'Content-relevant symbol',
           secondary: 'Supporting imagery', 
-          curiosityGap: 'Visual intrigue element'
+          contentSymbols: 'Topic-specific visuals'
         },
         colorPsychology: parsedContext.colorPsychology || {
           primary: '#1e3a8a',
           accent: '#fb923c',
           emotion: 'trust and energy'
         },
-        viralElements: Array.isArray(parsedContext.viralElements) ? parsedContext.viralElements : ['arrows', 'checkmarks', 'transformation'],
+        contentSpecific: Array.isArray(parsedContext.contentSpecific) ? parsedContext.contentSpecific : ['relevant visual elements'],
         transformationAspect: parsedContext.transformationAspect || 'problem to solution',
-        mobileClarifty: parsedContext.mobileClarifty || 'face and main text visible'
+        mobileClarifty: parsedContext.mobileClarifty || 'main content elements visible'
       };
       
       return validatedContext;
@@ -377,51 +448,54 @@ Focus on proven YouTube psychology: faces, emotions, curiosity gaps, transformat
     } catch (error) {
       logger.warn('Failed to generate thumbnail context, using intelligent fallback:', error.message);
       
-      // Enhanced fallback context using viral psychology principles
-      const safeTitle = title || 'Success Method';
-      let emotionalHook = 'breakthrough';
-      let humanElements = ['confident expression', 'direct eye contact'];
-      let colorPsychology = { primary: '#1e3a8a', accent: '#fb923c', emotion: 'trust and energy' };
-      let viralElements = ['arrows', 'checkmarks'];
-      let visualElements = { primary: 'Success symbol', secondary: 'Achievement imagery', curiosityGap: 'Compelling visual hook' };
+      // Enhanced fallback context using content-aware principles
+      const safeTitle = title || 'Unknown Content';
+      const contentAnalysis = this.analyzeContentType(safeTitle, '');
       
-      // Title-based psychology optimization
+      let emotionalHook = 'breakthrough';
+      let humanElements = [];
+      let colorPsychology = { primary: '#1e3a8a', accent: '#fb923c', emotion: 'trust and energy' };
+      let contentSpecific = ['relevant visual elements'];
+      let visualElements = { primary: 'Content symbol', secondary: 'Supporting imagery', contentSymbols: 'Topic-specific visuals' };
+      
+      // Content-based optimization (not forced psychology)
       const titleLower = safeTitle.toLowerCase();
       if (titleLower.includes('money') || titleLower.includes('rich') || titleLower.includes('wealth')) {
-        emotionalHook = 'wealth transformation';
-        humanElements = ['shocked expression', 'money gesture', 'success smile'];
+        emotionalHook = 'wealth achievement';
+        humanElements = contentAnalysis.humanFacesAppropriate ? ['success expression'] : [];
         colorPsychology = { primary: '#166534', accent: '#fbbf24', emotion: 'wealth and success' };
-        viralElements = ['dollar signs', 'growth arrows', 'before/after'];
-        visualElements = { primary: 'Wealth symbols', secondary: 'Money imagery', curiosityGap: 'Financial success visuals' };
+        contentSpecific = ['dollar symbols', 'growth charts', 'financial graphics'];
+        visualElements = { primary: 'Wealth symbols', secondary: 'Money charts', contentSymbols: 'Financial success visuals' };
       } else if (titleLower.includes('plan') || titleLower.includes('strategy') || titleLower.includes('method')) {
-        emotionalHook = 'discovery moment';
-        humanElements = ['lightbulb expression', 'pointing gesture', 'aha moment'];
-        colorPsychology = { primary: '#1e3a8a', accent: '#fb923c', emotion: 'trust and breakthrough' };
-        viralElements = ['checklist', 'arrows', 'step numbers'];
-        visualElements = { primary: 'Planning symbols', secondary: 'Organization imagery', curiosityGap: 'Strategy visuals' };
+        emotionalHook = 'organized success';
+        humanElements = []; // Planning content doesn't need faces
+        colorPsychology = { primary: '#1e3a8a', accent: '#fb923c', emotion: 'trust and organization' };
+        contentSpecific = ['calendars', 'checklists', 'planning tools', 'organized workspace'];
+        visualElements = { primary: 'Planning tools', secondary: 'Organization systems', contentSymbols: 'Strategy visuals' };
       } else if (titleLower.includes('secret') || titleLower.includes('hidden') || titleLower.includes('revealed')) {
-        emotionalHook = 'forbidden knowledge';
-        humanElements = ['whispering gesture', 'shocked face', 'secret reveal'];
+        emotionalHook = 'revelation';
+        humanElements = contentAnalysis.humanFacesAppropriate ? ['surprised expression'] : [];
         colorPsychology = { primary: '#7c2d12', accent: '#fbbf24', emotion: 'mystery and revelation' };
-        viralElements = ['lock/key', 'spotlight', 'revealed elements'];
-        visualElements = { primary: 'Mystery symbols', secondary: 'Revelation imagery', curiosityGap: 'Hidden truth visuals' };
+        contentSpecific = ['lock symbols', 'key imagery', 'hidden elements'];
+        visualElements = { primary: 'Mystery symbols', secondary: 'Revelation imagery', contentSymbols: 'Hidden knowledge visuals' };
       } else if (titleLower.includes('learn') || titleLower.includes('how') || titleLower.includes('guide')) {
         emotionalHook = 'knowledge mastery';
-        humanElements = ['teaching gesture', 'confident expression', 'expert pose'];
+        humanElements = []; // Educational content focuses on learning materials
         colorPsychology = { primary: '#1d4ed8', accent: '#f59e0b', emotion: 'authority and learning' };
-        viralElements = ['arrows', 'step numbers', 'knowledge symbols'];
-        visualElements = { primary: 'Learning symbols', secondary: 'Knowledge imagery', curiosityGap: 'Quick mastery visuals' };
+        contentSpecific = ['books', 'screens', 'learning tools', 'educational symbols'];
+        visualElements = { primary: 'Learning materials', secondary: 'Knowledge tools', contentSymbols: 'Educational visuals' };
       }
       
       return {
         mainTheme: safeTitle,
+        contentType: contentAnalysis.contentType,
         emotionalHook,
         humanElements,
         visualElements,
         colorPsychology,
-        viralElements,
+        contentSpecific,
         transformationAspect: 'problem to solution',
-        mobileClarifty: 'face and main visual elements clearly visible'
+        mobileClarifty: contentAnalysis.humanFacesAppropriate ? 'face and main elements visible' : 'main content elements clearly visible'
       };
     }
   }
@@ -434,61 +508,70 @@ Focus on proven YouTube psychology: faces, emotions, curiosity gaps, transformat
     // No caching needed since Claude Sonnet is 85% cheaper than GPT-4o
     // Fresh prompts each time ensure better optimization and variety
     
-    // Create base thumbnail prompt using viral psychology principles
+    // Create content-aware thumbnail prompt
+    const humanFacesNeeded = context.humanElements && context.humanElements.length > 0;
+    const contentType = context.contentType || 'general';
+    const contentElements = context.contentSpecific || context.visualElements || [];
+    
     const baseThumbnailPrompt = `
-Create a VIRAL HIGH-CTR YouTube thumbnail using proven click psychology.
+Create a HIGH-CTR YouTube thumbnail that VISUALLY REPRESENTS the actual video content.
 
 VIDEO CONTEXT:
 - Title: "${title}"
-- Value Proposition: ${context.mainTheme || 'Transformation/Success'}
-- Emotional Hook: ${context.emotionalHook || 'Discovery/Breakthrough'}
-- Human Element: ${context.humanElements?.join(', ') || 'Confident expression, eye contact'}
-- Visual Elements: ${context.visualElements?.primary || 'Compelling symbol'} + ${context.visualElements?.secondary || 'Supporting imagery'}
+- Content Type: ${contentType}
+- Value Proposition: ${context.mainTheme || 'Valuable Content'}
+- Emotional Hook: ${context.emotionalHook || 'Compelling Benefit'}
+${humanFacesNeeded ? `- Human Element: ${context.humanElements.join(', ')}` : '- Human Element: Not required for this content type'}
+- Visual Focus: ${context.visualElements?.primary || 'Content-specific imagery'}
+- Supporting Elements: ${context.visualElements?.secondary || 'Relevant symbols'}
 
-VIRAL PSYCHOLOGY REQUIREMENTS:
-🎯 HUMAN FACE: Close-up with clear emotional expression (discovery, confidence, surprise)
-🎯 EYE CONTACT: Direct viewer connection for psychological engagement
-🎯 CURIOSITY GAP: Visual elements that create "what happens next" intrigue
-🎯 TRANSFORMATION: Before/after or problem/solution visual cues
-🎯 URGENCY SIGNALS: Elements suggesting immediate value/limited time
+CONTENT-SPECIFIC REQUIREMENTS:
+${humanFacesNeeded ? 
+'🎯 HUMAN ELEMENT: Include relevant human expression if it enhances content understanding' : 
+'🎯 CONTENT FOCUS: Prioritize visual elements that represent the actual topic'}
+🎯 RELEVANCE: Visual elements must relate directly to the video subject matter
+🎯 CLARITY: Instantly communicate what the video is about through imagery
+🎯 CURIOSITY: Create intrigue about the specific content, not generic emotions
+🎯 VALUE PREVIEW: Show glimpses of what viewers will learn or gain
+
+CONTENT-APPROPRIATE VISUALS:
+${Array.isArray(contentElements) ? contentElements.map(el => `- ${el}`).join('\n') : `- ${contentElements}`}
+- Visual metaphors specific to ${contentType} content
+- Tools, symbols, or elements viewers associate with this topic
+- Before/after or problem/solution relevant to the specific content
 
 HIGH-CTR COLOR PSYCHOLOGY:
 - PRIMARY: ${context.colorPsychology?.primary || 'Deep blue (#1e3a8a)'} for trust/authority
 - ACCENT: ${context.colorPsychology?.accent || 'Bright orange (#fb923c)'} for energy/attention
 - CONTRAST RATIO: Minimum 7:1 for mobile readability
-- SATURATION: High saturation colors that pop in crowded feeds
+- SATURATION: High saturation colors that pop in feeds
 
 TECHNICAL SPECIFICATIONS:
 - CANVAS: FULL edge-to-edge usage, NO PADDING/BORDERS, NO EMPTY SPACE
 - MOBILE FIRST: Clear visual storytelling at 156x88px thumbnail size
 - NO TEXT OVERLAYS: Pure visual communication without written content
-- RULE OF THIRDS: Position face/focal point strategically with supporting visuals filling remaining space
-
-VIRAL ELEMENTS TO INCLUDE:
-- ${context.viralElements?.join(', ') || 'Arrows, checkmarks, growth symbols'}
-- Compelling visual symbols that trigger emotional responses
-- Visual metaphors that instantly communicate value without text
-- Social proof elements (visual cues, reactions, body language)
+- COMPOSITION: Position most important content elements prominently
 
 MOBILE OPTIMIZATION CRITICAL:
-- Face must be clearly visible at thumbnail size
-- Visual elements must be distinguishable at small sizes
-- Identical appearance on desktop and mobile
-- Stands out in crowded YouTube feed through compelling imagery alone
+- ${context.mobileClarifty || 'Main content elements clearly visible at thumbnail size'}
+- Visual hierarchy guides eye to most important element
+- Distinguishable from other videos in crowded feed
+- Instantly recognizable content category
 
 ABSOLUTE REQUIREMENTS:
 - NO TEXT OVERLAYS OR WRITTEN CONTENT whatsoever
 - FULL CANVAS COVERAGE edge-to-edge with NO EMPTY SPACE
 - Content must fill entire image area completely
+- MUST visually represent the actual video topic, not generic success imagery
 
-Create a thumbnail that triggers immediate emotional response and compels clicks through pure visual storytelling and psychological engagement.`;
+Create a thumbnail that immediately shows what the video is about and compels clicks through relevant, content-specific visual storytelling.`;
 
     // Enhance with Claude Sonnet (85% cheaper than GPT-4o, no caching needed!)
     logger.info(`🧠 Enhancing base thumbnail prompt with Claude Sonnet for ${videoId}...`);
     const enhancedPrompt = await this.aiService.enhancePromptWithClaudeSonnet(baseThumbnailPrompt, {
       videoId,
       isThumbnail: true,
-      size: this.thumbnailSpecs.dalleSize,
+      size: this.thumbnailSpecs.leonardoSize,
       model: 'leonardo-phoenix' // Default to Phoenix for thumbnails
     });
     
@@ -507,15 +590,13 @@ Create a thumbnail that triggers immediate emotional response and compels clicks
     // Get enhanced base prompt (cached to avoid duplicate GPT-4o calls)
     const enhancedBasePrompt = await this.getEnhancedBasePrompt(context, title, videoId);
     
-    // Apply style-specific modifications to the enhanced base prompt
-    const styledPrompt = `${enhancedBasePrompt}
-
-ADDITIONAL STYLE REQUIREMENTS:
-${style.prompt}`;
+    // Use the enhanced base prompt directly (Claude already optimized it for Leonardo AI)
+    // Style requirements are integrated into Claude enhancement to stay within Leonardo's character limits
+    const styledPrompt = enhancedBasePrompt;
 
     // Generate image using existing AI service WITHOUT Claude enhancement (already enhanced)
     const imageResult = await this.aiService.generateImage(styledPrompt, {
-      size: this.thumbnailSpecs.dalleSize,
+      size: this.thumbnailSpecs.leonardoSize,
       quality: this.thumbnailSpecs.quality,
       videoId,
       model: config.app.imageModel || 'leonardo-phoenix', // Default to Leonardo for thumbnails
@@ -602,29 +683,44 @@ ${style.prompt}`;
       if (!videoFolder) {
         logger.info(`📁 Searching for existing video folder by name pattern for ${videoId}`);
         const sanitizedTitle = this.googleDriveService.sanitizeFolderName(videoTitle);
-        const folderName = `${sanitizedTitle} (${videoId})`;
         
-        try {
-          const existingFolder = await this.findVideoFolder(folderName);
-          if (existingFolder) {
-            logger.info(`📁 Found existing video folder by name: ${folderName}`);
-            videoFolder = existingFolder;
-            
-            // Update Google Sheets with found folder URL if we have access
-            if (googleSheetsService && videoFolder.folderUrl) {
-              try {
-                await googleSheetsService.updateVideoField(videoId, 'driveFolder', videoFolder.folderUrl);
-                logger.info(`📝 Updated ${videoId} Drive folder URL in Google Sheets`);
-              } catch (updateError) {
-                logger.warn(`Failed to update Drive folder URL in sheets for ${videoId}:`, updateError.message);
-              }
+        // Use (VID-XXXX) Title format as standard
+        const rawTitle = videoTitle.trim(); // Also try with minimal sanitization
+        const rawTitleWithSpace = videoTitle; // Keep original spacing
+        const possibleFolderNames = [
+          `(${videoId}) ${rawTitleWithSpace}`, // CORRECT format: "(VID-XXXX) Title" (exact spacing)
+          `(${videoId}) ${rawTitle}`,        // CORRECT format: "(VID-XXXX) Title" (trimmed)
+          `(${videoId}) ${sanitizedTitle}`,  // CORRECT format: "(VID-XXXX) Title" (sanitized)
+          `${sanitizedTitle} (${videoId})`   // Legacy format: "Title (VID-XXXX)" (fallback only)
+        ];
+        
+        for (const folderName of possibleFolderNames) {
+          try {
+            logger.info(`🔍 Trying folder name pattern: "${folderName}"`);
+            const existingFolder = await this.findVideoFolder(folderName);
+            if (existingFolder) {
+              logger.info(`📁 Found existing video folder by name: ${folderName}`);
+              videoFolder = existingFolder;
+              break; // Stop searching once we find a match
             }
-            
-            // Find or create "Generated Thumbnails" subfolder
-            thumbnailFolder = await this.findOrCreateThumbnailFolder(videoFolder.folderId);
+          } catch (findError) {
+            logger.warn(`Failed to find folder with pattern "${folderName}": ${findError.message}`);
           }
-        } catch (findError) {
-          logger.warn(`Failed to find existing video folder: ${findError.message}`);
+        }
+        
+        if (videoFolder) {
+          // Update Google Sheets with found folder URL if we have access
+          if (googleSheetsService && videoFolder.folderUrl) {
+            try {
+              await googleSheetsService.updateVideoField(videoId, 'driveFolder', videoFolder.folderUrl);
+              logger.info(`📝 Updated ${videoId} Drive folder URL in Google Sheets`);
+            } catch (updateError) {
+              logger.warn(`Failed to update Drive folder URL in sheets for ${videoId}:`, updateError.message);
+            }
+          }
+          
+          // Find or create "Generated Thumbnails" subfolder
+          thumbnailFolder = await this.findOrCreateThumbnailFolder(videoFolder.folderId);
         }
       }
       
@@ -632,8 +728,10 @@ ${style.prompt}`;
       if (!videoFolder) {
         logger.warn(`📁 No existing video folder found for ${videoId}, creating new folder structure as last resort`);
         const sanitizedTitle = this.googleDriveService.sanitizeFolderName(videoTitle);
-        const folderName = `${sanitizedTitle} (${videoId})`;
+        // Use CORRECT standard format: "(VID-XXXX) Title"
+        const folderName = `(${videoId}) ${sanitizedTitle}`;
         
+        logger.info(`📁 Creating new video folder: "${folderName}"`);
         videoFolder = await this.createVideoFolder(folderName);
         
         // Update Google Sheets with new folder URL if we have access
@@ -915,16 +1013,31 @@ ${style.prompt}`;
     try {
       logger.info(`🔍 Checking existing thumbnails for ${videoId}`);
       
-      // Find the video folder
+      // Find the video folder using (VID-XXXX) Title naming convention
       const sanitizedTitle = this.googleDriveService.sanitizeFolderName(videoTitle);
-      const folderName = `${sanitizedTitle} (${videoId})`;
+      const rawTitle = videoTitle.trim(); // Also try with minimal sanitization
+      const rawTitleWithSpace = videoTitle; // Keep original spacing
+      const possibleFolderNames = [
+        `(${videoId}) ${rawTitleWithSpace}`, // CORRECT format: "(VID-XXXX) Title" (exact spacing)
+        `(${videoId}) ${rawTitle}`,        // CORRECT format: "(VID-XXXX) Title" (trimmed)
+        `(${videoId}) ${sanitizedTitle}`,  // CORRECT format: "(VID-XXXX) Title" (sanitized)
+        `${sanitizedTitle} (${videoId})`   // Legacy format: "Title (VID-XXXX)" (fallback only)
+      ];
       
-      // Search for existing video folder
-      const videoFolder = await this.findVideoFolder(folderName);
+      let videoFolder = null;
+      for (const folderName of possibleFolderNames) {
+        logger.info(`🔍 Checking for existing folder: "${folderName}"`);
+        videoFolder = await this.findVideoFolder(folderName);
+        if (videoFolder) {
+          logger.info(`📁 Found video folder: ${folderName}`);
+          break;
+        }
+      }
+      
       if (!videoFolder) {
         return {
           exists: false,
-          reason: 'Video folder not found',
+          reason: 'Video folder not found (tried both naming conventions)',
           thumbnails: []
         };
       }
@@ -945,9 +1058,9 @@ ${style.prompt}`;
       
       const thumbnailFolder = response.data.files[0];
       
-      // Check for thumbnail files
+      // Check for thumbnail files with video ID prefix
       const thumbnailFiles = await this.googleDriveService.drive.files.list({
-        q: `parents in '${thumbnailFolder.id}' and (name contains 'thumbnail' or name contains '.jpg' or name contains '.png')`,
+        q: `parents in '${thumbnailFolder.id}' and (name contains '${videoId}' or name contains 'thumbnail' or name contains '.jpg' or name contains '.png')`,
         fields: 'files(id, name, webViewLink, size, createdTime)'
       });
       
@@ -1116,12 +1229,12 @@ ${style.prompt}`;
         thumbnails: {
           thumbnail1: {
             style: thumbnails.thumbnail1?.style || 'Unknown',
-            fileName: thumbnails.thumbnail1?.fileName || 'thumbnail_1.jpg',
+            fileName: thumbnails.thumbnail1?.fileName || `(${videoId}) thumbnail_1.jpg`,
             upload: uploadResults.uploads?.thumbnail1 || null
           },
           thumbnail2: {
             style: thumbnails.thumbnail2?.style || 'Unknown',
-            fileName: thumbnails.thumbnail2?.fileName || 'thumbnail_2.jpg',
+            fileName: thumbnails.thumbnail2?.fileName || `(${videoId}) thumbnail_2.jpg`,
             upload: uploadResults.uploads?.thumbnail2 || null
           }
         },
