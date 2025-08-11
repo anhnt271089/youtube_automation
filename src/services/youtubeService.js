@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { config } from '../../config/config.js';
-import logger from '../utils/logger.js';
+import logger, { safeJsonStringify } from '../utils/logger.js';
 
 class YouTubeService {
   constructor() {
@@ -86,7 +86,15 @@ class YouTubeService {
         categoryId: snippet?.categoryId || null
       };
     } catch (error) {
-      logger.error('Error fetching video metadata:', error);
+      // Safe error logging to prevent circular reference issues
+      const safeError = error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        code: error.code
+      } : safeJsonStringify(error);
+      
+      logger.error('Error fetching video metadata:', safeError);
       throw error;
     }
   }

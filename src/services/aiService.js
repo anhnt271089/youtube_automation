@@ -52,7 +52,9 @@ class AIService {
       'leonardo-kino-xl': 0.0018,
       'dreamshaper-v7': 0.0018,
       
-      // Claude models (estimated per enhancement) - Much cheaper!
+      // Claude models (estimated per operation)
+      'claude-sonnet-4': 0.03, // Claude Sonnet 4 cost per operation
+      'claude-sonnet-3.5': 0.003, // Claude Sonnet 3.5 cost per operation  
       'claude-sonnet-prompt-enhancement': 0.0015, // Claude Sonnet cost per prompt enhancement (~85% cheaper)
       'gpt-4o-mini': 0.005 // For thumbnail prompt generation
     };
@@ -119,7 +121,7 @@ class AIService {
    * @param {object} videoMetadata - Video metadata
    * @returns {Promise<object>} Context analysis
    */
-  async analyzeScriptContext(originalScript, videoMetadata) {
+  async analyzeScriptContext(originalScript, videoMetadata, videoId = null) {
     try {
       const prompt = `
 Analyze the following script to extract key contextual elements for enhanced regeneration:
@@ -148,7 +150,7 @@ Perform a comprehensive CONTEXT ANALYSIS and return a JSON object with:
 Focus on preserving the essence while enabling development and enhancement.`;
 
       const completion = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 800,
         messages: [
           {
@@ -166,7 +168,12 @@ Focus on preserving the essence while enabling development and enhancement.`;
       }
 
       const contextAnalysis = JSON.parse(responseText);
-      logger.info('Script context analyzed with Claude Sonnet');
+      logger.info('Script context analyzed with Claude Sonnet 4');
+      
+      // Track cost for Claude Sonnet 4
+      if (videoId) {
+        this.trackVideoCost(videoId, this.pricing['claude-sonnet-4'], 'context-analysis');
+      }
       
       return contextAnalysis;
     } catch (error) {
@@ -186,12 +193,15 @@ Focus on preserving the essence while enabling development and enhancement.`;
     }
   }
 
-  async generateAttractiveScript(originalTranscript, videoMetadata, contextAnalysis = null, keywordData = null) {
+  async generateAttractiveScript(originalTranscript, videoMetadata, contextAnalysis = null, keywordData = null, videoId = null) {
     try {
+      // Extract videoId from metadata if not provided
+      const actualVideoId = videoId || videoMetadata.videoId || videoMetadata.id;
+      
       // Perform context analysis if not provided (for regeneration scenarios)
       let context = contextAnalysis;
       if (!context) {
-        context = await this.analyzeScriptContext(originalTranscript, videoMetadata);
+        context = await this.analyzeScriptContext(originalTranscript, videoMetadata, actualVideoId);
       }
 
       const prompt = `
@@ -352,7 +362,7 @@ CRITICAL SUCCESS FACTORS:
 Return only the breakthrough script - no commentary, explanations, or meta-information.`;
 
       const completion = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
         messages: [
           {
@@ -363,11 +373,16 @@ Return only the breakthrough script - no commentary, explanations, or meta-infor
       });
 
       const generatedScript = completion.content[0].text.trim();
-      logger.info('Script generated with Claude Sonnet');
+      logger.info('Script generated with Claude Sonnet 4');
+      
+      // Track cost for Claude Sonnet 4
+      if (actualVideoId) {
+        this.trackVideoCost(actualVideoId, this.pricing['claude-sonnet-4'], 'script-generation');
+      }
       
       return generatedScript;
     } catch (error) {
-      logger.error('Error generating attractive script with Claude:', error);
+      logger.error('Error generating attractive script with Claude Sonnet 4:', error);
       logger.info('Falling back to OpenAI GPT-4o-mini');
       
       // Fallback to OpenAI
@@ -447,11 +462,16 @@ Create a breakthrough script that demonstrates these advanced techniques while s
         });
 
         const generatedScript = fallbackCompletion.choices[0].message.content.trim();
-        logger.info('Script generated with OpenAI fallback');
+        logger.info('Script generated with OpenAI GPT-4o-mini fallback');
+        
+        // Track cost for GPT-4o-mini fallback
+        if (videoId) {
+          this.trackVideoCost(videoId, this.pricing['gpt-4o-mini'], 'script-generation-fallback');
+        }
         
         return generatedScript;
       } catch (fallbackError) {
-        logger.error('Both Claude and OpenAI failed for script generation:', fallbackError);
+        logger.error('Both Claude Sonnet 4 and OpenAI GPT-4o-mini failed for script generation:', fallbackError);
         throw fallbackError;
       }
     }
@@ -687,9 +707,8 @@ Create 5 distinct title options optimized for maximum CTR based on the NEW scrip
     }
   }
 
-  async performKeywordResearch(videoContent, _niche = '') {
-    try {
-      const prompt = `
+  async performKeywordResearch(videoContent, _niche = '', videoId = null) {
+    const prompt = `
 Perform comprehensive SEO and YouTube algorithm-optimized keyword research for a YouTube video based on the following content:
 
 Video Content: ${videoContent.substring(0, 1200)}
@@ -790,25 +809,23 @@ Format the response as JSON with the following structure:
   "algorithmBoostKeywords": [],
   "retentionKeywords": [],
   "engagementTriggerKeywords": []
-}`;
+`;
+    
+    try {
 
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+      // Use Claude 3.5 Sonnet as primary for keyword research
+      const completion = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1200,
         messages: [
           {
-            role: 'system',
-            content: 'You are a YouTube SEO and keyword research specialist with deep expertise in YouTube algorithm optimization, content discovery, and viewer engagement strategies.'
-          },
-          {
             role: 'user',
-            content: prompt
+            content: `You are a YouTube SEO and keyword research specialist with deep expertise in YouTube algorithm optimization, content discovery, and viewer engagement strategies.\n\n${prompt}`
           }
-        ],
-        max_tokens: 1000,
-        temperature: 0.5
+        ]
       });
 
-      let responseText = completion.choices[0].message.content.trim();
+      let responseText = completion.content[0].text.trim();
       
       // Remove markdown code blocks if present
       if (responseText.startsWith('```json')) {
@@ -818,26 +835,72 @@ Format the response as JSON with the following structure:
       }
       
       const keywordData = JSON.parse(responseText);
-      logger.info('Keywords researched');
+      logger.info('Keywords researched with Claude 3.5 Sonnet');
+      
+      // Track cost for Claude 3.5 Sonnet
+      if (videoId) {
+        this.trackVideoCost(videoId, this.pricing['claude-sonnet-3.5'], 'keyword-research');
+      }
       
       return keywordData;
     } catch (error) {
-      logger.error('Error performing keyword research:', error);
-      return {
-        primaryKeywords: [],
-        longTailKeywords: [],
-        semanticKeywords: [],
-        questionKeywords: [],
-        trendingHashtags: [],
-        competitiveKeywords: [],
-        relatedTopics: [],
-        youtubeSearchKeywords: [],
-        browseFeedKeywords: [],
-        shortsOptimizedKeywords: [],
-        algorithmBoostKeywords: [],
-        retentionKeywords: [],
-        engagementTriggerKeywords: []
-      };
+      logger.error('Error performing keyword research with Claude 3.5 Sonnet:', error);
+      logger.info('Falling back to OpenAI GPT-4o-mini for keyword research');
+      
+      // Fallback to OpenAI GPT-4o-mini
+      try {
+        const fallbackCompletion = await this.openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a YouTube SEO and keyword research specialist with deep expertise in YouTube algorithm optimization, content discovery, and viewer engagement strategies.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.5
+        });
+
+        let responseText = fallbackCompletion.choices[0].message.content.trim();
+        
+        // Remove markdown code blocks if present
+        if (responseText.startsWith('```json')) {
+          responseText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (responseText.startsWith('```')) {
+          responseText = responseText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        const keywordData = JSON.parse(responseText);
+        logger.info('Keywords researched with OpenAI GPT-4o-mini fallback');
+        
+        // Track cost for GPT-4o-mini fallback
+        if (videoId) {
+          this.trackVideoCost(videoId, this.pricing['gpt-4o-mini'], 'keyword-research-fallback');
+        }
+        
+        return keywordData;
+      } catch (fallbackError) {
+        logger.error('Both Claude 3.5 Sonnet and OpenAI GPT-4o-mini failed for keyword research:', fallbackError);
+        return {
+          primaryKeywords: [],
+          longTailKeywords: [],
+          semanticKeywords: [],
+          questionKeywords: [],
+          trendingHashtags: [],
+          competitiveKeywords: [],
+          relatedTopics: [],
+          youtubeSearchKeywords: [],
+          browseFeedKeywords: [],
+          shortsOptimizedKeywords: [],
+          algorithmBoostKeywords: [],
+          retentionKeywords: [],
+          engagementTriggerKeywords: []
+        };
+      }
     }
   }
 
@@ -966,7 +1029,7 @@ Return only the style name (one word) that best matches this content.`;
       }
       
       const prompts = [];
-      const baseStylePrompt = styleInfo.template;
+      const baseStylePrompt = styleInfo.template || 'Create a premium image';
       
       for (const sentence of scriptSentences) {
         const promptText = `
@@ -1151,9 +1214,17 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
         width = config.app.imageWidth,
         height = config.app.imageHeight,
         numImages = 1,
-        enableAlchemy = config.leonardo.enableAlchemy,
         presetStyle = null
       } = options;
+      
+      let enableAlchemy = options.enableAlchemy ?? config.leonardo.enableAlchemy;
+
+      // Validate prompt length BEFORE making API call
+      const LEONARDO_MAX_CHARS = 1500;
+      if (prompt.length > LEONARDO_MAX_CHARS) {
+        logger.error(`Leonardo AI prompt too long: ${prompt.length} characters (max ${LEONARDO_MAX_CHARS})`);
+        throw new Error(`Prompt exceeds Leonardo AI maximum length of ${LEONARDO_MAX_CHARS} characters. Current length: ${prompt.length}`);
+      }
 
       // Get model configuration
       const modelConfig = this.leonardoModels[model];
@@ -1169,29 +1240,84 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
       finalWidth = Math.max(32, Math.min(1024, Math.floor(finalWidth / 8) * 8));
       finalHeight = Math.max(32, Math.min(1024, Math.floor(finalHeight / 8) * 8));
 
-      // Build request body
-      const requestBody = {
-        modelId: modelConfig.id,
-        prompt: prompt,
-        width: finalWidth,
-        height: finalHeight,
-        num_images: numImages,
-        guidance_scale: 7, // Leonardo recommended default
-        contrastRatio: enableAlchemy ? 2.5 : undefined, // Required for alchemy
-        alchemy: enableAlchemy && modelConfig.supportsAlchemy,
-        enhancePrompt: false // We handle prompt enhancement with GPT-4o
-      };
-
-      // Add preset style if supported
-      if (presetStyle || modelConfig.defaultPresetStyle !== 'NONE') {
-        requestBody.presetStyle = presetStyle || modelConfig.defaultPresetStyle;
+      // Validate Alchemy requirements
+      if (enableAlchemy && !modelConfig.supportsAlchemy) {
+        logger.warn(`Model ${model} does not support Alchemy, disabling...`);
+        enableAlchemy = false;
       }
 
-      logger.info(`Generating Leonardo AI image: ${model} (${finalWidth}x${finalHeight})`);
+      // Build request body with validation
+      const requestBody = {
+        modelId: modelConfig.id,
+        prompt: prompt.trim(),
+        width: finalWidth,
+        height: finalHeight,
+        num_images: Math.max(1, Math.min(numImages, 4)), // Leonardo allows 1-4 images
+        guidance_scale: 7, // Leonardo recommended default (range: 1-20)
+        alchemy: enableAlchemy && modelConfig.supportsAlchemy,
+        enhancePrompt: false // We handle prompt enhancement with Claude Sonnet
+      };
+
+      // Add contrastRatio only if Alchemy is enabled (required for Alchemy)
+      if (requestBody.alchemy) {
+        requestBody.contrastRatio = 2.5;
+      }
+
+      // Add preset style if supported and not 'NONE'
+      if (presetStyle && presetStyle !== 'NONE') {
+        requestBody.presetStyle = presetStyle;
+      } else if (modelConfig.defaultPresetStyle && modelConfig.defaultPresetStyle !== 'NONE') {
+        requestBody.presetStyle = modelConfig.defaultPresetStyle;
+      }
+
+      logger.info(`Generating Leonardo AI image: ${model} (${finalWidth}x${finalHeight}), Prompt: ${prompt.length} chars`);
+      logger.debug('Leonardo AI request parameters:', {
+        model: modelConfig.name,
+        dimensions: `${finalWidth}x${finalHeight}`,
+        alchemy: requestBody.alchemy,
+        presetStyle: requestBody.presetStyle,
+        promptLength: prompt.length
+      });
       
-      // Create generation
-      const createResponse = await this.leonardoClient.post('/generations', requestBody);
-      const generationId = createResponse.data.sdGenerationJob.generationId;
+      // Create generation with comprehensive error handling
+      let createResponse;
+      try {
+        createResponse = await this.leonardoClient.post('/generations', requestBody);
+      } catch (apiError) {
+        logger.error('Leonardo API generation request failed:', {
+          status: apiError.response?.status,
+          statusText: apiError.response?.statusText,
+          data: apiError.response?.data,
+          requestBody: {
+            ...requestBody,
+            prompt: `${prompt.substring(0, 100)}...` // Log only first 100 chars of prompt
+          }
+        });
+        
+        // Provide more specific error messages
+        if (apiError.response?.status === 400) {
+          const errorData = apiError.response.data;
+          if (errorData.error?.includes('maximum length')) {
+            throw new Error(`Leonardo AI prompt too long: ${prompt.length} characters exceed the 1500 character limit`);
+          } else if (errorData.error?.includes('Invalid model')) {
+            throw new Error(`Leonardo AI model ${model} is not available or invalid`);
+          } else {
+            throw new Error(`Leonardo AI API validation error: ${errorData.error || 'Invalid request parameters'}`);
+          }
+        } else if (apiError.response?.status === 401) {
+          throw new Error('Leonardo AI authentication failed. Please check your API key.');
+        } else if (apiError.response?.status === 429) {
+          throw new Error('Leonardo AI rate limit exceeded. Please try again later.');
+        } else {
+          throw apiError;
+        }
+      }
+      
+      const generationId = createResponse.data?.sdGenerationJob?.generationId;
+      if (!generationId) {
+        logger.error('Leonardo AI response missing generation ID:', createResponse.data);
+        throw new Error('Leonardo AI failed to return generation ID');
+      }
       
       logger.info(`Leonardo AI generation started: ${generationId}`);
 
@@ -1205,14 +1331,23 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
         modelId: modelConfig.id,
         dimensions: `${finalWidth}x${finalHeight}`,
         alchemy: requestBody.alchemy,
-        presetStyle: requestBody.presetStyle
+        presetStyle: requestBody.presetStyle,
+        promptLength: prompt.length
       };
     } catch (error) {
-      logger.error('Error generating Leonardo AI image:', error);
-      if (error.response) {
-        logger.error('Leonardo API response:', error.response.data);
+      logger.error('Error generating Leonardo AI image:', {
+        message: error.message,
+        model: options.model || config.leonardo.defaultModel,
+        promptLength: prompt?.length || 0,
+        stack: error.stack?.split('\n').slice(0, 3) // First 3 lines of stack trace
+      });
+      
+      // Re-throw with enhanced context
+      if (error.message.includes('prompt too long') || error.message.includes('maximum length')) {
+        throw new Error(`Leonardo AI prompt validation failed: ${error.message}`);
+      } else {
+        throw error;
       }
-      throw error;
     }
   }
 
@@ -1305,25 +1440,79 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
       const shouldUseLeonardo = finalOptions.provider === 'leonardo' || isLeonardoModel;
       
       if (shouldUseLeonardo) {
-        // Use Leonardo AI
+        // Use Leonardo AI with fallback to DALL-E on failure
         logger.info(`Using Leonardo AI for image generation: ${finalOptions.model}`);
         
-        const [width, height] = finalOptions.size.split('x').map(Number);
-        const leonardoResponse = await this.generateLeonardoImage(enhancedPrompt, {
-          model: finalOptions.model,
-          width,
-          height,
-          numImages: 1,
-          enableAlchemy: config.leonardo.enableAlchemy
-        });
-        
-        imageUrl = leonardoResponse.url;
-        actualCost = this.calculateImageCost(finalOptions.model, 1);
-        
-        response = {
-          leonardoData: leonardoResponse,
-          provider: 'leonardo'
-        };
+        try {
+          const [width, height] = finalOptions.size.split('x').map(Number);
+          const leonardoResponse = await this.generateLeonardoImage(enhancedPrompt, {
+            model: finalOptions.model,
+            width,
+            height,
+            numImages: 1,
+            enableAlchemy: config.leonardo.enableAlchemy
+          });
+          
+          imageUrl = leonardoResponse.url;
+          actualCost = this.calculateImageCost(finalOptions.model, 1);
+          
+          response = {
+            leonardoData: leonardoResponse,
+            provider: 'leonardo'
+          };
+        } catch (leonardoError) {
+          logger.warn('Leonardo AI failed, falling back to DALL-E:', leonardoError.message);
+          
+          // Check if it's a prompt length issue and try to fix it
+          if (leonardoError.message.includes('prompt too long') || leonardoError.message.includes('maximum length')) {
+            logger.info('Attempting to shorten prompt for DALL-E fallback...');
+            // Use original prompt if it's shorter, or truncate enhanced prompt
+            const fallbackPrompt = prompt.length < enhancedPrompt.length ? prompt : enhancedPrompt.substring(0, 1000);
+            revisedPrompt = fallbackPrompt;
+            enhancedPrompt = fallbackPrompt;
+          }
+          
+          // Fallback to DALL-E 3 with adjusted parameters
+          logger.info('Falling back to DALL-E 3 due to Leonardo AI failure');
+          
+          try {
+            // Validate size for DALL-E 3
+            let dalleSize = finalOptions.size;
+            const validDalleSizes = ['1024x1024', '1792x1024', '1024x1792'];
+            if (!validDalleSizes.includes(dalleSize)) {
+              dalleSize = '1792x1024'; // 16:9 aspect ratio for YouTube content
+              logger.info(`Adjusting size from ${finalOptions.size} to ${dalleSize} for DALL-E 3`);
+            }
+            
+            const dalleResponse = await this.openai.images.generate({
+              model: 'dall-e-3',
+              prompt: enhancedPrompt,
+              n: 1,
+              size: dalleSize,
+              quality: 'standard',
+              response_format: 'url'
+            });
+            
+            imageUrl = dalleResponse.data[0].url;
+            revisedPrompt = dalleResponse.data[0].revised_prompt || enhancedPrompt;
+            actualCost = this.calculateImageCost('dall-e-3', 1);
+            
+            response = {
+              dalleData: dalleResponse.data[0],
+              provider: 'openai',
+              fallbackReason: 'leonardo-failure',
+              originalError: leonardoError.message
+            };
+            
+            logger.info(`Successfully generated image with DALL-E 3 fallback (Cost: $${actualCost.toFixed(4)})`);
+          } catch (dalleError) {
+            logger.error('Both Leonardo AI and DALL-E 3 fallback failed:', {
+              leonardo: leonardoError.message,
+              dalle: dalleError.message
+            });
+            throw new Error(`Image generation failed: Leonardo AI (${leonardoError.message}) and DALL-E fallback (${dalleError.message})`);
+          }
+        }
       } else if (finalOptions.model.startsWith('dall-e')) {
         // Use OpenAI DALL-E
         logger.info(`Using OpenAI DALL-E for image generation: ${finalOptions.model}`);
@@ -1417,118 +1606,131 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
       const isPhoenixModel = model.includes('phoenix');
       const isVisionXLModel = model.includes('vision-xl');
       
-      const systemPrompt = `You are an expert Leonardo AI prompt optimization specialist with deep knowledge of Leonardo AI's models, particularly Phoenix, Vision XL, and Diffusion XL.
+      const systemPrompt = `You are an expert Leonardo AI prompt optimization specialist. Your task is to create a concise, effective prompt that maximizes Leonardo AI's capabilities while staying within strict character limits.
 
-Your expertise covers:
-- Leonardo AI model strengths and optimal prompt structures
-- Cinematic and photographic composition techniques
-- Mobile-first thumbnail optimization for maximum CTR
-- Leonardo AI's Alchemy engine capabilities and prompt enhancement
+CRITICAL CONSTRAINT: The final prompt must be MAXIMUM 1200 characters (Leonardo AI limit is 1500, but we need buffer space).
 
 Current Generation Context:
-- Target Model: ${modelConfig.name} (${modelConfig.id})
+- Target Model: ${modelConfig.name}
 - Model Specialty: ${modelConfig.defaultPresetStyle}
 - Alchemy Support: ${modelConfig.supportsAlchemy ? 'Enabled' : 'Disabled'}
-- Output Type: ${isThumbnail ? 'YouTube Thumbnail (MOBILE-FIRST)' : 'Video Content Image'}
-- Canvas Size: ${size} (${modelConfig.maxWidth}x${modelConfig.maxHeight} max)
-- Video Context: ${videoId || 'General Content'}
+- Output Type: ${isThumbnail ? 'YouTube Thumbnail' : 'Video Content Image'}
+- Canvas Size: ${size}
 
-LEONARDO AI OPTIMIZATION STRATEGY:
+LEONARDO AI OPTIMIZATION PRINCIPLES:
 
-🎨 MODEL-SPECIFIC ENHANCEMENTS:
-${isPhoenixModel ? `
-PHOENIX MODEL OPTIMIZATION:
-- CINEMATIC EXCELLENCE: Emphasize "cinematic lighting, dramatic composition, film-quality"
-- PHOTOREALISM: "hyperrealistic, professional photography, studio lighting"
-- DETAIL MASTERY: "intricate details, sharp focus, professional grade"
-- COLOR GRADING: "cinematic color grading, rich saturation, professional color palette"` : ''}
+🎨 CONCISE MODEL ENHANCEMENTS:
+${isPhoenixModel ? 'Phoenix: Focus on "cinematic lighting, dramatic composition, hyperrealistic, professional photography"' : ''}
+${isVisionXLModel ? 'Vision XL: Focus on "professional photography, studio quality, perfect framing"' : ''}
 
-${isVisionXLModel ? `
-VISION XL MODEL OPTIMIZATION:
-- PHOTOGRAPHY FOCUS: "professional photography, camera shot, photographic composition"
-- TECHNICAL SPECS: "shot with professional camera, perfect lighting, high resolution"
-- STYLE EMPHASIS: "photography style, professional photographer, studio quality"
-- COMPOSITION: "rule of thirds, professional framing, perfect exposure"` : ''}
+🚀 ESSENTIAL ELEMENTS (Priority Order):
+1. STYLE: Lead with artistic style (cinematic/photographic/creative)
+2. SUBJECT: Main subject with key descriptive details
+3. LIGHTING: Specific lighting setup (studio/dramatic/cinematic)
+4. QUALITY: Professional markers ("masterpiece", "award-winning")
+5. COMPOSITION: Camera angle and framing
+6. TECHNICAL: Essential photography terms only
 
-🚀 LEONARDO AI PROMPT STRUCTURE:
-1. STYLE DEFINITION: Lead with clear artistic style (cinematic/photographic/creative)
-2. SUBJECT FOCUS: Define main subject with specific descriptive details
-3. COMPOSITION: Specify camera angle, framing, and visual arrangement
-4. LIGHTING: Detailed lighting setup (studio/natural/dramatic/cinematic)
-5. QUALITY MARKERS: Professional grade, high resolution, masterpiece quality
-6. COLOR PALETTE: Specific color schemes that work well with Leonardo AI
-7. TECHNICAL SPECS: Camera settings, lens type, photography terminology
+📱 MOBILE THUMBNAIL FOCUS:
+- High contrast for mobile visibility
+- Single dominant focal point
+- Edge-to-edge composition
+- No text overlays
 
-📱 MOBILE THUMBNAIL OPTIMIZATION:
-- VISUAL HIERARCHY: Single dominant focal point with supporting elements
-- CONTRAST MASTERY: High contrast ratios for mobile screen visibility
-- SCALE CONSIDERATIONS: Elements readable at 156x88px mobile thumbnail size
-- EDGE-TO-EDGE: Full canvas utilization with no wasted space
-- CLARITY: Remove complex patterns that become noise at small sizes
-
-🎯 LEONARDO AI BEST PRACTICES:
-- Use specific photography/cinematography terminology
-- Include professional quality indicators ("masterpiece", "award-winning")
-- Specify exact lighting conditions Leonardo AI excels at
-- Include composition rules (rule of thirds, leading lines, symmetry)
-- Add technical photography details (depth of field, bokeh, focal length)
-- Use color temperature specifications (warm/cool lighting)
-- Include texture and material descriptions Leonardo AI renders well
-
-⚡ ALCHEMY ENGINE OPTIMIZATION:
-${modelConfig.supportsAlchemy ? '- Alchemy ENABLED: Use complex lighting scenarios and advanced compositions\n- Advanced materials: "metallic surfaces, glass reflections, fabric textures"\n- Complex lighting: "rim lighting, volumetric lighting, god rays, ambient occlusion"\n- Professional effects: "depth of field, motion blur, chromatic aberration"' : '- Alchemy DISABLED: Focus on clear, simple compositions\n- Direct lighting descriptions\n- Straightforward material descriptions\n- Avoid complex lighting terminology'}
-
-🎨 LEONARDO AI COLOR SCIENCE:
-- Warm Cinematics: "golden hour lighting, warm color temperature 3200K"
-- Cool Professionalism: "daylight balanced 5600K, cool blue undertones"
-- High Contrast: "dramatic lighting, deep shadows, bright highlights"
-- Saturated Vibrancy: "rich colors, high saturation, vivid palette"
-
-🏆 QUALITY ENHANCEMENT KEYWORDS:
-- "masterpiece quality, award-winning composition"
-- "professional photography, studio lighting setup"
-- "cinematic composition, film-quality rendering"
-- "hyperrealistic detail, sharp focus throughout"
+🎯 LEONARDO AI KEYWORDS (Use Selectively):
+- Quality: "masterpiece quality, professional photography"
+- Lighting: "studio lighting, cinematic lighting, dramatic shadows"
+- Technical: "rule of thirds, sharp focus, depth of field"
+- Style: "hyperrealistic, award-winning composition"
 
 CRITICAL REQUIREMENTS:
-✅ Optimize specifically for Leonardo AI's strengths and rendering capabilities
-✅ Include model-appropriate style keywords (cinematic/photographic/creative)
-✅ Add professional quality markers Leonardo AI responds well to
-✅ Specify exact lighting conditions and technical details
-✅ Ensure mobile thumbnail optimization for maximum CTR
-✅ Remove any text overlay references (pure visual generation)
-✅ Full canvas utilization with edge-to-edge composition
-✅ Keep prompt length optimal for Leonardo AI processing (200-300 words)
+✅ MAXIMUM 1200 characters total length
+✅ Focus on essential elements only
+✅ Use specific Leonardo AI-optimized keywords
+✅ Prioritize mobile thumbnail effectiveness
+✅ Remove all explanatory text and commentary
+✅ Return only the optimized prompt, nothing else
 
-Transform the original prompt into a Leonardo AI-optimized masterpiece that leverages the model's specific strengths while maintaining mobile-first thumbnail effectiveness.`;
+Transform the original prompt into a concise, Leonardo AI-optimized prompt under 1200 characters.`;
 
       const completion = await this.anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 800,
+        max_tokens: 400, // Reduced to ensure concise responses
         messages: [
           {
             role: 'user',
-            content: `${systemPrompt}\n\nOriginal Prompt to Enhance:\n\n${originalPrompt}`
+            content: `${systemPrompt}\n\nOriginal Prompt to Enhance:\n\n${originalPrompt}\n\nReturn ONLY the optimized prompt under 1200 characters. No explanations or additional text.`
           }
         ]
       });
 
-      const enhancedPrompt = completion.content[0].text.trim();
+      let enhancedPrompt = completion.content[0].text.trim();
       
-      // Track Claude Sonnet cost (much cheaper than GPT-4o!)
-      if (videoId) {
-        this.trackVideoCost(videoId, 0.0015, 'claude-sonnet-prompt-enhancement');
+      // Remove any quotes or formatting that Claude might add
+      enhancedPrompt = enhancedPrompt.replace(/^["']|["']$/g, '').trim();
+      
+      // Strict validation: Leonardo AI has a 1500 character limit, we use 1400 for safety
+      const LEONARDO_MAX_CHARACTERS = 1400;
+      
+      if (enhancedPrompt.length > LEONARDO_MAX_CHARACTERS) {
+        logger.warn(`Claude Sonnet enhanced prompt too long (${enhancedPrompt.length} chars), truncating to ${LEONARDO_MAX_CHARACTERS} chars`);
+        
+        // Smart truncation: Try to preserve important parts
+        const sentences = enhancedPrompt.split(/[.!?]+/);
+        let truncatedPrompt = '';
+        
+        for (const sentence of sentences) {
+          const testPrompt = truncatedPrompt + sentence + '.';
+          if (testPrompt.length <= LEONARDO_MAX_CHARACTERS - 50) {
+            truncatedPrompt = testPrompt;
+          } else {
+            break;
+          }
+        }
+        
+        // If still too long, hard truncate
+        if (truncatedPrompt.length > LEONARDO_MAX_CHARACTERS) {
+          truncatedPrompt = truncatedPrompt.substring(0, LEONARDO_MAX_CHARACTERS - 3) + '...';
+        }
+        
+        enhancedPrompt = truncatedPrompt.trim();
+        logger.info(`Truncated prompt to ${enhancedPrompt.length} characters for Leonardo AI compatibility`);
       }
       
-      logger.debug('Original prompt length:', originalPrompt.length);
-      logger.debug('Enhanced prompt length:', enhancedPrompt.length);
-      logger.info(`✨ Claude Sonnet enhanced prompt for ${modelConfig.name} ($${(0.0015).toFixed(4)} vs GPT-4o $0.01 - 85% savings!)`);
+      // Final validation
+      if (enhancedPrompt.length > LEONARDO_MAX_CHARACTERS) {
+        logger.error(`Prompt still too long after truncation: ${enhancedPrompt.length} chars`);
+        // Emergency fallback: use original prompt if it's shorter
+        if (originalPrompt.length <= LEONARDO_MAX_CHARACTERS) {
+          logger.warn('Using original prompt as fallback');
+          enhancedPrompt = originalPrompt;
+        } else {
+          // Hard truncate original prompt
+          enhancedPrompt = originalPrompt.substring(0, LEONARDO_MAX_CHARACTERS - 3) + '...';
+        }
+      }
+      
+      // Track Claude Sonnet 3.5 cost
+      if (videoId) {
+        this.trackVideoCost(videoId, this.pricing['claude-sonnet-prompt-enhancement'], 'claude-sonnet-prompt-enhancement');
+      }
+      
+      logger.debug(`Original prompt length: ${originalPrompt.length} chars`);
+      logger.debug(`Enhanced prompt length: ${enhancedPrompt.length} chars`);
+      logger.info(`✨ Claude Sonnet 3.5 enhanced prompt for ${modelConfig.name} (${enhancedPrompt.length}/1500 chars) - $${this.pricing['claude-sonnet-prompt-enhancement'].toFixed(4)}`);
       
       return enhancedPrompt;
       
     } catch (error) {
       logger.error('Error enhancing prompt with Claude Sonnet:', error);
-      throw error;
+      // Fallback to original prompt with length check
+      if (originalPrompt.length <= 1400) {
+        logger.info('Using original prompt as fallback');
+        return originalPrompt;
+      } else {
+        logger.warn('Truncating original prompt as fallback');
+        return originalPrompt.substring(0, 1397) + '...';
+      }
     }
   }
 
@@ -1687,6 +1889,103 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
   }
 
   /**
+   * Generate images selectively for entries with "Need Generate" status
+   * @param {string} videoId - Video identifier 
+   * @param {object} options - Generation options
+   * @returns {Promise<Array>} Generated images with metadata
+   */
+  async generateSelectiveImages(videoId, options = {}) {
+    try {
+      const { googleSheetsService } = options;
+      
+      if (!googleSheetsService) {
+        throw new Error('GoogleSheetsService is required for selective image generation');
+      }
+
+      // Get entries that need image generation
+      const entriesNeedingGeneration = await googleSheetsService.getEntriesNeedingImageGeneration(videoId);
+      
+      if (entriesNeedingGeneration.length === 0) {
+        logger.info(`No entries need image generation for video ${videoId}`);
+        return [];
+      }
+
+      logger.info(`Generating ${entriesNeedingGeneration.length} images for video ${videoId} (selective generation)`);
+
+      const generatedImages = [];
+      
+      for (let i = 0; i < entriesNeedingGeneration.length; i++) {
+        const entry = entriesNeedingGeneration[i];
+        
+        try {
+          logger.info(`Generating image ${i + 1}/${entriesNeedingGeneration.length} for sentence ${entry.sentenceNumber}`);
+          
+          // Update status to "Generating" to show progress
+          await googleSheetsService.updateSentenceWithImage(videoId, entry.sentenceNumber, '', 'Generating');
+          
+          // Generate image using the stored prompt
+          const imageResult = await this.generateImage(entry.imagePrompt, {
+            videoId,
+            model: config.app.imageModel
+          });
+          
+          // Download and upload image with proper naming
+          const fileName = `${videoId}_image_${String(entry.sentenceNumber).padStart(3, '0')}.jpg`;
+          const uploadResult = await this.downloadAndUploadImage(
+            imageResult.url,
+            fileName,
+            videoId
+          );
+          
+          // Update the sheet with the generated image URL and mark as Generated
+          await googleSheetsService.updateSentenceWithImage(
+            videoId, 
+            entry.sentenceNumber, 
+            uploadResult.cdnUrl || uploadResult.driveUrl,
+            'Generated'
+          );
+          
+          generatedImages.push({
+            sentenceNumber: entry.sentenceNumber,
+            sentence: entry.scriptText,
+            prompt: entry.imagePrompt,
+            originalUrl: imageResult.url,
+            uploadedUrl: uploadResult.cdnUrl || uploadResult.driveUrl,
+            fileName,
+            cost: imageResult.cost
+          });
+          
+          // Small delay to avoid rate limits
+          if (i < entriesNeedingGeneration.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+          
+        } catch (error) {
+          logger.error(`Failed to generate image for sentence ${entry.sentenceNumber}:`, error);
+          
+          // Update status to "Failed" with error info
+          await googleSheetsService.updateSentenceWithImage(
+            videoId, 
+            entry.sentenceNumber, 
+            '', 
+            `Failed: ${error.message.substring(0, 50)}`
+          ).catch(updateError => {
+            logger.error(`Failed to update error status for sentence ${entry.sentenceNumber}:`, updateError.message);
+          });
+        }
+      }
+      
+      const totalCost = generatedImages.reduce((sum, img) => sum + img.cost, 0);
+      logger.info(`Generated ${generatedImages.length} images selectively for video ${videoId} (Total cost: $${totalCost.toFixed(4)})`);
+      
+      return generatedImages;
+    } catch (error) {
+      logger.error('Error in selective image generation:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Generate all images for a video with cost control and consistent styling
    * @param {Array} imagePrompts - Array of prompt objects
    * @param {string} videoId - Video identifier
@@ -1790,14 +2089,19 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
       }
       
       // First perform keyword research using enhanced context
-      const keywordData = await this.performKeywordResearch(enhancedVideoData.transcriptText || enhancedVideoData.title);
+      const keywordData = await this.performKeywordResearch(
+        enhancedVideoData.transcriptText || enhancedVideoData.title,
+        '', // niche
+        videoId // for cost tracking
+      );
       
       // Then generate script with SEO keyword integration using enhanced context
       const attractiveScript = await this.generateAttractiveScript(
         enhancedVideoData.transcriptText || enhancedVideoData.title, 
         enhancedVideoData, 
         null, // contextAnalysis - let function perform it
-        keywordData // Pass keyword data for SEO integration
+        keywordData, // Pass keyword data for SEO integration
+        videoId // for cost tracking
       );
 
       const [optimizedDescription, optimizedTitles] = await Promise.all([
@@ -1826,7 +2130,7 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
 
       // Only generate actual images if image generation is enabled
       if (config.app.enableImageGeneration) {
-        logger.info('Image generation enabled - generating thumbnail and images');
+        logger.info('Image generation enabled - using selective generation mode');
         
         // Generate thumbnail with consistent style
         thumbnail = await this.generateThumbnail(
@@ -1835,13 +2139,13 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
           { videoId, videoStyle: imagePromptsData.videoStyle }
         );
         
-        // Generate all images with cost control (only if we have prompts)
-        if (imagePromptsData.prompts && imagePromptsData.prompts.length > 0) {
-          generatedImages = await this.generateVideoImages(
-            imagePromptsData.prompts,
-            videoId
-          );
-        }
+        // NOTE: In selective mode, images are only generated for entries with "Need Generate" status
+        // This allows humans to manually select which images should be generated by changing the status
+        logger.info('Selective image generation mode: Only entries with "Need Generate" status will be processed');
+        logger.info('To generate images: Change status from "Pending" to "Need Generate" in the Script Breakdown sheet');
+        
+        // We don't generate images automatically - they will be generated when the status monitoring detects "Need Generate"
+        generatedImages = [];
       } else {
         logger.info('Image generation disabled - skipping actual image generation');
       }
@@ -2059,25 +2363,46 @@ Style 2: Professional/Clean - Use minimal design, clear typography, and visual m
         leonardo: false
       };
 
-      // Test Claude Sonnet API first (primary)
+      // Test Claude Sonnet 4 API first (primary)
       try {
         const claudeCompletion = await this.anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 50,
           messages: [
             {
               role: 'user',
-              content: 'Say "Claude Sonnet is working" if you can respond.'
+              content: 'Say "Claude Sonnet 4 is working" if you can respond.'
             }
           ]
         });
 
         if (claudeCompletion.content && claudeCompletion.content.length > 0) {
           healthResults.claude = true;
-          logger.info('AI service health check passed (Claude Sonnet)');
+          logger.info('AI service health check passed (Claude Sonnet 4)');
         }
       } catch (claudeError) {
-        logger.warn('Claude Sonnet health check failed:', claudeError.message);
+        logger.warn('Claude Sonnet 4 health check failed:', claudeError.message);
+        
+        // Fallback to Claude 3.5 Sonnet for health check
+        try {
+          const claude35Completion = await this.anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 50,
+            messages: [
+              {
+                role: 'user',
+                content: 'Say "Claude Sonnet 3.5 is working" if you can respond.'
+              }
+            ]
+          });
+
+          if (claude35Completion.content && claude35Completion.content.length > 0) {
+            healthResults.claude = true;
+            logger.info('AI service health check passed (Claude Sonnet 3.5 fallback)');
+          }
+        } catch (claude35Error) {
+          logger.warn('Both Claude Sonnet 4 and 3.5 health checks failed:', claude35Error.message);
+        }
       }
 
       // Test OpenAI API
@@ -2125,6 +2450,7 @@ Style 2: Professional/Clean - Use minimal design, clear typography, and visual m
       const workingServices = Object.values(healthResults).filter(Boolean).length;
       if (workingServices > 0) {
         logger.info(`AI service health check: ${workingServices}/3 services working`);
+        logger.info(`Service status: Claude: ${healthResults.claude}, OpenAI: ${healthResults.openai}, Leonardo: ${healthResults.leonardo}`);
         return true;
       } else {
         throw new Error('All AI services failed health check');
