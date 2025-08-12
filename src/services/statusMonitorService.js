@@ -295,7 +295,7 @@ class StatusMonitorService {
             updates.scriptApprovedTime = timestamp;
           } else if (changeInfo.new === 'Needs Changes') {
             // When script needs changes, reset related statuses
-            updates.isRegenerating = 'true';
+            updates.lastRegenTime = timestamp;
             updates.scriptNeedsChangesTime = timestamp;
           }
           break;
@@ -639,7 +639,10 @@ class StatusMonitorService {
       await this.googleSheetsService.updateVideoField(videoId, 'scriptApproved', 'Pending');
       
       // 4. Mark video as being regenerated for voice script force recreation
-      await this.googleSheetsService.updateVideoField(videoId, 'isRegenerating', 'true');
+      await this.googleSheetsService.updateVideoFields(videoId, {
+        lastRegenTime: new Date().toISOString(),
+        scriptRegenAttempts: (parseInt(await this.googleSheetsService.getVideoField(videoId, 'scriptRegenAttempts') || '0') + 1).toString()
+      });
       
       // 5. Send initial regeneration notification
       await this.telegramService.sendMessage(
