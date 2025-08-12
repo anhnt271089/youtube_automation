@@ -218,20 +218,31 @@ FACELESS CHANNEL REQUIREMENTS:
 ✅ ALWAYS focus on viewer benefits and evidence-based claims
 ✅ ALWAYS maintain authority through data and proven methodologies
 
-NO EXTERNAL CALLS-TO-ACTION POLICY:
+CALL-TO-ACTION POLICY (External vs YouTube Platform):
+
+❌ EXTERNAL CTAs (BLOCK THESE - Direct viewers AWAY from YouTube):
 ❌ NEVER include "Click the link below" or "Click the link in the description"
 ❌ NEVER mention "Download our guide" or "Get our free resource"
 ❌ NEVER say "Visit our website" or "Navigate to our website"
 ❌ NEVER reference "Check the description for links" or "Links below"
-❌ NEVER include "Subscribe and hit the bell" or "Subscribe for more"
-❌ NEVER mention "Follow us on social media" or "Join our community"
+❌ NEVER mention "Follow us on social media" (external platforms)
 ❌ NEVER say "Sign up for our newsletter" or "Join our email list"
 ❌ NEVER reference any external resources, downloads, or websites
-❌ NEVER direct viewers away from the current content
+❌ NEVER direct viewers away from YouTube to external platforms
+
+✅ YOUTUBE PLATFORM CTAs (ALLOW THESE - Keep viewers ON YouTube):
+✅ CAN include "Subscribe and hit the bell" or "Subscribe for more"
+✅ CAN mention "Like this video if it helped you"
+✅ CAN say "Hit the notification bell for updates"
+✅ CAN reference "Watch more videos like this" or "Check out our other videos"
+✅ CAN encourage "Share this video with others"
+✅ CAN promote YouTube-specific engagement that builds the channel
+
+✅ CONTENT REQUIREMENTS:
 ✅ ALWAYS deliver complete value within the script itself
 ✅ ALWAYS make content self-contained and valuable without external dependencies
 ✅ ALWAYS focus on educational content that stands alone
-✅ ALWAYS end with value reinforcement, not external actions
+✅ YouTube engagement CTAs should be natural and enhance channel growth
 
 CONTEXT ANALYSIS:
 - Original Script Intent: ${context.originalScriptIntent}
@@ -443,20 +454,31 @@ FACELESS CHANNEL REQUIREMENTS:
 ✅ ALWAYS focus on viewer benefits and evidence-based claims
 ✅ ALWAYS maintain authority through data and proven methodologies
 
-NO EXTERNAL CALLS-TO-ACTION POLICY:
+CALL-TO-ACTION POLICY (External vs YouTube Platform):
+
+❌ EXTERNAL CTAs (BLOCK THESE - Direct viewers AWAY from YouTube):
 ❌ NEVER include "Click the link below" or "Click the link in the description"
 ❌ NEVER mention "Download our guide" or "Get our free resource"
 ❌ NEVER say "Visit our website" or "Navigate to our website"
 ❌ NEVER reference "Check the description for links" or "Links below"
-❌ NEVER include "Subscribe and hit the bell" or "Subscribe for more"
-❌ NEVER mention "Follow us on social media" or "Join our community"
+❌ NEVER mention "Follow us on social media" (external platforms)
 ❌ NEVER say "Sign up for our newsletter" or "Join our email list"
 ❌ NEVER reference any external resources, downloads, or websites
-❌ NEVER direct viewers away from the current content
+❌ NEVER direct viewers away from YouTube to external platforms
+
+✅ YOUTUBE PLATFORM CTAs (ALLOW THESE - Keep viewers ON YouTube):
+✅ CAN include "Subscribe and hit the bell" or "Subscribe for more"
+✅ CAN mention "Like this video if it helped you"
+✅ CAN say "Hit the notification bell for updates"
+✅ CAN reference "Watch more videos like this" or "Check out our other videos"
+✅ CAN encourage "Share this video with others"
+✅ CAN promote YouTube-specific engagement that builds the channel
+
+✅ CONTENT REQUIREMENTS:
 ✅ ALWAYS deliver complete value within the script itself
 ✅ ALWAYS make content self-contained and valuable without external dependencies
 ✅ ALWAYS focus on educational content that stands alone
-✅ ALWAYS end with value reinforcement, not external actions
+✅ YouTube engagement CTAs should be natural and enhance channel growth
 
 Original Video Information:
 - Title: ${videoMetadata.title}
@@ -608,10 +630,12 @@ ADVANCED SEO DESCRIPTION REQUIREMENTS:
    - Mention specific takeaways or results
 
 4. ENGAGEMENT & SEO SECTION (Characters 700-900):
-   - Strong call-to-action for likes, comments, subscribes
+   - Strong call-to-action for likes, comments, subscribes (YOUTUBE ONLY)
    - Ask engaging question to drive comments
    - Include keyword variations and semantic terms
    - Add social proof elements if applicable
+   - ❌ NEVER include external links, websites, downloads, or other social media
+   - ✓ ONLY YouTube platform engagement: like, subscribe, comment, share, bell notification
 
 5. HASHTAG OPTIMIZATION (Final section):
    - 8-12 strategic hashtags mixing trending and niche terms
@@ -635,17 +659,26 @@ CONTENT STRATEGY:
 - Use conversational, engaging tone that builds connection
 - Include urgency or scarcity elements where appropriate
 - Emphasize transformation or results viewer will achieve
+- KEEP TOTAL LENGTH UNDER 800 CHARACTERS for optimal YouTube display
+- Prioritize quality over quantity - be concise and impactful
 
 FACELESS CHANNEL REQUIREMENTS (CRITICAL):
 ❌ NEVER use first-person language: "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested"
 ❌ NEVER include personal stories, experiences, or channel creator references
 ❌ NEVER reference personal credentials or individual achievements
+❌ NEVER include external CTAs: websites, downloads, email lists, other social media
 ✅ ALWAYS use third-person or universal language: "you", "this method", "research shows", "studies indicate"
 ✅ ALWAYS use evidence-based claims without personal attribution
 ✅ ALWAYS focus on viewer benefits and actionable content
 ✅ ALWAYS maintain authority through data, research, and proven methodologies
+✅ ONLY include YouTube platform CTAs: like, subscribe, comment, share, bell notifications
 
-Return the complete SEO-optimized description ready for YouTube upload.`;
+FINAL REQUIREMENTS:
+- MAXIMUM 800 CHARACTERS TOTAL (including hashtags)
+- Concise, impactful language
+- All requirements above in minimal space
+
+Return the complete SEO-optimized description ready for YouTube upload, ensuring it stays under 800 characters.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -659,7 +692,7 @@ Return the complete SEO-optimized description ready for YouTube upload.`;
             content: prompt
           }
         ],
-        max_tokens: 800,
+        max_tokens: 450,
         temperature: 0.6
       });
 
@@ -687,7 +720,7 @@ These titles are for a FACELESS YouTube channel. You MUST follow these rules:
 ✅ ALWAYS use universal language: "How to", "The secret to", "This method", "Anyone can"
 ✅ ALWAYS focus on viewer-centric benefits and outcomes
 
-You are a viral YouTube title optimization expert with proven track record of 15%+ CTR titles. Create 5 high-converting titles based SPECIFICALLY on this new generated script content with advanced SEO keyword integration.
+You are a viral YouTube title optimization expert with proven track record of 15%+ CTR titles. Create EXACTLY 5 complete, usable titles based SPECIFICALLY on this new generated script content.
 
 SCRIPT ANALYSIS:
 Original Reference Title: ${originalTitle}
@@ -698,50 +731,22 @@ Primary Keywords (must include 1-2): ${primaryKeywords.join(', ')}
 Long-tail Keywords (natural integration): ${longTailKeywords.join(', ')}
 All Available Keywords: ${keywords.join(', ')}
 
-VIRAL TITLE FRAMEWORK:
-
-🎯 PSYCHOLOGICAL TRIGGERS (Use 2-3 per title):
-- Curiosity Gap: "The [X] Nobody Talks About"
-- Social Proof: "Everyone's Doing [X] Wrong"
-- Urgency/Scarcity: "Before It's Too Late"
-- Authority: "Experts Don't Want You to Know"
-- Personal Stakes: "This Will Change Your [X]"
-- Pattern Interrupt: "Stop [Common Action]"
-- Results Preview: "How to [Achievement] in [Timeframe]"
-- Controversy: "Unpopular Opinion About [X]"
-
-📊 CTR OPTIMIZATION STRATEGIES:
-- Emotional Power Words: "Shocking", "Secret", "Mistake", "Warning", "Reveal"
-- Numbers & Specificity: Exact timeframes, percentages, quantities
-- Questions That Demand Answers: "Why Does [X] Always [Y]?"
-- Before/After Implications: "From [Bad State] to [Good State]"
-- Exclusive Information: "Inside Look", "Behind Scenes", "Never Told"
-
-🧠 ALGORITHM & SEO OPTIMIZATION:
-- Mobile-First: 50-60 characters for full mobile visibility
-- Keyword Integration: Include 1-2 primary keywords naturally (not forced)
-- Semantic Variations: Use related terms and synonyms
-- Search Intent Alignment: Match title to user search intent
-- Click-Through Magnets: Words that make scrolling impossible
-- Avoid Clickbait: Promise exactly what the script delivers
-- Thumbnail Synergy: Title complements visual elements
-
-📈 PERFORMANCE TARGETING:
-- 12%+ CTR potential (viral threshold)
-- High relevance to script content
-- Search discovery optimization
-- Suggested video algorithm appeal
-- Cross-demographic appeal when appropriate
+VIRAL OPTIMIZATION REQUIREMENTS:
+✅ Use psychological triggers (curiosity gaps, social proof, urgency, authority, pattern interrupts)
+✅ Include emotional power words ("Shocking", "Secret", "Mistake", "Warning", "Reveal")
+✅ Optimize for mobile viewing (50-60 characters when possible)
+✅ Include 1-2 primary keywords naturally
+✅ Create irresistible curiosity or desire
+✅ Promise exactly what the script delivers
+✅ Appeal to specific audience pain points from content
+✅ Use numbers and specificity when relevant
 
 TITLE CREATION RULES:
 ✅ Based 100% on NEW script content, not original video
-✅ Promise value that script actually delivers
-✅ Include psychological trigger from framework above
-✅ Optimize for mobile viewing (character limits)
-✅ Create irresistible curiosity or desire
-✅ Target high-intent keywords from script
-✅ Appeal to specific audience pain points/desires from content
-✅ Avoid generic/overused phrases
+✅ Each title must be complete and ready to use
+✅ Use different approaches and psychological triggers for each
+✅ Optimize for maximum click-through rate
+✅ Avoid generic or overused phrases
 
 FACELESS CHANNEL REQUIREMENTS (CRITICAL):
 ❌ NEVER use first-person language: "I", "me", "my", "I've", "I discovered", "my secret"
@@ -751,14 +756,21 @@ FACELESS CHANNEL REQUIREMENTS (CRITICAL):
 ✅ ALWAYS focus on viewer-centric benefits and outcomes
 ✅ ALWAYS use third-person or instructional framing
 
-ANALYZE THE SCRIPT FIRST:
-- What's the core transformation/value?
-- What specific problem does it solve?
-- What's the unique angle or approach?
-- What results/outcomes are promised?
-- What emotions does it target?
+🚨 OUTPUT FORMAT REQUIREMENTS 🚨:
+- Return ONLY the 5 titles, nothing else
+- Format: "1. [COMPLETE TITLE]" through "5. [COMPLETE TITLE]"
+- NO explanations, NO trigger descriptions, NO additional commentary
+- Each line must contain a complete, usable YouTube title
+- Do NOT include psychological trigger labels or explanations in the output
 
-Create 5 distinct title options optimized for maximum CTR based on the NEW script content. Each title should use different psychological triggers and approaches. Return as numbered list 1-5.`;
+EXAMPLE OF CORRECT OUTPUT FORMAT:
+1. The Shocking Reason You're Always Tired (It's Not Just Sleep!)
+2. Why You're Exhausted Even After 8 Hours of Sleep (Finally Explained)
+3. Experts Reveal the Hidden Cause of Chronic Fatigue Anyone Can Fix!
+4. The Real Reason Your Energy Is Always Low (It's Not What You Think)
+5. Stop Letting Brain Burnout Drain Your Energy: The Secret to Feeling Energized!
+
+Now create 5 distinct title options optimized for maximum CTR based on the NEW script content:`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -785,15 +797,44 @@ Create 5 distinct title options optimized for maximum CTR based on the NEW scrip
       for (const line of lines) {
         const trimmed = line.trim();
         
-        // Skip empty lines, intro text, and formatting
+        // Skip empty lines, intro text, explanations, and formatting
         if (!trimmed || 
             trimmed.toLowerCase().includes('here are') ||
             trimmed.toLowerCase().includes('optimized') ||
             trimmed.toLowerCase().includes('based on') ||
-            trimmed.toLowerCase().includes('psychological triggers') ||
+            trimmed.toLowerCase().includes('psychological trigger') ||
+            trimmed.toLowerCase().includes('(psychological') ||
+            trimmed.toLowerCase().includes('- (') ||
+            trimmed.toLowerCase().includes('trigger:') ||
+            trimmed.toLowerCase().includes('curiosity gap') ||
+            trimmed.toLowerCase().includes('social proof') ||
+            trimmed.toLowerCase().includes('authority') ||
+            trimmed.toLowerCase().includes('pattern interrupt') ||
+            trimmed.toLowerCase().includes('urgency') ||
+            trimmed.toLowerCase().includes('scarcity') ||
             trimmed.startsWith('*') ||
             trimmed.startsWith('(') ||
+            trimmed.startsWith('-') ||
+            trimmed.startsWith('✅') ||
+            trimmed.startsWith('❌') ||
+            trimmed.startsWith('•') ||
+            trimmed.includes('Title Option') && trimmed.includes('Trigger') ||
             trimmed.length < 10) {
+          continue;
+        }
+        
+        // Check if this looks like a trigger description rather than a title
+        const triggerIndicators = [
+          'curiosity', 'social proof', 'authority', 'pattern interrupt',
+          'urgency', 'scarcity', 'trigger', 'psychological', 'framework'
+        ];
+        
+        const isLikelyTriggerDescription = triggerIndicators.some(indicator => 
+          trimmed.toLowerCase().includes(indicator) && 
+          (trimmed.includes(':') || trimmed.includes('(') || trimmed.startsWith('-'))
+        );
+        
+        if (isLikelyTriggerDescription) {
           continue;
         }
         
@@ -803,10 +844,15 @@ Create 5 distinct title options optimized for maximum CTR based on the NEW scrip
           .replace(/^\**"?/, '') // Remove leading stars and quotes
           .replace(/"?\**$/, '') // Remove trailing quotes and stars
           .replace(/\*\*/g, '') // Remove bold markdown
+          .replace(/^Title Option \d+:\s*/i, '') // Remove "Title Option X:" prefix if present
           .trim();
         
         // Only add if it looks like a proper title (not empty and reasonable length)
-        if (cleanTitle && cleanTitle.length >= 10 && cleanTitle.length <= 200) {
+        if (cleanTitle && 
+            cleanTitle.length >= 10 && 
+            cleanTitle.length <= 200 &&
+            !cleanTitle.toLowerCase().includes('trigger') &&
+            !cleanTitle.toLowerCase().includes('psychological')) {
           titles.push(cleanTitle);
         }
       }
