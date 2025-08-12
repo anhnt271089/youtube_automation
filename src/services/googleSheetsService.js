@@ -64,9 +64,12 @@ class GoogleSheetsService {
       videoEditingStatus: 11, // L: 👤 Video Editing Status
       driveFolder: 12,      // M: 🤖 Drive Folder Link
       detailWorkbookUrl: 13, // N: 🤖 Detail Workbook URL
-      createdTime: 14,      // O: 🤖 Created Time
-      lastEditedTime: 15,   // P: 🤖 Last Edited Time
-      isRegenerating: 16    // Q: 🤖 Is Regenerating Flag (internal use)
+      thumbnailConcepts: 14, // O: 🤖 Thumbnail Concepts
+      createdTime: 15,      // P: 🤖 Created Time  
+      lastEditedTime: 16,   // Q: 🤖 Last Edited Time
+      scriptRegenAttempts: 17, // R: 🤖 Script Regen Attempts
+      lastRegenTime: 18,    // S: 🤖 Last Regen Time
+      regenCooldownUntil: 19 // T: 🤖 Regen Cooldown Until
     };
 
     // Detail workbook sheet structure
@@ -153,7 +156,7 @@ class GoogleSheetsService {
       const videoId = await this.getNextVideoId();
       const timestamp = this.getCurrentTimestamp();
 
-      const rowData = new Array(17).fill(''); // Initialize 17 columns (A-Q)
+      const rowData = new Array(20).fill(''); // Initialize 20 columns (A-T)
       rowData[this.masterColumns.videoId] = videoId;
       rowData[this.masterColumns.youtubeUrl] = videoData.youtubeUrl;
       rowData[this.masterColumns.title] = videoData.title || 'YouTube API Error - Run fix-missing-titles.js';
@@ -169,7 +172,7 @@ class GoogleSheetsService {
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:Q', // Updated to Q column (17 columns)
+        range: 'Videos!A:T', // Updated to T column (20 columns)
         valueInputOption: 'USER_ENTERED',
         resource: {
           values: [rowData]
@@ -188,7 +191,7 @@ class GoogleSheetsService {
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:Q' // Updated to Q column
+        range: 'Videos!A:T' // Updated to T column
       });
 
       const values = response.data.values || [];
@@ -225,7 +228,7 @@ class GoogleSheetsService {
 
       // Update last edited time
       updates.push({
-        range: `Videos!P${videoRow.rowIndex}`, // P column for lastEditedTime
+        range: `Videos!Q${videoRow.rowIndex}`, // Q column for lastEditedTime
         values: [[timestamp]]
       });
 
@@ -285,7 +288,7 @@ class GoogleSheetsService {
         },
         // Update last edited time
         {
-          range: `Videos!P${videoRow.rowIndex}`, // P column for lastEditedTime
+          range: `Videos!Q${videoRow.rowIndex}`, // Q column for lastEditedTime
           values: [[timestamp]]
         }
       ];
@@ -407,7 +410,7 @@ END OF BACKUP - Original script preserved before regeneration`;
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:Q' // Updated to Q column
+        range: 'Videos!A:T' // Updated to T column
       });
 
       const values = response.data.values || [];
@@ -437,7 +440,7 @@ END OF BACKUP - Original script preserved before regeneration`;
     return this.retryOperation(async () => {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.masterSheetId,
-        range: 'Videos!A:Q' // Updated to Q column
+        range: 'Videos!A:T' // Updated to T column
       });
 
       const values = response.data.values || [];
@@ -708,7 +711,8 @@ END OF BACKUP - Original script preserved before regeneration`;
         const scriptApproved = videoRow.data[this.masterColumns.scriptApproved];
         if (scriptApproved === 'Approved') {
           // Check if this video is being regenerated (force recreate voice script)
-          const isRegenerating = videoRow.data[this.masterColumns.isRegenerating] === 'true';
+          const lastRegenTime = videoRow.data[this.masterColumns.lastRegenTime];
+          const isRegenerating = lastRegenTime && lastRegenTime.trim() !== '';
           const voiceScriptFile = await this.createAndUploadVoiceScript(videoId, isRegenerating);
           
           if (voiceScriptFile) {
@@ -719,10 +723,13 @@ END OF BACKUP - Original script preserved before regeneration`;
             }
           }
           
-          // Clear regeneration flag after successful voice script creation
+          // Clear regeneration tracking after successful voice script creation
           if (isRegenerating) {
-            await this.updateVideoField(videoId, 'isRegenerating', '');
-            logger.info(`Cleared regeneration flag for ${videoId}`);
+            await this.updateVideoFields(videoId, {
+              lastRegenTime: '',
+              regenCooldownUntil: ''
+            });
+            logger.info(`Cleared regeneration tracking for ${videoId}`);
           }
         } else {
           logger.info(`Voice script creation skipped for ${videoId} - Script not approved yet (status: ${scriptApproved || 'Pending'})`);
@@ -1622,45 +1629,8 @@ END OF BACKUP - Original script preserved before regeneration`;
         if (this.masterColumns[fieldName] !== undefined) {
           columnIndex = this.masterColumns[fieldName];
         } else {
-          // Handle new timestamp/tracking columns - LIMITED TO AVAILABLE SHEET COLUMNS (A-T = 0-19)
-          switch (fieldName) {
-          case 'scriptApprovedTime':
-            columnIndex = 17; // Column R
-            break;
-          case 'scriptNeedsChangesTime':
-            columnIndex = 18; // Column S 
-            break;
-          case 'voiceStartedTime':
-            columnIndex = 19; // Column T
-            break;
-          case 'voiceCompletedTime':
-            // DISABLED: Column U (20) exceeds sheet limit of 20 columns
-            logger.warn(`${fieldName} update skipped: Column U exceeds Google Sheets limit (max 20 columns)`);
-            continue;
-          case 'videoEditingStartedTime':
-            // DISABLED: Column V (21) exceeds sheet limit
-            logger.warn(`${fieldName} update skipped: Column V exceeds Google Sheets limit (max 20 columns)`);
-            continue;
-          case 'videoEditingCompletedTime':
-            // DISABLED: Column W (22) exceeds sheet limit
-            logger.warn(`${fieldName} update skipped: Column W exceeds Google Sheets limit (max 20 columns)`);
-            continue;
-          case 'processingStartedTime':
-            // DISABLED: Column X (23) exceeds sheet limit
-            logger.warn(`${fieldName} update skipped: Column X exceeds Google Sheets limit (max 20 columns)`);
-            continue;
-          case 'processingCompletedTime':
-            // DISABLED: Column Y (24) exceeds sheet limit
-            logger.warn(`${fieldName} update skipped: Column Y exceeds Google Sheets limit (max 20 columns)`);
-            continue;
-          case 'errorTime':
-            // DISABLED: Column Z (25) exceeds sheet limit - THIS WAS THE MAIN ISSUE
-            logger.warn(`${fieldName} update skipped: Column Z exceeds Google Sheets limit (max 20 columns)`);
-            continue;
-          default:
-            logger.warn(`Unknown field name: ${fieldName}, skipping`);
-            continue;
-          }
+          logger.warn(`Unknown field name: ${fieldName}, skipping`);
+          continue;
         }
 
         // Validate column index is within sheet limits (0-19 for 20 columns A-T)
