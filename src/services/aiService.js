@@ -207,14 +207,31 @@ Focus on preserving the essence while enabling development and enhancement.`;
       const prompt = `
 You are a viral YouTube content strategist and scriptwriter with expertise in algorithm optimization and audience psychology. Transform the original video into breakthrough content that maximizes engagement and viral potential.
 
-⚠️ CRITICAL FACELESS CHANNEL REQUIREMENT ⚠️
-This script is for a FACELESS YouTube channel. You MUST follow these rules:
+⚠️ CRITICAL REQUIREMENTS FOR EDUCATIONAL CONTENT ⚠️
+This script is for a FACELESS YouTube channel focused on PURE EDUCATIONAL CONTENT. You MUST follow these rules:
+
+FACELESS CHANNEL REQUIREMENTS:
 ❌ NEVER use "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested", "I analyzed"
 ❌ NEVER include personal stories, experiences, or individual achievements  
 ❌ NEVER reference the presenter or creator personally
 ✅ ALWAYS use universal language: "you", "this method", "research shows", "studies indicate"
 ✅ ALWAYS focus on viewer benefits and evidence-based claims
 ✅ ALWAYS maintain authority through data and proven methodologies
+
+NO EXTERNAL CALLS-TO-ACTION POLICY:
+❌ NEVER include "Click the link below" or "Click the link in the description"
+❌ NEVER mention "Download our guide" or "Get our free resource"
+❌ NEVER say "Visit our website" or "Navigate to our website"
+❌ NEVER reference "Check the description for links" or "Links below"
+❌ NEVER include "Subscribe and hit the bell" or "Subscribe for more"
+❌ NEVER mention "Follow us on social media" or "Join our community"
+❌ NEVER say "Sign up for our newsletter" or "Join our email list"
+❌ NEVER reference any external resources, downloads, or websites
+❌ NEVER direct viewers away from the current content
+✅ ALWAYS deliver complete value within the script itself
+✅ ALWAYS make content self-contained and valuable without external dependencies
+✅ ALWAYS focus on educational content that stands alone
+✅ ALWAYS end with value reinforcement, not external actions
 
 CONTEXT ANALYSIS:
 - Original Script Intent: ${context.originalScriptIntent}
@@ -264,7 +281,7 @@ VIRAL CONTENT TRANSFORMATION FRAMEWORK:
 - Multi-Point Retention Engineering: Hooks at 5s, 15s, 30s, 60s, 2min marks
 - Advanced Comment Bait: Strategic controversial statements + opinion triggers
 - Rewatch Architecture: Dense information layers + callback references
-- Session Extension: "What to watch next" integration + series connectivity
+- Content Depth: Dense information layers + comprehensive value delivery
 - Share Psychology: "You need to see this" moments + social validation triggers
 - Engagement Signal Timing: Specific pause points and interaction prompts
 
@@ -287,7 +304,7 @@ HERO'S JOURNEY INTEGRATION:
 - Crossing Threshold (45s-1:30m): Action commitment + method introduction + value delivery
 - Trials & Solutions (1:30-2m): Obstacles + breakthrough moments + transformation evidence
 - Return with Elixir (2-2:30m): Results demonstration + social validation + success proof
-- Master CTA (2:30-3m): Multi-layered conversion + session extension + community invitation
+- Content Completion (2:30-3m): Value reinforcement + key takeaway summary + educational closure
 
 RETENTION CHECKPOINTS:
 - 5s: Micro-hook + emotional trigger
@@ -376,9 +393,13 @@ CRITICAL SUCCESS FACTORS:
 - Create at least 3 shareable/quotable moments throughout the narrative
 - Build emotional progression from curiosity to action with smooth transitions
 - Integrate authority establishment, social proof, and identity alignment seamlessly
-- End with multi-layered CTA including next action, community invitation, and session extension
+- End with value reinforcement and content completion without any external CTAs
 
-⚠️ FINAL CHECK: Before returning the script, ensure it contains ZERO first-person language ("I", "me", "my", etc.) and focuses entirely on the viewer and universal principles.
+⚠️ FINAL CHECK: Before returning the script, ensure it contains:
+- ZERO first-person language ("I", "me", "my", etc.)
+- ZERO external calls-to-action (links, downloads, subscriptions, etc.)
+- PURE educational content that stands alone and delivers complete value
+- Focus entirely on the viewer and universal principles
 
 Return only the breakthrough script - no commentary, explanations, or meta-information.`;
 
@@ -411,14 +432,31 @@ Return only the breakthrough script - no commentary, explanations, or meta-infor
         const fallbackPrompt = `
 You are an advanced YouTube scriptwriter and viral content strategist specializing in algorithm optimization and audience psychology. Transform the original content into a breakthrough script with superior engagement potential.
 
-⚠️ CRITICAL FACELESS CHANNEL REQUIREMENT ⚠️
-This script is for a FACELESS YouTube channel. You MUST follow these rules:
+⚠️ CRITICAL REQUIREMENTS FOR EDUCATIONAL CONTENT ⚠️
+This script is for a FACELESS YouTube channel focused on PURE EDUCATIONAL CONTENT. You MUST follow these rules:
+
+FACELESS CHANNEL REQUIREMENTS:
 ❌ NEVER use "I", "me", "my", "I've", "I have", "I discovered", "I found", "I tested", "I analyzed"
 ❌ NEVER include personal stories, experiences, or individual achievements  
 ❌ NEVER reference the presenter or creator personally
 ✅ ALWAYS use universal language: "you", "this method", "research shows", "studies indicate"
 ✅ ALWAYS focus on viewer benefits and evidence-based claims
 ✅ ALWAYS maintain authority through data and proven methodologies
+
+NO EXTERNAL CALLS-TO-ACTION POLICY:
+❌ NEVER include "Click the link below" or "Click the link in the description"
+❌ NEVER mention "Download our guide" or "Get our free resource"
+❌ NEVER say "Visit our website" or "Navigate to our website"
+❌ NEVER reference "Check the description for links" or "Links below"
+❌ NEVER include "Subscribe and hit the bell" or "Subscribe for more"
+❌ NEVER mention "Follow us on social media" or "Join our community"
+❌ NEVER say "Sign up for our newsletter" or "Join our email list"
+❌ NEVER reference any external resources, downloads, or websites
+❌ NEVER direct viewers away from the current content
+✅ ALWAYS deliver complete value within the script itself
+✅ ALWAYS make content self-contained and valuable without external dependencies
+✅ ALWAYS focus on educational content that stands alone
+✅ ALWAYS end with value reinforcement, not external actions
 
 Original Video Information:
 - Title: ${videoMetadata.title}
@@ -451,7 +489,7 @@ ADVANCED SCRIPT ARCHITECTURE:
 - Authority & Social Proof (30-45s): Establish credibility with evidence
 - Method/Solution (45s-1:30m): Deliver core value with actionable insights
 - Transformation Evidence (1:30-2m): Show results and proof
-- Strong CTA (2-2:30m): Multiple action steps and community invitation
+- Value Conclusion (2-2:30m): Key takeaway reinforcement and educational closure
 
 🧠 PSYCHOLOGICAL OPTIMIZATION:
 - Embed social proof throughout (not just one section)
@@ -465,7 +503,7 @@ ADVANCED SCRIPT ARCHITECTURE:
 - Comment-baiting questions integrated naturally
 - Rewatchability through dense information layers
 - Share triggers: quotable moments and social currency
-- Session extension setup for next videos
+- Content depth optimization for educational value
 
 🎭 LANGUAGE PATTERNS:
 - Power words: "Breakthrough," "Secret," "Proven," "Exclusive"
@@ -483,7 +521,11 @@ FACELESS CHANNEL REQUIREMENTS (CRITICAL):
 ✅ ALWAYS maintain authority through data, research, and proven methodologies
 ✅ ALWAYS use universal examples that apply to the audience, not personal experiences
 
-⚠️ FINAL CHECK: Before returning the script, ensure it contains ZERO first-person language ("I", "me", "my", etc.) and focuses entirely on the viewer and universal principles.
+⚠️ FINAL CHECK: Before returning the script, ensure it contains:
+- ZERO first-person language ("I", "me", "my", etc.)
+- ZERO external calls-to-action (links, downloads, subscriptions, etc.)
+- PURE educational content that stands alone and delivers complete value
+- Focus entirely on the viewer and universal principles
 
 Create a breakthrough script that demonstrates these advanced techniques while serving the same audience. Focus on maximum engagement, retention, and viral potential. Return only the script without commentary.`;
 
