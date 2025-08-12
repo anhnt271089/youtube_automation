@@ -1,7 +1,7 @@
 {
   "videoId": "VID-0002",
   "version": "1.0",
-  "createdAt": "2025-08-11T14:40:04.166Z",
+  "createdAt": "2025-08-12T04:10:07.478Z",
   "originalMetadata": {
     "videoId": "HeuABY9f8Qo",
     "title": "Who is your Enemy ? ",
@@ -36,7 +36,7 @@
       }
     },
     "duration": "1:08",
-    "viewCount": 7716,
+    "viewCount": 7748,
     "likeCount": 438,
     "tags": [],
     "categoryId": "27",
@@ -67,8 +67,8 @@
     },
     "thumbnailUrl": "https://img.youtube.com/vi/HeuABY9f8Qo/maxresdefault.jpg",
     "originalUrl": "https://www.youtube.com/watch?v=HeuABY9f8Qo",
-    "fetchedAt": "2025-08-11T14:40:04.166Z",
-    "checksum": "f943785756fe3a870103ef19cba8ca43ab64788a5388c77024fcd7d39ff2d68f"
+    "fetchedAt": "2025-08-12T04:10:07.478Z",
+    "checksum": "ebd69bca6da6d8629935bd241453d889f9d883d5410b12afeb80047167358edc"
   },
   "workflowMetadata": {
     "processedAt": null,
@@ -79,7 +79,7 @@
     "processingAttempts": 0
   },
   "systemIntegrity": {
-    "lastValidated": "2025-08-11T14:40:04.166Z",
+    "lastValidated": "2025-08-12T04:10:07.478Z",
     "validationStatus": "verified",
     "backupCreated": true
   }

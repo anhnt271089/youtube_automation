@@ -1,7 +1,7 @@
 {
   "videoId": "VID-0004",
   "version": "1.0",
-  "createdAt": "2025-08-11T16:10:03.933Z",
+  "createdAt": "2025-08-12T04:47:13.348Z",
   "originalMetadata": {
     "videoId": "pfvUPqv47is",
     "title": "3 Finger Trick to Kill Anxiety Instantly ( Top 1% Knows )",
@@ -36,8 +36,8 @@
       }
     },
     "duration": "1:08",
-    "viewCount": 32002,
-    "likeCount": 1927,
+    "viewCount": 32017,
+    "likeCount": 1928,
     "tags": [],
     "categoryId": "27",
     "transcript": [
@@ -152,8 +152,8 @@
     },
     "thumbnailUrl": "https://img.youtube.com/vi/pfvUPqv47is/maxresdefault.jpg",
     "originalUrl": "https://www.youtube.com/watch?v=pfvUPqv47is",
-    "fetchedAt": "2025-08-11T16:10:03.933Z",
-    "checksum": "662799b6f475dfdb5de503070590fdafa55bc65abba58116706efcde9d38a3a8"
+    "fetchedAt": "2025-08-12T04:47:13.348Z",
+    "checksum": "103129fa0bd3c114581f76c1cfbbc79ab272e5d1449b2970b4706969256b29dd"
   },
   "workflowMetadata": {
     "processedAt": null,
@@ -164,7 +164,7 @@
     "processingAttempts": 0
   },
   "systemIntegrity": {
-    "lastValidated": "2025-08-11T16:10:03.933Z",
+    "lastValidated": "2025-08-12T04:47:13.348Z",
     "validationStatus": "verified",
     "backupCreated": true
   }

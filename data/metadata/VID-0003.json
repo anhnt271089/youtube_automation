@@ -1,7 +1,7 @@
 {
   "videoId": "VID-0003",
   "version": "1.0",
-  "createdAt": "2025-08-11T14:50:03.498Z",
+  "createdAt": "2025-08-12T04:17:31.746Z",
   "originalMetadata": {
     "videoId": "dcVQ9UAnxi0",
     "title": "Just Start !",
@@ -36,8 +36,8 @@
       }
     },
     "duration": "1:37",
-    "viewCount": 12820,
-    "likeCount": 1071,
+    "viewCount": 12866,
+    "likeCount": 1073,
     "tags": [],
     "categoryId": "27",
     "transcript": [
@@ -72,8 +72,8 @@
     },
     "thumbnailUrl": "https://img.youtube.com/vi/dcVQ9UAnxi0/maxresdefault.jpg",
     "originalUrl": "https://www.youtube.com/watch?v=dcVQ9UAnxi0",
-    "fetchedAt": "2025-08-11T14:50:03.498Z",
-    "checksum": "b50237acc81476a5f4ce70d40022230c3f1ee5bcdaeb9e2311f2199083dcb8d0"
+    "fetchedAt": "2025-08-12T04:17:31.746Z",
+    "checksum": "5e3238db65d8242d5984f8646b8b1d3435eb5427a4835170f66e6d711a5763a7"
   },
   "workflowMetadata": {
     "processedAt": null,
@@ -84,7 +84,7 @@
     "processingAttempts": 0
   },
   "systemIntegrity": {
-    "lastValidated": "2025-08-11T14:50:03.498Z",
+    "lastValidated": "2025-08-12T04:17:31.746Z",
     "validationStatus": "verified",
     "backupCreated": true
   }
