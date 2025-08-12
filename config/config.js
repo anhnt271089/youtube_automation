@@ -50,6 +50,7 @@ export const config = {
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
     chatId: process.env.TELEGRAM_CHAT_ID,
+    notificationsEnabled: process.env.TELEGRAM_NOTIFICATIONS_ENABLED !== 'false', // Default true for backward compatibility
     requestTimeout: parseInt(process.env.TELEGRAM_REQUEST_TIMEOUT) || 30000, // 30 seconds timeout
     maxRetries: parseInt(process.env.TELEGRAM_MAX_RETRIES) || 3,
     retryDelay: parseInt(process.env.TELEGRAM_RETRY_DELAY) || 1000, // 1 second initial delay
