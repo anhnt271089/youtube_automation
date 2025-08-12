@@ -46,6 +46,7 @@ class AIService {
       'dall-e-3-hd': 0.08, // HD quality
       
       // Leonardo AI models (based on API credits and plan pricing)
+      'leonardo-anime': 0.0018, // ~7 credits at $9/3500 credits = $0.0018
       'leonardo-phoenix': 0.0018, // ~7 credits at $9/3500 credits = $0.0018
       'leonardo-vision-xl': 0.0018,
       'leonardo-diffusion-xl': 0.0018,
@@ -61,6 +62,14 @@ class AIService {
     
     // Leonardo AI model configurations
     this.leonardoModels = {
+      'leonardo-anime': {
+        id: 'e71a1c2f-4f80-4800-934f-2c68979d8cc8', // Leonardo Anime model ID
+        name: 'Leonardo Anime',
+        maxWidth: 1024,
+        maxHeight: 1024,
+        supportsAlchemy: true,
+        defaultPresetStyle: 'ANIME_ILLUSTRATION'
+      },
       'leonardo-phoenix': {
         id: 'b24e16ff-06e3-43eb-8d33-4416c2d75876', // Phoenix 1.0 model ID
         name: 'Leonardo Phoenix',

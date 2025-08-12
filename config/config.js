@@ -40,8 +40,8 @@ export const config = {
   leonardo: {
     apiKey: process.env.LEONARDO_API_KEY,
     baseUrl: 'https://cloud.leonardo.ai/api/rest/v1',
-    defaultModel: process.env.LEONARDO_DEFAULT_MODEL || 'leonardo-phoenix',
-    defaultPresetStyle: process.env.LEONARDO_PRESET_STYLE || 'CINEMATIC',
+    defaultModel: process.env.LEONARDO_DEFAULT_MODEL || 'leonardo-anime',
+    defaultPresetStyle: process.env.LEONARDO_PRESET_STYLE || 'ANIME_ILLUSTRATION',
     enableAlchemy: process.env.LEONARDO_ENABLE_ALCHEMY !== 'false', // Default true for better quality
     creditsPerGeneration: parseInt(process.env.LEONARDO_CREDITS_PER_GENERATION) || 7, // Estimated cost
     maxRetries: parseInt(process.env.LEONARDO_MAX_RETRIES) || 3,
@@ -94,7 +94,7 @@ export const config = {
     imageAspectRatio: process.env.IMAGE_ASPECT_RATIO || '16:9', // YouTube video format
     imageWidth: parseInt(process.env.IMAGE_WIDTH) || 1920,
     imageHeight: parseInt(process.env.IMAGE_HEIGHT) || 1080,
-    imageModel: process.env.IMAGE_MODEL || 'leonardo-phoenix', // leonardo-phoenix, leonardo-vision-xl, dall-e-3, dall-e-2
+    imageModel: process.env.IMAGE_MODEL || 'leonardo-anime', // leonardo-anime, leonardo-phoenix, leonardo-vision-xl, dall-e-3, dall-e-2
     imageProvider: process.env.IMAGE_PROVIDER || 'leonardo', // leonardo, openai
     enhancePromptsWithClaudeSonnet: process.env.ENHANCE_PROMPTS_WITH_CLAUDE_SONNET !== 'false', // Default true - use Claude Sonnet for Leonardo AI prompt optimization (85% cheaper!)
     costTrackingEnabled: process.env.COST_TRACKING_ENABLED !== 'false',
