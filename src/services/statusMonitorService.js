@@ -288,53 +288,53 @@ class StatusMonitorService {
       // Update related columns based on status changes
       for (const [field, changeInfo] of Object.entries(statusChanges)) {
         switch (field) {
-          case 'scriptApproved':
-            if (changeInfo.new === 'Approved') {
-              // When script is approved, set voice generation to "Not Started" if not already set
-              updates.voiceGenerationStatus = 'Not Started';
-              updates.scriptApprovedTime = timestamp;
-            } else if (changeInfo.new === 'Needs Changes') {
-              // When script needs changes, reset related statuses
-              updates.isRegenerating = 'true';
-              updates.scriptNeedsChangesTime = timestamp;
-            }
-            break;
+        case 'scriptApproved':
+          if (changeInfo.new === 'Approved') {
+            // When script is approved, set voice generation to "Not Started" if not already set
+            updates.voiceGenerationStatus = 'Not Started';
+            updates.scriptApprovedTime = timestamp;
+          } else if (changeInfo.new === 'Needs Changes') {
+            // When script needs changes, reset related statuses
+            updates.isRegenerating = 'true';
+            updates.scriptNeedsChangesTime = timestamp;
+          }
+          break;
 
-          case 'voiceGenerationStatus':
-            if (changeInfo.new === 'Completed') {
-              // When voice generation is complete, check if video editing should be available
-              updates.voiceCompletedTime = timestamp;
-              // Only set video editing to "Not Started" if it's currently empty/null
-              const currentStatus = await this.googleSheetsService.getVideoField(videoId, 'videoEditingStatus');
-              if (!currentStatus || currentStatus === '') {
-                updates.videoEditingStatus = 'Not Started';
-              }
-            } else if (changeInfo.new === 'In Progress') {
-              updates.voiceStartedTime = timestamp;
+        case 'voiceGenerationStatus':
+          if (changeInfo.new === 'Completed') {
+            // When voice generation is complete, check if video editing should be available
+            updates.voiceCompletedTime = timestamp;
+            // Only set video editing to "Not Started" if it's currently empty/null
+            const currentStatus = await this.googleSheetsService.getVideoField(videoId, 'videoEditingStatus');
+            if (!currentStatus || currentStatus === '') {
+              updates.videoEditingStatus = 'Not Started';
             }
-            break;
+          } else if (changeInfo.new === 'In Progress') {
+            updates.voiceStartedTime = timestamp;
+          }
+          break;
 
-          case 'videoEditingStatus':
-            if (changeInfo.new === 'Completed') {
-              updates.videoEditingCompletedTime = timestamp;
-              // Update main status to completed when video editing is done
-              updates.status = 'Completed';
-              updates.processingCompletedTime = timestamp;
-            } else if (changeInfo.new === 'In Progress') {
-              updates.videoEditingStartedTime = timestamp;
-            }
-            break;
+        case 'videoEditingStatus':
+          if (changeInfo.new === 'Completed') {
+            updates.videoEditingCompletedTime = timestamp;
+            // Update main status to completed when video editing is done
+            updates.status = 'Completed';
+            updates.processingCompletedTime = timestamp;
+          } else if (changeInfo.new === 'In Progress') {
+            updates.videoEditingStartedTime = timestamp;
+          }
+          break;
 
-          case 'status':
-            // Update status-specific timestamps
-            if (changeInfo.new === 'Processing') {
-              updates.processingStartedTime = timestamp;
-            } else if (changeInfo.new === 'Completed') {
-              updates.processingCompletedTime = timestamp;
-            } else if (changeInfo.new === 'Error') {
-              updates.errorTime = timestamp;
-            }
-            break;
+        case 'status':
+          // Update status-specific timestamps
+          if (changeInfo.new === 'Processing') {
+            updates.processingStartedTime = timestamp;
+          } else if (changeInfo.new === 'Completed') {
+            updates.processingCompletedTime = timestamp;
+          } else if (changeInfo.new === 'Error') {
+            updates.errorTime = timestamp;
+          }
+          break;
         }
       }
 
@@ -355,50 +355,50 @@ class StatusMonitorService {
    */
   async executeWorkflowActions(change) {
     try {
-      const { videoId, workflowAction, changes: statusChanges } = change;
+      const { videoId, workflowAction } = change;
 
       for (const action of workflowAction) {
         logger.info(`🚀 Executing workflow action: ${action} for ${videoId}`);
 
         switch (action) {
-          case 'TRIGGER_APPROVED_SCRIPT_WORKFLOW':
-            await this.handleScriptApproved(videoId, change);
-            break;
+        case 'TRIGGER_APPROVED_SCRIPT_WORKFLOW':
+          await this.handleScriptApproved(videoId, change);
+          break;
 
-          case 'TRIGGER_SCRIPT_REGENERATION':
-            await this.handleScriptNeedsChanges(videoId, change.title, change.detailWorkbookUrl);
-            break;
+        case 'TRIGGER_SCRIPT_REGENERATION':
+          await this.handleScriptNeedsChanges(videoId, change.title, change.detailWorkbookUrl);
+          break;
 
-          case 'UPDATE_VOICE_COMPLETION_STATUS':
-            await this.handleVoiceGenerationCompleted(videoId, change);
-            break;
+        case 'UPDATE_VOICE_COMPLETION_STATUS':
+          await this.handleVoiceGenerationCompleted(videoId, change);
+          break;
 
-          case 'CHECK_VIDEO_EDITING_ELIGIBILITY':
-            await this.checkVideoEditingEligibility(videoId, change);
-            break;
+        case 'CHECK_VIDEO_EDITING_ELIGIBILITY':
+          await this.checkVideoEditingEligibility(videoId, change);
+          break;
 
-          case 'UPDATE_VIDEO_COMPLETION_STATUS':
-            await this.handleVideoEditingCompleted(videoId, change);
-            break;
+        case 'UPDATE_VIDEO_COMPLETION_STATUS':
+          await this.handleVideoEditingCompleted(videoId, change);
+          break;
 
-          case 'NOTIFY_FINAL_COMPLETION':
-            await this.handleFinalCompletion(videoId, change);
-            break;
+        case 'NOTIFY_FINAL_COMPLETION':
+          await this.handleFinalCompletion(videoId, change);
+          break;
 
-          case 'UPDATE_RELATED_COLUMNS':
-            // Already handled in updateAllRelatedColumns
-            break;
+        case 'UPDATE_RELATED_COLUMNS':
+          // Already handled in updateAllRelatedColumns
+          break;
 
-          case 'SYNC_WORKFLOW_STATUS':
-            await this.syncWorkflowStatus(videoId, change);
-            break;
+        case 'SYNC_WORKFLOW_STATUS':
+          await this.syncWorkflowStatus(videoId, change);
+          break;
 
-          case 'UPDATE_TIMESTAMPS':
-            // Already handled in updateAllRelatedColumns
-            break;
+        case 'UPDATE_TIMESTAMPS':
+          // Already handled in updateAllRelatedColumns
+          break;
 
-          default:
-            logger.warn(`Unknown workflow action: ${action} for ${videoId}`);
+        default:
+          logger.warn(`Unknown workflow action: ${action} for ${videoId}`);
         }
       }
 
@@ -576,29 +576,6 @@ class StatusMonitorService {
       // Send notification for each field that changed
       for (const [field, changeInfo] of Object.entries(statusChanges)) {
         switch (field) {
-        case 'voiceGenerationStatus':
-          await this.telegramService.sendVoiceGenerationStatusChanged(
-            videoId,
-            title,
-            changeInfo.old,
-            changeInfo.new,
-            this.masterSheetUrl,
-            detailWorkbookUrl
-          );
-          break;
-
-        case 'videoEditingStatus':
-          await this.telegramService.sendVideoEditingStatusChanged(
-            videoId,
-            title,
-            changeInfo.old,
-            changeInfo.new,
-            this.masterSheetUrl,
-            detailWorkbookUrl,
-            driveFolder
-          );
-          break;
-
         case 'scriptApproved':
           // PRIORITY ENHANCED: Send notification with priority level
           await this.telegramService.sendMessage(
@@ -644,9 +621,13 @@ class StatusMonitorService {
   /**
    * Handle script needs changes - trigger complete AI script regeneration with backup
    */
-  async handleScriptNeedsChanges(videoId, title, detailWorkbookUrl) {
+  async handleScriptNeedsChanges(videoId, _title, detailWorkbookUrl) {
     try {
       logger.info(`${videoId}: Starting complete AI script regeneration process`);
+      
+      // Get video title for backup and logging
+      const videoData = await this.metadataService.getVideoData(videoId);
+      const title = videoData.title;
       
       // 1. Create backup of existing script content before regeneration
       await this.createScriptBackup(videoId, title);
@@ -683,7 +664,7 @@ class StatusMonitorService {
       
       // Send error notification
       await this.telegramService.sendMessage(
-        `❌ <b>Script Regeneration Failed</b>\n\n🎬 ${videoId} - ${title}\n🔄 Failed to regenerate script with AI\n📋 Error: ${error.message}\n\n🔧 Manual intervention required`
+        `❌ <b>Script Regeneration Failed</b>\n\n🎬 ${videoId}\n🔄 Failed to regenerate script with AI\n📋 Error: ${error.message}\n\n🔧 Manual intervention required`
       );
       
       throw error;
@@ -716,7 +697,7 @@ class StatusMonitorService {
   /**
    * Generate completely new script content using AI with faceless prompts
    */
-  async regenerateScriptWithAI(videoId, title) {
+  async regenerateScriptWithAI(videoId, _title) {
     try {
       logger.info(`${videoId}: Generating new script content with AI and faceless prompts`);
       
@@ -854,7 +835,7 @@ class StatusMonitorService {
       
       logger.info(`Video Info sheet cleared successfully for workbook ${workbookId}`);
     } catch (error) {
-      logger.error(`Failed to clear Video Info sheet:`, error);
+      logger.error('Failed to clear Video Info sheet:', error);
       throw error;
     }
   }
@@ -929,6 +910,15 @@ class StatusMonitorService {
         ['Attractive Script', enhancedContent.attractiveScript || ''],
         ['Script Sentences', enhancedContent.scriptSentences?.join('\n') || ''],
         ['Clean Voice Script', cleanVoiceScript],
+        ['', ''], // Empty row
+        
+        // Add YouTube Video Description section for regenerated content
+        ['📝 YOUTUBE VIDEO DESCRIPTION', '✨ NEWLY REGENERATED'],
+        ['', ''], // Empty row
+        ['Description Content', enhancedContent.optimizedDescription || ''],
+        ['', ''], // Empty row
+        ['Description Guidelines', 'This description is optimized for YouTube SEO and engagement. Copy-paste directly to YouTube description box.'],
+        ['Features', '✓ YouTube-optimized hook (first 125 characters)\n✓ Natural keyword integration\n✓ Engagement CTAs\n✓ Faceless channel appropriate\n✓ NO external links'],
         ['', ''], // Empty row
         
         // Regeneration metadata

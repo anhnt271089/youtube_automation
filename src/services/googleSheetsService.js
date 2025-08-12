@@ -584,6 +584,16 @@ END OF BACKUP - Original script preserved before regeneration`;
         ['Script Style', enhancedContent.videoStyle?.style || ''],
         ['Processing Date', this.getCurrentTimestamp()],
         ['', ''], // Empty row
+        
+        // Add YouTube Video Description section
+        ['📝 YOUTUBE VIDEO DESCRIPTION', '✨ AI-OPTIMIZED'],
+        ['', ''], // Empty row
+        ['Description Content', enhancedContent.optimizedDescription || ''],
+        ['', ''], // Empty row
+        ['Description Guidelines', 'This description is optimized for YouTube SEO and engagement. Copy-paste directly to YouTube description box.'],
+        ['Features', '✓ YouTube-optimized hook (first 125 characters)\n✓ Natural keyword integration\n✓ Engagement CTAs\n✓ Faceless channel appropriate\n✓ NO external links'],
+        ['', ''], // Empty row
+        
         ['CLEAN VOICE SCRIPT', cleanVoiceScript + '\n\n(Use this clean version for voice generation - no editing instructions)']
       ];
 
@@ -1571,6 +1581,132 @@ END OF BACKUP - Original script preserved before regeneration`;
       return videos;
     }, 'getAllVideos');
   }
+
+  /**
+   * PRIORITY SYSTEM: Get specific field value for a video
+   */
+  async getVideoField(videoId, fieldName) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data) {
+        throw new Error(`Video not found: ${videoId}`);
+      }
+
+      const columnIndex = this.masterColumns[fieldName];
+      if (columnIndex === undefined) {
+        throw new Error(`Invalid field name: ${fieldName}`);
+      }
+
+      return videoRow.data[columnIndex] || null;
+    }, `getVideoField-${fieldName}`);
+  }
+
+  /**
+   * PRIORITY SYSTEM: Update multiple fields for a video (comprehensive column updates)
+   * FIX: Limited to columns A-T (0-19) to match Google Sheets 20-column limit
+   */
+  async updateVideoFields(videoId, updates) {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data) {
+        throw new Error(`Video not found: ${videoId}`);
+      }
+
+      const batchUpdates = [];
+      
+      // Build batch update requests for each field
+      for (const [fieldName, value] of Object.entries(updates)) {
+        let columnIndex;
+        
+        // Handle both existing masterColumns and new timestamp columns
+        if (this.masterColumns[fieldName] !== undefined) {
+          columnIndex = this.masterColumns[fieldName];
+        } else {
+          // Handle new timestamp/tracking columns - LIMITED TO AVAILABLE SHEET COLUMNS (A-T = 0-19)
+          switch (fieldName) {
+          case 'scriptApprovedTime':
+            columnIndex = 17; // Column R
+            break;
+          case 'scriptNeedsChangesTime':
+            columnIndex = 18; // Column S 
+            break;
+          case 'voiceStartedTime':
+            columnIndex = 19; // Column T
+            break;
+          case 'voiceCompletedTime':
+            // DISABLED: Column U (20) exceeds sheet limit of 20 columns
+            logger.warn(`${fieldName} update skipped: Column U exceeds Google Sheets limit (max 20 columns)`);
+            continue;
+          case 'videoEditingStartedTime':
+            // DISABLED: Column V (21) exceeds sheet limit
+            logger.warn(`${fieldName} update skipped: Column V exceeds Google Sheets limit (max 20 columns)`);
+            continue;
+          case 'videoEditingCompletedTime':
+            // DISABLED: Column W (22) exceeds sheet limit
+            logger.warn(`${fieldName} update skipped: Column W exceeds Google Sheets limit (max 20 columns)`);
+            continue;
+          case 'processingStartedTime':
+            // DISABLED: Column X (23) exceeds sheet limit
+            logger.warn(`${fieldName} update skipped: Column X exceeds Google Sheets limit (max 20 columns)`);
+            continue;
+          case 'processingCompletedTime':
+            // DISABLED: Column Y (24) exceeds sheet limit
+            logger.warn(`${fieldName} update skipped: Column Y exceeds Google Sheets limit (max 20 columns)`);
+            continue;
+          case 'errorTime':
+            // DISABLED: Column Z (25) exceeds sheet limit - THIS WAS THE MAIN ISSUE
+            logger.warn(`${fieldName} update skipped: Column Z exceeds Google Sheets limit (max 20 columns)`);
+            continue;
+          default:
+            logger.warn(`Unknown field name: ${fieldName}, skipping`);
+            continue;
+          }
+        }
+
+        // Validate column index is within sheet limits (0-19 for 20 columns A-T)
+        if (columnIndex > 19) {
+          logger.warn(`${fieldName} update skipped: Column index ${columnIndex} exceeds sheet limit (max 19 for 20 columns)`);
+          continue;
+        }
+
+        const columnLetter = this.columnIndexToLetter(columnIndex);
+        const range = `Videos!${columnLetter}${videoRow.rowIndex}`;
+        
+        batchUpdates.push({
+          range: range,
+          values: [[value]]
+        });
+      }
+
+      if (batchUpdates.length > 0) {
+        // Execute batch update
+        await this.sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: this.masterSheetId,
+          resource: {
+            valueInputOption: 'USER_ENTERED',
+            data: batchUpdates
+          }
+        });
+
+        logger.info(`Updated ${batchUpdates.length} fields for ${videoId}: ${Object.keys(updates).join(', ')}`);
+      }
+
+      return true;
+    }, 'updateVideoFields');
+  }
+
+  /**
+   * Helper: Convert column index to letter (0=A, 1=B, etc.)
+   */
+  columnIndexToLetter(index) {
+    let result = '';
+    while (index >= 0) {
+      result = String.fromCharCode(65 + (index % 26)) + result;
+      index = Math.floor(index / 26) - 1;
+    }
+    return result;
+  }
+
 }
 
 export default GoogleSheetsService;
