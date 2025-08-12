@@ -22,6 +22,7 @@ class TelegramService {
       }
     });
     this.chatId = config.telegram.chatId;
+    this.notificationsEnabled = config.telegram.notificationsEnabled;
     this.maxRetries = Math.max(config.telegram.maxRetries, 5); // Minimum 5 retries for network issues
     this.retryDelay = config.telegram.retryDelay;
     this.fallbackEnabled = true;
@@ -30,9 +31,28 @@ class TelegramService {
   }
 
   /**
+   * Check if notifications are enabled and handle graceful skipping
+   */
+  checkNotificationsEnabled(methodName = 'notification') {
+    if (!this.notificationsEnabled) {
+      logger.info(`📴 Telegram notifications disabled - skipping ${methodName}`, {
+        notificationsEnabled: this.notificationsEnabled,
+        configSetting: 'TELEGRAM_NOTIFICATIONS_ENABLED=false'
+      });
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Send message with enhanced retry logic and network error handling
    */
   async sendMessage(message, options = {}) {
+    // Check if notifications are enabled
+    if (!this.checkNotificationsEnabled('sendMessage')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     // Track network timeout occurrences for adaptive behavior
     let isTimeoutRetry = false;
     
@@ -129,6 +149,10 @@ class TelegramService {
   }
 
   async sendVideoProcessingStarted(videoData, masterSheetUrl = null) {
+    if (!this.checkNotificationsEnabled('sendVideoProcessingStarted')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const title = videoData.displayTitle || videoData.title;
     let message = `🎬 <b>Processing Started</b>\n\n📹 ${title}\n📺 ${videoData.channelTitle}\n⏱️ ${videoData.duration}`;
     
@@ -141,6 +165,10 @@ class TelegramService {
   }
 
   async sendScriptGenerated(videoTitle, _scriptPreview, workbookUrl = null, masterSheetUrl = null) {
+    if (!this.checkNotificationsEnabled('sendScriptGenerated')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message = `✍️ <b>Script Separated</b>\n\n🎬 ${videoTitle}\n✅ Ready for approval`;
     
     // Add relevant links
@@ -160,6 +188,10 @@ class TelegramService {
   }
 
   async sendScriptApprovalRequest(videoTitle, workbookUrl, masterSheetUrl = null) {
+    if (!this.checkNotificationsEnabled('sendScriptApprovalRequest')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message = `⚠️ <b>Approval Required</b>\n\n🎬 ${videoTitle}`;
     
     // Add workbook link for detailed review
@@ -178,6 +210,10 @@ class TelegramService {
   }
 
   async sendImageGenerationUpdate(videoTitle, completedImages, totalImages, driveFolderUrl = null, workbookUrl = null) {
+    if (!this.checkNotificationsEnabled('sendImageGenerationUpdate')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message = `
 🖼️ <b>Image Generation Progress</b>
 
@@ -203,6 +239,10 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
   }
 
   async sendImageGenerationCompleted(videoTitle, imageCount, driveFolderUrl = null, workbookUrl = null) {
+    if (!this.checkNotificationsEnabled('sendImageGenerationCompleted')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message;
     
     if (imageCount === 0) {
@@ -228,6 +268,10 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
   }
 
   async sendThumbnailGenerated(videoTitle, thumbnailUrl, driveFolderUrl = null, workbookUrl = null) {
+    if (!this.checkNotificationsEnabled('sendThumbnailGenerated')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message = `
 🖼️ <b>Thumbnail Generated</b>
 
@@ -253,6 +297,10 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
   }
 
   async sendVideoCompleted(videoData, driveFolder, finalVideoUrl, workbookUrl = null, masterSheetUrl = null, voiceScriptUrl = null) {
+    if (!this.checkNotificationsEnabled('sendVideoCompleted')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const title = videoData.displayTitle || videoData.optimizedTitle || videoData.title;
     const costSummary = videoData.costSummary;
     
@@ -308,6 +356,10 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
   }
 
   async sendError(videoTitle, errorMessage, stage, masterSheetUrl = null, workbookUrl = null) {
+    if (!this.checkNotificationsEnabled('sendError')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message = `
 ❌ <b>Processing Error</b>
 
@@ -334,6 +386,10 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
   }
 
   async sendProcessingSummary(stats) {
+    if (!this.checkNotificationsEnabled('sendProcessingSummary')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const message = `
 📊 <b>Daily Processing Summary</b>
 
@@ -352,6 +408,10 @@ ${completedImages === totalImages ? '✅ All images generated successfully!' : '
   }
 
   async sendKeywordResearchResults(videoTitle, keywords) {
+    if (!this.checkNotificationsEnabled('sendKeywordResearchResults')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const primaryKeywords = keywords.primaryKeywords.slice(0, 5).join(', ');
     const hashtags = keywords.trendingHashtags.slice(0, 5).join(' ');
 
@@ -373,6 +433,10 @@ ${hashtags}
 
   // MERGED METHOD: Replaces sendScriptGenerated + sendKeywordResearchResults + sendScriptApprovalRequest
   async sendScriptGeneratedWithApproval(videoTitle, workbookUrl = null, masterSheetUrl = null, keywords = null) {
+    if (!this.checkNotificationsEnabled('sendScriptGeneratedWithApproval')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message = `✍️ <b>Script Generated & Approval Required</b>
 
 🎬 ${videoTitle}
@@ -413,6 +477,10 @@ ${hashtags}
   }
 
   async sendDriveFilesCreated(videoTitle, driveFolder, subfolders, workbookUrl = null) {
+    if (!this.checkNotificationsEnabled('sendDriveFilesCreated')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const folderList = Object.keys(subfolders).map(folder => `📁 ${folder}`).join('\n');
 
     let message = `
@@ -435,6 +503,10 @@ ${folderList}
   }
 
   async sendApprovalTimeout(videoTitle, timeoutHours = 24, workbookUrl = null, masterSheetUrl = null) {
+    if (!this.checkNotificationsEnabled('sendApprovalTimeout')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message = `
 ⏰ <b>Approval Timeout Warning</b>
 
@@ -465,6 +537,10 @@ Please review and approve the script to continue processing, or the video will b
   // New methods for manual status change notifications
   
   async sendVoiceGenerationStatusChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null) {
+    if (!this.checkNotificationsEnabled('sendVoiceGenerationStatusChanged')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const formattedTitle = this.formatReliableTitle(title, videoId);
     let statusIcon = '🎙️';
     
@@ -516,6 +592,10 @@ Please review and approve the script to continue processing, or the video will b
   }
 
   async sendVideoEditingStatusChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null, driveFolderUrl = null) {
+    if (!this.checkNotificationsEnabled('sendVideoEditingStatusChanged')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const formattedTitle = this.formatReliableTitle(title, videoId);
     let statusIcon = '🎬';
     
@@ -575,6 +655,10 @@ Please review and approve the script to continue processing, or the video will b
   }
 
   async sendScriptApprovedChanged(videoId, title, oldStatus, newStatus, masterSheetUrl = null, workbookUrl = null) {
+    if (!this.checkNotificationsEnabled('sendScriptApprovedChanged')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const formattedTitle = this.formatReliableTitle(title, videoId);
     let statusIcon = '📝';
     
@@ -629,6 +713,10 @@ Please review and approve the script to continue processing, or the video will b
    * Send notification about script regeneration started
    */
   async sendScriptRegenerationStarted(videoId, title, masterSheetUrl = null, workbookUrl = null) {
+    if (!this.checkNotificationsEnabled('sendScriptRegenerationStarted')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     const formattedTitle = this.formatReliableTitle(title, videoId);
     
     let message = `🔄 <b>Script Regeneration Started</b>
@@ -664,6 +752,10 @@ Please review and approve the script to continue processing, or the video will b
   }
 
   async sendStatusChangesSummary(changes) {
+    if (!this.checkNotificationsEnabled('sendStatusChangesSummary')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     let message = `📊 <b>Multiple Status Changes Detected</b>
 
 🕒 <b>Time:</b> ${new Date().toLocaleString()}
@@ -937,6 +1029,11 @@ Please review and approve the script to continue processing, or the video will b
    * Safe message sending - never throws, logs errors instead with enhanced fallback
    */
   async sendMessageSafe(message, options = {}) {
+    // Check if notifications are enabled
+    if (!this.checkNotificationsEnabled('sendMessageSafe')) {
+      return { skipped: true, reason: 'notifications_disabled' };
+    }
+    
     try {
       return await this.sendMessage(message, options);
     } catch (error) {
@@ -959,6 +1056,11 @@ Please review and approve the script to continue processing, or the video will b
    * Send message with graceful degradation - workflow continues regardless
    */
   async sendNotificationSafe(message, options = {}, context = 'Unknown') {
+    // Check if notifications are enabled
+    if (!this.checkNotificationsEnabled(`sendNotificationSafe(${context})`)) {
+      return { skipped: true, reason: 'notifications_disabled', context };
+    }
+    
     try {
       const result = await this.sendMessage(message, options);
       logger.info(`📱 Telegram notification sent successfully (${context})`);
