@@ -741,14 +741,21 @@ class StatusMonitorService {
       logger.info(`${videoId}: Calling AI service to generate new faceless script content...`);
       const enhancedContent = await this.aiService.enhanceContentWithAI(videoData, this.metadataService);
       
-      if (!enhancedContent || !enhancedContent.script) {
+      if (!enhancedContent || !enhancedContent.attractiveScript) {
         throw new Error(`AI failed to generate new script content for ${videoId}`);
       }
       
+      // PRODUCTION SAFETY: Prevent test content from being used in production
+      if (enhancedContent.attractiveScript.includes('TEST') || 
+          (enhancedContent.scriptSentences && enhancedContent.scriptSentences.some(s => s.includes('TEST')))) {
+        logger.warn(`${videoId}: Test content detected in AI response - regenerating with production prompts`);
+        throw new Error('Test content detected in AI response. Please ensure production AI service is configured correctly.');
+      }
+      
       logger.info(`${videoId}: AI generated new script content successfully`);
-      logger.info(`  • Script sections: ${enhancedContent.script.scriptSentences?.length || 'unknown'} sentences`);
-      logger.info(`  • Hook: ${enhancedContent.script.hook ? 'Generated' : 'Missing'}`);
-      logger.info(`  • Outro: ${enhancedContent.script.outro ? 'Generated' : 'Missing'}`);
+      logger.info(`  • Script sections: ${enhancedContent.scriptSentences?.length || 'unknown'} sentences`);
+      logger.info(`  • Script content: ${enhancedContent.attractiveScript ? 'Generated' : 'Missing'}`);
+      logger.info(`  • Script length: ${enhancedContent.attractiveScript?.length || 0} characters`);
       
       // Update Google Sheets with new script content
       await this.updateSheetsWithNewScript(videoId, enhancedContent);
@@ -764,10 +771,11 @@ class StatusMonitorService {
 
   /**
    * Update Google Sheets with newly generated script content
+   * FIX: Clear and reconstruct complete Video Info sheet to prevent content duplication
    */
   async updateSheetsWithNewScript(videoId, enhancedContent) {
     try {
-      logger.info(`${videoId}: Updating Google Sheets with new script content`);
+      logger.info(`${videoId}: Updating Google Sheets with new script content - CLEARING AND RECONSTRUCTING`);
       
       // Get detail workbook URL
       const videoRow = await this.googleSheetsService.findVideoRow(videoId);
@@ -779,54 +787,267 @@ class StatusMonitorService {
       
       const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
       
-      // Update Video Info sheet with basic script info
-      const videoInfoUpdates = [
-        ['Hook', enhancedContent.script.hook || ''],
-        ['Outro', enhancedContent.script.outro || ''],
-        ['Clean Voice Script', enhancedContent.script.scriptSentences?.join('\n') || ''],
-        ['Processing Status', 'Script Regenerated']
-      ];
+      // STEP 1: CLEAR THE ENTIRE VIDEO INFO SHEET to prevent duplication
+      logger.info(`${videoId}: Clearing Video Info sheet to prevent content duplication`);
+      await this.clearVideoInfoSheet(workbookId);
       
-      await this.googleSheetsService.sheets.spreadsheets.values.update({
-        spreadsheetId: workbookId,
-        range: `${this.googleSheetsService.detailSheets.videoInfo}!A1:B${videoInfoUpdates.length + 10}`,
-        valueInputOption: 'RAW',
-        resource: {
-          values: videoInfoUpdates
-        }
-      });
+      // STEP 2: Get original video data for complete reconstruction
+      const originalVideoData = await this.getOriginalVideoData(videoId);
       
-      // Update Script Details sheet with enhanced breakdown
-      if (enhancedContent.scriptBreakdown && enhancedContent.scriptBreakdown.length > 0) {
-        const scriptDetailsHeaders = ['Timestamp', 'Content', 'Type', 'Image Description', 'Visual Cue'];
+      // STEP 3: RECONSTRUCT COMPLETE VIDEO INFO SHEET with new script content
+      logger.info(`${videoId}: Reconstructing complete Video Info sheet with regenerated content`);
+      await this.reconstructCompleteVideoInfoSheet(workbookId, videoId, originalVideoData, enhancedContent);
+      
+      // STEP 4: Update Script Details sheet with script sentences
+      if (enhancedContent.scriptSentences && enhancedContent.scriptSentences.length > 0) {
+        logger.info(`${videoId}: Updating Script Breakdown sheet with ${enhancedContent.scriptSentences.length} new sentences`);
+        
+        const scriptDetailsHeaders = ['Sentence #', 'Script Text', 'Image Prompt', 'Status', 'Image URL'];
         const scriptDetailsData = [scriptDetailsHeaders];
         
-        enhancedContent.scriptBreakdown.forEach((item, index) => {
+        enhancedContent.scriptSentences.forEach((sentence, index) => {
           scriptDetailsData.push([
-            item.timestamp || `${index * 5}s`,
-            item.content || '',
-            item.type || 'narration',
-            item.imageDescription || '',
-            item.visualCue || ''
+            `${index + 1}`, // Sentence number (1, 2, 3, etc.)
+            sentence || '',
+            '', // Image Prompt - empty for regenerated content
+            'Pending', // Status - pending for new content
+            '' // Image URL - empty for regenerated content
           ]);
+        });
+        
+        // Clear and update Script Breakdown sheet
+        await this.googleSheetsService.sheets.spreadsheets.values.clear({
+          spreadsheetId: workbookId,
+          range: `${this.googleSheetsService.detailSheets.scriptBreakdown}!A1:Z1000`
         });
         
         await this.googleSheetsService.sheets.spreadsheets.values.update({
           spreadsheetId: workbookId,
-          range: `${this.googleSheetsService.detailSheets.scriptDetails}!A1:E${scriptDetailsData.length}`,
+          range: `${this.googleSheetsService.detailSheets.scriptBreakdown}!A1:E${scriptDetailsData.length}`,
           valueInputOption: 'RAW',
           resource: {
             values: scriptDetailsData
           }
         });
         
-        logger.info(`${videoId}: Updated Script Details sheet with ${enhancedContent.scriptBreakdown.length} entries`);
+        logger.info(`${videoId}: Updated Script Breakdown sheet with ${enhancedContent.scriptSentences.length} sentences`);
       }
       
-      logger.info(`${videoId}: Google Sheets updated successfully with new script content`);
+      logger.info(`${videoId}: Google Sheets updated successfully with new script content - NO DUPLICATION`);
       
     } catch (error) {
       logger.error(`${videoId}: Failed to update Google Sheets with new script:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear the entire Video Info sheet to prevent content duplication
+   */
+  async clearVideoInfoSheet(workbookId) {
+    try {
+      // Clear the entire Video Info sheet (up to 500 rows to be safe)
+      await this.googleSheetsService.sheets.spreadsheets.values.clear({
+        spreadsheetId: workbookId,
+        range: `${this.googleSheetsService.detailSheets.videoInfo}!A1:Z500`
+      });
+      
+      logger.info(`Video Info sheet cleared successfully for workbook ${workbookId}`);
+    } catch (error) {
+      logger.error(`Failed to clear Video Info sheet:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get original video data needed for Video Info sheet reconstruction
+   */
+  async getOriginalVideoData(videoId) {
+    try {
+      // Get video data from master sheet
+      const videoRow = await this.googleSheetsService.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data) {
+        throw new Error(`Video data not found for ${videoId}`);
+      }
+      
+      const data = videoRow.data;
+      const columns = this.googleSheetsService.masterColumns;
+      
+      // Extract original video metadata
+      const originalVideoData = {
+        videoId: data[columns.videoId],
+        title: data[columns.title],
+        youtubeUrl: data[columns.youtubeUrl],
+        channelTitle: data[columns.channel],
+        duration: data[columns.duration],
+        viewCount: data[columns.viewCount],
+        publishedAt: data[columns.publishedDate],
+        id: data[columns.youtubeVideoId]
+      };
+      
+      logger.info(`Retrieved original video data for ${videoId}: ${originalVideoData.title}`);
+      return originalVideoData;
+      
+    } catch (error) {
+      logger.error(`Failed to get original video data for ${videoId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reconstruct complete Video Info sheet with regenerated content
+   * This maintains the same structure as the original populateVideoInfoSheet but with new script content
+   */
+  async reconstructCompleteVideoInfoSheet(workbookId, videoId, originalVideoData, enhancedContent) {
+    try {
+      // PRODUCTION SAFETY: Validate content before processing
+      if (enhancedContent.attractiveScript.includes('TEST') || 
+          (enhancedContent.scriptSentences && enhancedContent.scriptSentences.some(s => s.includes('TEST')))) {
+        throw new Error(`${videoId}: Test content detected - aborting Video Info sheet update`);
+      }
+      
+      // Convert sentences array to formatted string for Google Sheets display
+      const cleanVoiceScript = enhancedContent.scriptSentences && enhancedContent.scriptSentences.length > 0 
+        ? enhancedContent.scriptSentences.map(sentence => sentence.trim()).join('\n\n')
+        : (enhancedContent.attractiveScript || '');
+
+      // Prepare complete video info data for the Video Info sheet (same structure as original)
+      const videoInfoData = [
+        ['Video Title', originalVideoData.title],
+        ['YouTube URL', originalVideoData.youtubeUrl || ''],
+        ['YouTube Video ID', originalVideoData.id || ''],
+        ['Channel', originalVideoData.channelTitle || ''],
+        ['Duration', originalVideoData.duration || ''],
+        ['View Count', originalVideoData.viewCount || ''],
+        ['Published Date', originalVideoData.publishedAt || ''],
+        ['Processing Status', '🔄 Script Regenerated - Ready for Approval'],
+        ['', ''], // Empty row
+        
+        // Enhanced script content (NEW REGENERATED CONTENT)
+        ['🤖 AI-GENERATED SCRIPT CONTENT', '✨ NEWLY REGENERATED'],
+        ['', ''], // Empty row
+        ['Attractive Script', enhancedContent.attractiveScript || ''],
+        ['Script Sentences', enhancedContent.scriptSentences?.join('\n') || ''],
+        ['Clean Voice Script', cleanVoiceScript],
+        ['', ''], // Empty row
+        
+        // Regeneration metadata
+        ['🔄 REGENERATION INFO', ''],
+        ['Regenerated At', this.getCurrentTimestamp()],
+        ['Regeneration Type', 'Complete AI Script Regeneration'],
+        ['Status', 'Pending Approval'],
+        ['', ''], // Empty row
+      ];
+
+      // Add enhanced keyword research data if available from regeneration
+      if (enhancedContent.keywords) {
+        const keywords = enhancedContent.keywords;
+        
+        videoInfoData.push(['🎯 ENHANCED KEYWORD STRATEGY', '✨ REGENERATED']);
+        videoInfoData.push(['', '']); // Empty row
+        
+        // Core SEO Keywords
+        if (keywords.primaryKeywords?.length > 0) {
+          videoInfoData.push(['🔑 Primary Keywords', keywords.primaryKeywords.join(', ')]);
+        }
+        if (keywords.longTailKeywords?.length > 0) {
+          videoInfoData.push(['🎯 Long-tail Keywords', keywords.longTailKeywords.join(', ')]);
+        }
+        if (keywords.semanticKeywords?.length > 0) {
+          videoInfoData.push(['🔗 Semantic Keywords', keywords.semanticKeywords.join(', ')]);
+        }
+        
+        videoInfoData.push(['', '']); // Empty row
+        
+        // YouTube Algorithm Optimization
+        if (keywords.youtubeSearchKeywords?.length > 0) {
+          videoInfoData.push(['🔍 YouTube Search Keywords', keywords.youtubeSearchKeywords.join(', ')]);
+        }
+        if (keywords.browseFeedKeywords?.length > 0) {
+          videoInfoData.push(['📺 Browse Feed Keywords', keywords.browseFeedKeywords.join(', ')]);
+        }
+        if (keywords.shortsOptimizedKeywords?.length > 0) {
+          videoInfoData.push(['📱 Shorts Optimized Keywords', keywords.shortsOptimizedKeywords.join(', ')]);
+        }
+        
+        videoInfoData.push(['', '']); // Empty row
+        
+        // Engagement & Performance
+        if (keywords.algorithmBoostKeywords?.length > 0) {
+          videoInfoData.push(['🚀 Algorithm Boost Keywords', keywords.algorithmBoostKeywords.join(', ')]);
+        }
+        if (keywords.engagementTriggerKeywords?.length > 0) {
+          videoInfoData.push(['💬 Engagement Trigger Keywords', keywords.engagementTriggerKeywords.join(', ')]);
+        }
+        if (keywords.retentionKeywords?.length > 0) {
+          videoInfoData.push(['⏱️ Retention Keywords', keywords.retentionKeywords.join(', ')]);
+        }
+        
+        videoInfoData.push(['', '']); // Empty row
+        
+        // Discovery & Competition
+        if (keywords.questionKeywords?.length > 0) {
+          videoInfoData.push(['❓ Question Keywords', keywords.questionKeywords.join(', ')]);
+        }
+        if (keywords.competitiveKeywords?.length > 0) {
+          videoInfoData.push(['🎯 Competitive Gap Keywords', keywords.competitiveKeywords.join(', ')]);
+        }
+        if (keywords.trendingHashtags?.length > 0) {
+          videoInfoData.push(['#️⃣ Trending Hashtags', keywords.trendingHashtags.join(', ')]);
+        }
+        if (keywords.relatedTopics?.length > 0) {
+          videoInfoData.push(['📊 Related Topics', keywords.relatedTopics.join(', ')]);
+        }
+      }
+
+      // Add optimized title options if available from regeneration
+      if (enhancedContent.optimizedTitles && enhancedContent.optimizedTitles.options) {
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['🎬 OPTIMIZED TITLE OPTIONS', '✨ REGENERATED']);
+        videoInfoData.push(['Click-Through Rate Optimized Titles', '']);
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['Recommended Title:', enhancedContent.optimizedTitles.recommended || '']);
+        videoInfoData.push(['', '']); // Empty row separator
+        enhancedContent.optimizedTitles.options.forEach((title, index) => {
+          videoInfoData.push([`Title Option ${index + 1}`, title || '']);
+        });
+      }
+
+      // Generate new thumbnail suggestions for regenerated content
+      try {
+        const thumbnailSuggestions = await this.aiService.generateThumbnailSuggestions(
+          originalVideoData, 
+          enhancedContent.attractiveScript
+        );
+        
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['🎨 THUMBNAIL DESIGN SUGGESTIONS', '✨ REGENERATED']);
+        videoInfoData.push(['2 Different Styles for Maximum Impact:', '']);
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['Thumbnail Concepts:', thumbnailSuggestions || 'Unable to generate thumbnail suggestions']);
+      } catch (error) {
+        logger.warn(`Failed to generate thumbnail suggestions for regenerated ${videoId}:`, error.message);
+        videoInfoData.push(['', '']); // Empty row
+        videoInfoData.push(['🎨 THUMBNAIL DESIGN SUGGESTIONS', '✨ REGENERATED']);
+        videoInfoData.push(['Error:', 'Unable to generate thumbnail suggestions. Please create thumbnails manually.']);
+        videoInfoData.push(['Style 1:', 'Emotional/Dramatic - Use bright colors, close-up faces, and emotional expressions']);
+        videoInfoData.push(['Style 2:', 'Professional/Clean - Use minimal design, clear typography, and visual metaphors']);
+      }
+
+      // Update Video Info sheet with complete reconstructed data
+      await this.googleSheetsService.sheets.spreadsheets.values.update({
+        spreadsheetId: workbookId,
+        range: `${this.googleSheetsService.detailSheets.videoInfo}!A1:B${videoInfoData.length}`,
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: videoInfoData
+        }
+      });
+
+      logger.info(`Successfully reconstructed complete Video Info sheet for ${videoId} with ${videoInfoData.length} rows - NO DUPLICATION`);
+      
+    } catch (error) {
+      logger.error(`Failed to reconstruct Video Info sheet for ${videoId}:`, error);
       throw error;
     }
   }
