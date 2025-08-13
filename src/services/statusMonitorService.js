@@ -4,6 +4,7 @@ import TelegramService from './telegramService.js';
 import AIService from './aiService.js';
 import YouTubeService from './youtubeService.js';
 import MetadataService from './metadataService.js';
+import lockManager from './lockManagerService.js';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 
@@ -625,45 +626,76 @@ class StatusMonitorService {
     try {
       logger.info(`${videoId}: Starting complete AI script regeneration process`);
       
-      // Get video title for backup and logging
-      const videoData = await this.metadataService.getVideoData(videoId);
-      const title = videoData.title;
+      // Check cooldown before regeneration
+      const cooldown = await this.googleSheetsService.checkRegenerationCooldown(videoId, 'script');
+      if (cooldown.inCooldown) {
+        logger.warn(`${videoId}: Script regeneration in cooldown until ${cooldown.expiresAt} (${cooldown.remainingMinutes} minutes remaining)`);
+        
+        await this.telegramService.sendMessage(
+          `⏳ <b>Script Regeneration Cooldown</b>\n\n🎬 ${videoId}\n⏱️ Cooldown active until: ${cooldown.expiresAt}\n⏰ Remaining: ${cooldown.remainingMinutes} minutes\n\n💡 <i>Cooldown prevents infinite regeneration loops</i>`
+        );
+        return;
+      }
       
-      // 1. Create backup of existing script content before regeneration
-      await this.createScriptBackup(videoId, title);
-      
-      // 2. Reset main automation status to "Processing" 
-      await this.googleSheetsService.updateVideoStatus(videoId, 'Processing');
-      
-      // 3. Reset Script Approved to "Pending"
-      await this.googleSheetsService.updateVideoField(videoId, 'scriptApproved', 'Pending');
-      
-      // 4. Mark video as being regenerated for voice script force recreation
-      await this.googleSheetsService.updateVideoFields(videoId, {
-        lastRegenTime: new Date().toISOString(),
-        scriptRegenAttempts: (parseInt(await this.googleSheetsService.getVideoField(videoId, 'scriptRegenAttempts') || '0') + 1).toString()
+      // Acquire lock to prevent concurrent regeneration
+      const lockAcquired = await lockManager.acquireLock(videoId, 'scriptGeneration', {
+        holder: 'StatusMonitor',
+        reason: 'Script needs changes'
       });
       
-      // 5. Send initial regeneration notification
-      await this.telegramService.sendMessage(
-        `🔄 <b>Script Regeneration Started</b>\n\n🎬 ${videoId} - ${title}\n🤖 Generating new faceless script with AI\n⏳ Please wait for completion...\n\n📊 [Master Sheet](${this.masterSheetUrl})${detailWorkbookUrl ? `\n📋 [Detail Workbook](${detailWorkbookUrl})` : ''}`
-      );
+      if (!lockAcquired) {
+        logger.warn(`${videoId}: Script regeneration already in progress`);
+        await this.telegramService.sendMessage(
+          `⚠️ <b>Script Regeneration Already Running</b>\n\n🎬 ${videoId}\n🔒 Another regeneration process is already active\n\n💡 <i>Please wait for current process to complete</i>`
+        );
+        return;
+      }
       
-      // 6. **NEW**: Generate completely new script content with AI using faceless prompts
-      await this.regenerateScriptWithAI(videoId, title);
-      
-      // 7. Create voice script from newly generated faceless content
-      await this.createVoiceScriptFromNewContent(videoId, title);
-      
-      // 8. Send completion notification
-      await this.telegramService.sendMessage(
-        `✅ <b>Script Regeneration Completed</b>\n\n🎬 ${videoId} - ${title}\n🤖 New faceless script generated successfully\n📄 Voice script created and uploaded\n🔄 Ready for approval\n\n📊 [Master Sheet](${this.masterSheetUrl})${detailWorkbookUrl ? `\n📋 [Detail Workbook](${detailWorkbookUrl})` : ''}`
-      );
-      
-      logger.info(`${videoId}: Complete AI script regeneration finished successfully`);
+      try {
+        // Get video title for backup and logging
+        const videoData = await this.metadataService.getVideoData(videoId);
+        const title = videoData.title;
+        
+        // 1. Create backup of existing script content before regeneration
+        await this.createScriptBackup(videoId, title);
+        
+        // 2. Reset main automation status to "Processing" 
+        await this.googleSheetsService.updateVideoStatus(videoId, 'Processing');
+        
+        // 3. Reset Script Approved to "Pending"
+        await this.googleSheetsService.updateVideoField(videoId, 'scriptApproved', 'Pending');
+        
+        // 4. Set cooldown for next regeneration (60 minutes)
+        await this.googleSheetsService.setRegenerationCooldown(videoId, 'script', 60);
+        
+        // 5. Send initial regeneration notification
+        await this.telegramService.sendMessage(
+          `🔄 <b>Script Regeneration Started</b>\n\n🎬 ${videoId} - ${title}\n🤖 Generating new faceless script with AI\n⏳ Please wait for completion...\n⏱️ Next regeneration available in 60 minutes\n\n📊 [Master Sheet](${this.masterSheetUrl})${detailWorkbookUrl ? `\n📋 [Detail Workbook](${detailWorkbookUrl})` : ''}`
+        );
+        
+        // 6. **NEW**: Generate completely new script content with AI using faceless prompts
+        await this.regenerateScriptWithAI(videoId, title);
+        
+        // 7. Create voice script from newly generated faceless content
+        await this.createVoiceScriptFromNewContent(videoId, title);
+        
+        // 8. Send completion notification
+        await this.telegramService.sendMessage(
+          `✅ <b>Script Regeneration Completed</b>\n\n🎬 ${videoId} - ${title}\n🤖 New faceless script generated successfully\n📄 Voice script created and uploaded\n🔄 Ready for approval\n⏱️ Cooldown: 60 minutes\n\n📊 [Master Sheet](${this.masterSheetUrl})${detailWorkbookUrl ? `\n📋 [Detail Workbook](${detailWorkbookUrl})` : ''}`
+        );
+        
+        logger.info(`${videoId}: Complete AI script regeneration finished successfully`);
+        
+      } finally {
+        // Always release lock
+        lockManager.releaseLock(videoId, 'scriptGeneration');
+      }
       
     } catch (error) {
       logger.error(`Error handling script needs changes for ${videoId}:`, error);
+      
+      // Release lock on error
+      lockManager.releaseLock(videoId, 'scriptGeneration');
       
       // Send error notification
       await this.telegramService.sendMessage(

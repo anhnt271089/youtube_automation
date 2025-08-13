@@ -1,4 +1,5 @@
 import logger from '../utils/logger.js';
+import lockManager from './lockManagerService.js';
 import { config } from '../../config/config.js';
 
 class ThumbnailService {
@@ -39,6 +40,18 @@ class ThumbnailService {
   }
 
   /**
+   * Escape special characters for Google Drive API queries
+   * Google Drive API only requires escaping single quotes within quoted strings
+   * Over-escaping (like parentheses) causes "Invalid Value" errors
+   */
+  escapeDriveQuery(str) {
+    if (!str) return str;
+    // Only escape single quotes - Google Drive API fails with over-escaping
+    // Parentheses, double quotes, and other characters are handled natively
+    return str.replace(/'/g, '\\\'');
+  }
+
+  /**
    * Generate 2 YouTube thumbnails with different styles using stored concepts
    * @param {object} videoData - Video metadata and content
    * @param {string} videoId - Video identifier 
@@ -46,6 +59,24 @@ class ThumbnailService {
    * @returns {Promise<object>} Generated thumbnails with metadata
    */
   async generateTwoThumbnails(videoData, videoId, storedConcepts = null) {
+    // Check if thumbnail already exists to prevent infinite regeneration
+    const existingCheck = await this.checkExistingThumbnails(videoId);
+    if (existingCheck.hasValidThumbnails && !existingCheck.forceRegenerate) {
+      logger.info(`🖼️ ${videoId}: Valid thumbnails already exist, skipping generation`);
+      return existingCheck.existingThumbnails;
+    }
+    
+    // Acquire lock to prevent concurrent generation
+    const lockAcquired = await lockManager.acquireLock(videoId, 'thumbnailGeneration', {
+      holder: 'ThumbnailService',
+      reason: 'Generating thumbnails'
+    });
+    
+    if (!lockAcquired) {
+      logger.warn(`🖼️ ${videoId}: Thumbnail generation already in progress, skipping`);
+      return { skipped: true, reason: 'Generation already in progress' };
+    }
+
     try {
       logger.info(`🖼️ Generating 2 thumbnails for ${videoId}${storedConcepts ? ' using stored concepts' : ''}`);
       
@@ -95,6 +126,41 @@ class ThumbnailService {
     } catch (error) {
       logger.error(`❌ Failed to generate thumbnails for ${videoId}:`, error);
       throw error;
+    } finally {
+      // Always release lock
+      lockManager.releaseLock(videoId, 'thumbnailGeneration');
+    }
+  }
+
+  /**
+   * Check for existing thumbnails to prevent infinite regeneration
+   * @param {string} videoId - Video identifier
+   * @returns {Promise<object>} Check results
+   */
+  async checkExistingThumbnails(videoId) {
+    try {
+      // Check if thumbnails exist in Drive
+      const existingCheck = await this.checkExistingThumbnailsInDrive(videoId);
+      
+      // Check cooldown for thumbnail regeneration
+      const cooldown = lockManager.checkCooldown(videoId, 'thumbnailRegeneration');
+      
+      return {
+        hasValidThumbnails: existingCheck.exists && existingCheck.count >= 2,
+        existingThumbnails: existingCheck,
+        forceRegenerate: false,
+        inCooldown: cooldown.inCooldown,
+        cooldownRemaining: cooldown.remainingTime
+      };
+    } catch (error) {
+      logger.warn(`Failed to check existing thumbnails for ${videoId}:`, error);
+      return {
+        hasValidThumbnails: false,
+        existingThumbnails: null,
+        forceRegenerate: false,
+        inCooldown: false,
+        cooldownRemaining: 0
+      };
     }
   }
 
@@ -813,7 +879,7 @@ Create a thumbnail that immediately shows what the video is about and compels cl
       // Search in each possible parent folder
       for (const parentId of possibleParentIds) {
         const response = await this.googleDriveService.drive.files.list({
-          q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and parents in '${parentId}' and trashed=false`,
+          q: `name='${this.escapeDriveQuery(folderName)}' and mimeType='application/vnd.google-apps.folder' and parents in '${parentId}' and trashed=false`,
           fields: 'files(id, name, webViewLink)'
         });
 
@@ -892,7 +958,7 @@ Create a thumbnail that immediately shows what the video is about and compels cl
     try {
       // Look for existing "Generated Thumbnails" folder
       const response = await this.googleDriveService.drive.files.list({
-        q: `name='${thumbnailFolderName}' and mimeType='application/vnd.google-apps.folder' and parents in '${parentFolderId}' and trashed=false`,
+        q: `name='${this.escapeDriveQuery(thumbnailFolderName)}' and mimeType='application/vnd.google-apps.folder' and parents in '${parentFolderId}' and trashed=false`,
         fields: 'files(id, name, webViewLink)'
       });
 
@@ -925,7 +991,7 @@ Create a thumbnail that immediately shows what the video is about and compels cl
     try {
       // First, try to find existing folder
       const response = await this.googleDriveService.drive.files.list({
-        q: `name='${thumbnailFolderName}' and mimeType='application/vnd.google-apps.folder' and parents in '${parentFolderId}' and trashed=false`,
+        q: `name='${this.escapeDriveQuery(thumbnailFolderName)}' and mimeType='application/vnd.google-apps.folder' and parents in '${parentFolderId}' and trashed=false`,
         fields: 'files(id, name, webViewLink)'
       });
 
@@ -1049,7 +1115,7 @@ Create a thumbnail that immediately shows what the video is about and compels cl
       
       // Check for thumbnail folder
       const response = await this.googleDriveService.drive.files.list({
-        q: `name='Generated Thumbnails' and mimeType='application/vnd.google-apps.folder' and parents in '${videoFolder.folderId}'`,
+        q: `name='${this.escapeDriveQuery('Generated Thumbnails')}' and mimeType='application/vnd.google-apps.folder' and parents in '${videoFolder.folderId}'`,
         fields: 'files(id, name, webViewLink)'
       });
       

@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { config, validateConfig } from '../config/config.js';
 import WorkflowService from './services/workflowService.js';
+import lockManager from './services/lockManagerService.js';
 import logger from './utils/logger.js';
 import fs from 'fs';
 
@@ -62,11 +63,20 @@ class YouTubeAutomation {
       this.jobs.set('newVideos', cron.schedule('*/10 * * * *', async () => {
         if (!this.isRunning) return;
         
+        // Acquire mutex to prevent overlapping execution
+        const mutexAcquired = lockManager.acquireCronMutex('newVideoProcessor');
+        if (!mutexAcquired) {
+          logger.warn('Skipping new video processing - already running');
+          return;
+        }
+        
         try {
           logger.info('Processing new videos...');
           await this.workflowService.processNewVideos();
         } catch (error) {
           logger.error('Error in scheduled new video processing:', error);
+        } finally {
+          lockManager.releaseCronMutex('newVideoProcessor');
         }
       }, {
         ...cronOptions,
@@ -77,11 +87,19 @@ class YouTubeAutomation {
       this.jobs.set('readyForReview', cron.schedule('*/12 * * * *', async () => {
         if (!this.isRunning) return;
         
+        const mutexAcquired = lockManager.acquireCronMutex('reviewProcessor');
+        if (!mutexAcquired) {
+          logger.warn('Skipping ready for review processing - already running');
+          return;
+        }
+        
         try {
           logger.info('Processing videos ready for review...');
           await this.workflowService.processReadyForReview();
         } catch (error) {
           logger.error('Error in scheduled ready for review processing:', error);
+        } finally {
+          lockManager.releaseCronMutex('reviewProcessor');
         }
       }, {
         ...cronOptions,
@@ -92,11 +110,19 @@ class YouTubeAutomation {
       this.jobs.set('approvedScripts', cron.schedule('*/15 * * * *', async () => {
         if (!this.isRunning) return;
         
+        const mutexAcquired = lockManager.acquireCronMutex('scriptProcessor');
+        if (!mutexAcquired) {
+          logger.warn('Skipping approved script processing - already running');
+          return;
+        }
+        
         try {
           logger.info('Processing approved scripts...');
           await this.workflowService.processApprovedScripts();
         } catch (error) {
           logger.error('Error in scheduled script processing:', error);
+        } finally {
+          lockManager.releaseCronMutex('scriptProcessor');
         }
       }, {
         ...cronOptions,
@@ -107,11 +133,19 @@ class YouTubeAutomation {
       this.jobs.set('errorVideos', cron.schedule('0 */2 * * *', async () => {
         if (!this.isRunning) return;
         
+        const mutexAcquired = lockManager.acquireCronMutex('errorProcessor');
+        if (!mutexAcquired) {
+          logger.warn('Skipping error video processing - already running');
+          return;
+        }
+        
         try {
           logger.info('Processing error videos for retry...');
           await this.workflowService.processErrorVideos();
         } catch (error) {
           logger.error('Error in scheduled error video processing:', error);
+        } finally {
+          lockManager.releaseCronMutex('errorProcessor');
         }
       }, {
         ...cronOptions,
@@ -125,11 +159,19 @@ class YouTubeAutomation {
       this.jobs.set('timeouts', cron.schedule('0 * * * *', async () => {
         if (!this.isRunning) return;
         
+        const mutexAcquired = lockManager.acquireCronMutex('timeoutChecker');
+        if (!mutexAcquired) {
+          logger.warn('Skipping timeout check - already running');
+          return;
+        }
+        
         try {
           logger.info('Checking approval timeouts...');
           await this.workflowService.processTimeouts();
         } catch (error) {
           logger.error('Error checking approval timeouts:', error);
+        } finally {
+          lockManager.releaseCronMutex('timeoutChecker');
         }
       }, {
         ...cronOptions,
@@ -140,11 +182,19 @@ class YouTubeAutomation {
       this.jobs.set('dailySummary', cron.schedule('0 9 * * *', async () => {
         if (!this.isRunning) return;
         
+        const mutexAcquired = lockManager.acquireCronMutex('summaryGenerator');
+        if (!mutexAcquired) {
+          logger.warn('Skipping daily summary - already running');
+          return;
+        }
+        
         try {
           logger.info('Generating daily summary...');
           await this.workflowService.generateDailySummary();
         } catch (error) {
           logger.error('Error generating daily summary:', error);
+        } finally {
+          lockManager.releaseCronMutex('summaryGenerator');
         }
       }, {
         ...cronOptions,
@@ -155,6 +205,12 @@ class YouTubeAutomation {
       this.jobs.set('healthCheck', cron.schedule('0 */6 * * *', async () => {
         if (!this.isRunning) return;
         
+        const mutexAcquired = lockManager.acquireCronMutex('healthChecker');
+        if (!mutexAcquired) {
+          logger.warn('Skipping health check - already running');
+          return;
+        }
+        
         try {
           logger.info('Running health check...');
           const health = await this.workflowService.processHealthCheck();
@@ -164,6 +220,8 @@ class YouTubeAutomation {
           }
         } catch (error) {
           logger.error('Error in health check:', error);
+        } finally {
+          lockManager.releaseCronMutex('healthChecker');
         }
       }, {
         ...cronOptions,
@@ -174,11 +232,19 @@ class YouTubeAutomation {
       this.jobs.set('statusMonitor', cron.schedule('*/5 * * * *', async () => {
         if (!this.isRunning) return;
         
+        const mutexAcquired = lockManager.acquireCronMutex('statusMonitor');
+        if (!mutexAcquired) {
+          logger.warn('Skipping status monitoring - already running');
+          return;
+        }
+        
         try {
           logger.info('Monitoring status changes...');
           await this.workflowService.processStatusChanges();
         } catch (error) {
           logger.error('Error in status monitoring:', error);
+        } finally {
+          lockManager.releaseCronMutex('statusMonitor');
         }
       }, {
         ...cronOptions,

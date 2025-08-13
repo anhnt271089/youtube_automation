@@ -7,6 +7,7 @@ import VideoService from './videoService.js';
 import StatusMonitorService from './statusMonitorService.js';
 import MetadataService from './metadataService.js';
 import ThumbnailService from './thumbnailService.js';
+import lockManager from './lockManagerService.js';
 import { config } from '../../config/config.js';
 import logger, { safeJsonStringify } from '../utils/logger.js';
 
@@ -1249,14 +1250,8 @@ class WorkflowService {
       const videoData = await this.youtubeService.getCompleteVideoData(videoInfo.youtubeUrl);
       videoData.videoId = videoInfo.videoId;
 
-      // Create Digital Ocean folder structure for this video
-      try {
-        await this.aiService.digitalOceanService.createVideoFolder(videoDisplayId);
-        logger.info(`Created Digital Ocean folder structure for video ${videoDisplayId}`);
-      } catch (error) {
-        logger.warn('Failed to create Digital Ocean folder structure:', error.message);
-        // Continue processing
-      }
+      // Note: Google Drive folder structure is created automatically during image uploads
+      logger.info(`Google Drive will create folder structure for video ${videoDisplayId} automatically`);
 
       // Enhanced AI content processing with new features
       // Pass MetadataService to AIService for enhanced context reliability
@@ -1690,6 +1685,19 @@ class WorkflowService {
   }
 
   async processSingleVideo(video) {
+    const videoId = typeof video === 'string' ? 'URL' : video.videoId;
+    
+    // Acquire lock to prevent concurrent processing
+    const lockAcquired = await lockManager.acquireLock(videoId, 'videoProcessing', {
+      holder: 'WorkflowService',
+      reason: 'Processing single video'
+    });
+    
+    if (!lockAcquired) {
+      logger.warn(`🔒 ${videoId}: Video processing already in progress, skipping`);
+      return { skipped: true, reason: 'Processing already in progress' };
+    }
+    
     try {
       logger.info(`🎯 Single video: ${video.title || video.youtubeUrl}`);
       
@@ -1702,7 +1710,6 @@ class WorkflowService {
       } else {
         // It's a video object from Google Sheets
         videoData = await this.youtubeService.getCompleteVideoData(video.youtubeUrl);
-        const videoId = video.videoId;
         
         // Update status to Processing
         await this.updateVideoStatus(videoId, 'Processing');
@@ -1718,6 +1725,9 @@ class WorkflowService {
       const safeError = this.safeErrorSerialization(error);
       logger.error('Error in processSingleVideo:', safeError);
       throw error;
+    } finally {
+      // Always release lock
+      lockManager.releaseLock(videoId, 'videoProcessing');
     }
   }
 
@@ -1759,16 +1769,12 @@ class WorkflowService {
     const recommendations = [];
     
     if (costSummary.averageCostPerVideo > config.app.maxImageCostPerVideo * 0.8) {
-      recommendations.push('Consider reducing image generation limit or using DALL-E 2 for better cost control');
+      recommendations.push('Consider reducing image generation limit for better cost control');
     }
     
-    if (costSummary.totalImagesGenerated > 0) {
-      const currentModel = config.app.imageModel;
-      if (currentModel === 'dall-e-3') {
-        const savings = costSummary.totalImagesGenerated * 
-          (this.aiService.imagePricing['dall-e-3'] - this.aiService.imagePricing['dall-e-2']);
-        recommendations.push(`Switch to DALL-E 2 could save $${savings.toFixed(2)} total`);
-      }
+    // Leonardo AI is already the most cost-effective option at ~$0.002/image
+    if (costSummary.totalImagesGenerated > 100) {
+      recommendations.push('Leonardo AI provides excellent cost efficiency at current generation volume');
     }
     
     if (costSummary.videoCount > 10 && costSummary.averageCostPerVideo < config.app.maxImageCostPerVideo * 0.5) {
@@ -2292,7 +2298,7 @@ Please check logs and try again.`;
       sheets: false,
       ai: false,
       telegram: false,
-      digitalOcean: false,
+      googleDrive: false,
       statusMonitor: false,
       metadata: false
     };
@@ -2329,12 +2335,12 @@ Please check logs and try again.`;
       logger.error('Telegram service health check failed:', error);
     }
 
-    // Test Digital Ocean Spaces
+    // Test Google Drive
     try {
-      await this.aiService.digitalOceanService.healthCheck();
-      checks.digitalOcean = true;
+      await this.aiService.googleDriveService.healthCheck();
+      checks.googleDrive = true;
     } catch (error) {
-      logger.error('Digital Ocean service health check failed:', error);
+      logger.error('Google Drive service health check failed:', error);
     }
 
     // Test Status Monitoring Service

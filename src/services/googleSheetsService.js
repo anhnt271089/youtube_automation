@@ -93,12 +93,26 @@ class GoogleSheetsService {
 
   /**
    * Escape special characters for Google Drive API queries
-   * Google Drive queries need special characters to be escaped with backslashes
+   * Google Drive API only requires escaping single quotes within quoted strings
+   * Over-escaping (like parentheses) causes "Invalid Value" errors
    */
   escapeDriveQuery(str) {
     if (!str) return str;
-    // Escape single quotes, backslashes, and other special characters that cause issues in Drive queries
-    return str.replace(/['\\]/g, '\\$&');
+    // Only escape single quotes - Google Drive API fails with over-escaping
+    // Parentheses, double quotes, and other characters are handled natively
+    return str.replace(/'/g, '\\\'');
+  }
+
+  /**
+   * Sanitize folder name to match GoogleDriveService.sanitizeFolderName()
+   * This ensures consistency between folder creation and folder search operations
+   */
+  sanitizeFolderName(name) {
+    return name
+      .replace(/[<>:"/\\|?*]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 100);
   }
 
   /**
@@ -471,7 +485,9 @@ END OF BACKUP - Original script preserved before regeneration`;
    */
   async createVideoDetailWorkbook(videoId, videoTitle) {
     return this.retryOperation(async () => {
-      const folderName = `(${videoId}) ${videoTitle}`;
+      // Use sanitized title to match folder creation logic in GoogleDriveService
+      const sanitizedTitle = this.sanitizeFolderName(videoTitle);
+      const folderName = `(${videoId}) ${sanitizedTitle}`;
       let folderId;
       let folderUrl;
       
@@ -501,11 +517,11 @@ END OF BACKUP - Original script preserved before regeneration`;
         logger.info(`Created video folder: ${folderName} - ${folderUrl}`);
       }
 
-      // Check for existing workbook before creating new one
-      const workbookName = `(${videoId}) ${videoTitle} - Video Detail`;
+      // Check for existing workbook before creating new one  
+      const workbookName = `(${videoId}) ${sanitizedTitle} - Video Detail`;
 
       const existingWorkbooks = await this.drive.files.list({
-        q: `name='${workbookName}' and parents in '${folderId}' and trashed=false and mimeType='application/vnd.google-apps.spreadsheet'`,
+        q: `name='${this.escapeDriveQuery(workbookName)}' and parents in '${folderId}' and trashed=false and mimeType='application/vnd.google-apps.spreadsheet'`,
         fields: 'files(id, name, webViewLink)'
       });
 
@@ -1313,7 +1329,9 @@ END OF BACKUP - Original script preserved before regeneration`;
       for (const video of allVideos) {
         if (!video.videoId || !video.title) continue;
         
-        const folderName = `(${video.videoId}) ${video.title}`;
+        // Use sanitized title to match folder creation logic
+        const sanitizedTitle = this.sanitizeFolderName(video.title);
+        const folderName = `(${video.videoId}) ${sanitizedTitle}`;
         if (!videosByName.has(folderName)) {
           videosByName.set(folderName, []);
         }
@@ -1675,6 +1693,128 @@ END OF BACKUP - Original script preserved before regeneration`;
       index = Math.floor(index / 26) - 1;
     }
     return result;
+  }
+
+  /**
+   * Check if a video is in cooldown for regeneration
+   * @param {string} videoId - Video ID
+   * @param {string} cooldownType - Type of cooldown (script, image, thumbnail)
+   * @returns {Object} - {inCooldown: boolean, remainingTime: number, expiresAt: Date}
+   */
+  async checkRegenerationCooldown(videoId, cooldownType = 'script') {
+    return this.retryOperation(async () => {
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data) {
+        throw new Error(`Video not found: ${videoId}`);
+      }
+
+      const cooldownUntil = videoRow.data[this.masterColumns.regenCooldownUntil];
+      if (!cooldownUntil) {
+        return { inCooldown: false, remainingTime: 0, expiresAt: null };
+      }
+
+      const cooldownDate = new Date(cooldownUntil);
+      const now = new Date();
+      
+      if (cooldownDate <= now) {
+        // Cooldown expired, clear it
+        await this.updateVideoField(videoId, 'regenCooldownUntil', '');
+        return { inCooldown: false, remainingTime: 0, expiresAt: null };
+      }
+
+      const remainingTime = cooldownDate - now;
+      return {
+        inCooldown: true,
+        remainingTime,
+        expiresAt: cooldownDate,
+        remainingMinutes: Math.ceil(remainingTime / 60000)
+      };
+    }, 'checkRegenerationCooldown');
+  }
+
+  /**
+   * Set a cooldown for regeneration
+   * @param {string} videoId - Video ID
+   * @param {string} cooldownType - Type of cooldown
+   * @param {number} cooldownMinutes - Cooldown duration in minutes (default 60)
+   */
+  async setRegenerationCooldown(videoId, cooldownType = 'script', cooldownMinutes = 60) {
+    return this.retryOperation(async () => {
+      const cooldownUntil = new Date(Date.now() + cooldownMinutes * 60 * 1000);
+      const cooldownISO = cooldownUntil.toISOString();
+      
+      const updates = {
+        regenCooldownUntil: cooldownISO,
+        lastRegenTime: new Date().toISOString()
+      };
+
+      // Increment regeneration attempts counter
+      const videoRow = await this.findVideoRow(videoId);
+      if (videoRow && videoRow.data) {
+        const currentAttempts = parseInt(videoRow.data[this.masterColumns.scriptRegenAttempts] || '0');
+        updates.scriptRegenAttempts = (currentAttempts + 1).toString();
+      }
+
+      await this.updateVideoFields(videoId, updates);
+      
+      logger.info(`Set ${cooldownType} regeneration cooldown for ${videoId} until ${cooldownISO}`);
+      return {
+        videoId,
+        cooldownType,
+        expiresAt: cooldownUntil,
+        cooldownMinutes
+      };
+    }, 'setRegenerationCooldown');
+  }
+
+  /**
+   * Clear cooldown for a video
+   * @param {string} videoId - Video ID
+   */
+  async clearRegenerationCooldown(videoId) {
+    return this.retryOperation(async () => {
+      await this.updateVideoField(videoId, 'regenCooldownUntil', '');
+      logger.info(`Cleared regeneration cooldown for ${videoId}`);
+      return true;
+    }, 'clearRegenerationCooldown');
+  }
+
+  /**
+   * Get videos currently in cooldown
+   */
+  async getVideosInCooldown() {
+    return this.retryOperation(async () => {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.masterSheetId,
+        range: 'Videos!A:T'
+      });
+
+      const values = response.data.values || [];
+      const videos = [];
+      const now = new Date();
+
+      for (let i = 1; i < values.length; i++) {
+        const row = values[i];
+        const cooldownUntil = row[this.masterColumns.regenCooldownUntil];
+        
+        if (cooldownUntil) {
+          const cooldownDate = new Date(cooldownUntil);
+          
+          if (cooldownDate > now) {
+            videos.push({
+              videoId: row[this.masterColumns.videoId],
+              title: row[this.masterColumns.title],
+              cooldownUntil: cooldownDate,
+              remainingMinutes: Math.ceil((cooldownDate - now) / 60000),
+              lastRegenTime: row[this.masterColumns.lastRegenTime],
+              regenAttempts: row[this.masterColumns.scriptRegenAttempts]
+            });
+          }
+        }
+      }
+
+      return videos;
+    }, 'getVideosInCooldown');
   }
 
 }
