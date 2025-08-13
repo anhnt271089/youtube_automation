@@ -462,7 +462,10 @@ END OF BACKUP - Original script preserved before regeneration`;
 
       for (let i = 1; i < values.length; i++) { // Skip header row
         const row = values[i];
-        if (row[this.masterColumns.scriptApproved] === 'Approved') {
+        // Only return videos with BOTH Script Approved = "Approved" AND main status = "Approved"
+        // This ensures thumbnails only generate AFTER full approval workflow
+        if (row[this.masterColumns.scriptApproved] === 'Approved' && 
+            row[this.masterColumns.status] === 'Approved') {
           videos.push({
             videoId: row[this.masterColumns.videoId],
             title: row[this.masterColumns.title],

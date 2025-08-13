@@ -574,6 +574,153 @@ class GoogleDriveService {
     }
   }
 
+  /**
+   * Upload image buffer to Google Drive with automatic folder creation
+   * @param {Buffer} imageBuffer - Image data buffer
+   * @param {string} fileName - Name for the uploaded file
+   * @param {string} videoId - Video identifier for folder structure
+   * @param {string} folderType - Subfolder type ('images', 'thumbnails', etc.)
+   * @returns {Promise<Object>} Upload result with driveUrl
+   */
+  async uploadImageBuffer(imageBuffer, fileName, videoId, folderType = 'images') {
+    try {
+      // Find or create video folder
+      const videoFolder = await this.findOrCreateVideoFolder(videoId);
+      
+      // Determine target subfolder based on folderType
+      let targetFolderId;
+      const subfolderMap = {
+        'images': 'Generated Images',
+        'thumbnails': 'Generated Thumbnails', 
+        'scripts': 'Generated Scripts',
+        'assets': 'Original Assets',
+        'output': 'Final Output'
+      };
+      
+      const subfolderName = subfolderMap[folderType] || 'Generated Images';
+      targetFolderId = await this.findOrCreateSubfolder(videoFolder.folderId, subfolderName);
+      
+      // Upload buffer as file
+      const fileMetadata = {
+        name: fileName,
+        parents: [targetFolderId]
+      };
+      
+      const media = {
+        mimeType: 'image/jpeg',
+        body: require('stream').Readable.from(imageBuffer)
+      };
+      
+      const response = await this.drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: 'id, name, webViewLink, webContentLink'
+      });
+      
+      // Make file publicly viewable for sharing
+      await this.drive.permissions.create({
+        fileId: response.data.id,
+        resource: {
+          role: 'reader',
+          type: 'anyone'
+        }
+      });
+      
+      const publicUrl = `https://drive.google.com/uc?id=${response.data.id}`;
+      
+      logger.info(`Uploaded ${folderType}: ${fileName} to video ${videoId}`);
+      
+      return {
+        fileId: response.data.id,
+        fileName: response.data.name,
+        viewLink: response.data.webViewLink,
+        downloadLink: response.data.webContentLink,
+        publicUrl: publicUrl,
+        driveUrl: publicUrl, // Required by aiService
+        videoFolder: videoFolder.folderUrl
+      };
+    } catch (error) {
+      logger.error(`Error uploading ${folderType} buffer for ${videoId}:`, error);
+      throw new Error(`Failed to upload ${folderType} to Google Drive: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Find or create video folder by videoId
+   * @param {string} videoId - Video identifier
+   * @returns {Promise<Object>} Folder info with folderId and folderUrl
+   */
+  async findOrCreateVideoFolder(videoId) {
+    try {
+      // Search for existing folder with videoId in name
+      const query = `name contains '(${videoId})' and mimeType = 'application/vnd.google-apps.folder' and parents in '${config.google.driveFolderId}' and trashed = false`;
+      
+      const response = await this.drive.files.list({
+        q: query,
+        fields: 'files(id, name, webViewLink)',
+        pageSize: 1
+      });
+      
+      if (response.data.files && response.data.files.length > 0) {
+        const existingFolder = response.data.files[0];
+        logger.info(`Found existing video folder: ${existingFolder.name}`);
+        return {
+          folderId: existingFolder.id,
+          folderName: existingFolder.name,
+          folderUrl: existingFolder.webViewLink
+        };
+      }
+      
+      // Create new folder if not found
+      logger.info(`Creating new video folder for ${videoId}`);
+      return await this.createVideoFolder(`Video ${videoId}`, videoId);
+    } catch (error) {
+      logger.error(`Error finding/creating video folder for ${videoId}:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Find or create subfolder within parent folder
+   * @param {string} parentFolderId - Parent folder ID
+   * @param {string} subfolderName - Name of subfolder to find/create
+   * @returns {Promise<string>} Subfolder ID
+   */
+  async findOrCreateSubfolder(parentFolderId, subfolderName) {
+    try {
+      // Search for existing subfolder
+      const query = `name = '${subfolderName}' and mimeType = 'application/vnd.google-apps.folder' and parents in '${parentFolderId}' and trashed = false`;
+      
+      const response = await this.drive.files.list({
+        q: query,
+        fields: 'files(id, name)',
+        pageSize: 1
+      });
+      
+      if (response.data.files && response.data.files.length > 0) {
+        return response.data.files[0].id;
+      }
+      
+      // Create subfolder if not found
+      const folderMetadata = {
+        name: subfolderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentFolderId]
+      };
+      
+      const folder = await this.drive.files.create({
+        resource: folderMetadata,
+        fields: 'id'
+      });
+      
+      logger.info(`Created subfolder: ${subfolderName}`);
+      return folder.data.id;
+    } catch (error) {
+      logger.error(`Error finding/creating subfolder ${subfolderName}:`, error);
+      throw error;
+    }
+  }
+
   async healthCheck() {
     try {
       // Test basic Drive API access by getting user info

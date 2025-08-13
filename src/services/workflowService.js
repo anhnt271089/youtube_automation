@@ -307,9 +307,39 @@ class WorkflowService {
     };
   }
 
-  async autoTransitionStatus(videoId, status, _scriptApproved = false) {
-    // Simple status transition - Google Sheets doesn't have complex state logic
-    return true;
+  async autoTransitionStatus(videoId, currentStatus, scriptApproved = false) {
+    try {
+      // Handle status transitions based on current status and script approval
+      if (currentStatus === 'Ready for Review' && scriptApproved === true) {
+        // Transition from Ready for Review to Approved when script is approved
+        await this.updateVideoStatus(videoId, 'Approved', {
+          transitionedAt: this.getCurrentTimestamp(),
+          transitionReason: 'Script approved by user'
+        });
+        
+        logger.info(`${videoId}: Status transitioned from "Ready for Review" to "Approved"`);
+        return { 
+          transitioned: true, 
+          fromStatus: 'Ready for Review', 
+          toStatus: 'Approved' 
+        };
+      }
+      
+      // No transition needed
+      return { 
+        transitioned: false, 
+        fromStatus: currentStatus, 
+        toStatus: currentStatus 
+      };
+    } catch (error) {
+      logger.error(`Error in autoTransitionStatus for ${videoId}:`, error);
+      return { 
+        transitioned: false, 
+        error: error.message,
+        fromStatus: currentStatus, 
+        toStatus: currentStatus 
+      };
+    }
   }
 
   async autoUpdateWorkflowStatuses(videoId, status) {
@@ -784,7 +814,7 @@ class WorkflowService {
             // Auto-transition: Ready for Review → Approved
             const transition = await this.autoTransitionStatus(
               video.videoId, 
-              'Ready for Review', 
+              video.status, 
               true
             );
             

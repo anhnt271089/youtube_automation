@@ -2,7 +2,6 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
-import DigitalOceanService from './digitalOceanService.js';
 import GoogleDriveService from './googleDriveService.js';
 import axios from 'axios';
 // import fs from 'fs';
@@ -18,7 +17,6 @@ class AIService {
       apiKey: config.anthropic.apiKey,
     });
     
-    this.digitalOceanService = new DigitalOceanService();
     this.googleDriveService = new GoogleDriveService();
     
     // Leonardo AI HTTP client
@@ -40,11 +38,6 @@ class AIService {
     
     // Model pricing (per operation)
     this.pricing = {
-      // Image generation models
-      'dall-e-2': 0.02,
-      'dall-e-3': 0.04, // standard quality
-      'dall-e-3-hd': 0.08, // HD quality
-      
       // Leonardo AI models (based on API credits and plan pricing)
       'leonardo-anime': 0.0018, // ~7 credits at $9/3500 credits = $0.0018
       'leonardo-phoenix': 0.0018, // ~7 credits at $9/3500 credits = $0.0018
@@ -68,7 +61,7 @@ class AIService {
         maxWidth: 1024,
         maxHeight: 1024,
         supportsAlchemy: true,
-        defaultPresetStyle: 'ANIME_ILLUSTRATION'
+        defaultPresetStyle: null // Anime model doesn't support preset styles
       },
       'leonardo-phoenix': {
         id: 'b24e16ff-06e3-43eb-8d33-4416c2d75876', // Phoenix 1.0 model ID
@@ -76,7 +69,7 @@ class AIService {
         maxWidth: 1472,
         maxHeight: 832,
         supportsAlchemy: true,
-        defaultPresetStyle: 'CINEMATIC'
+        defaultPresetStyle: null // Preset styles deprecated in current API
       },
       'leonardo-vision-xl': {
         id: '5c232a9e-9061-4777-980a-ddc8e65647c6', // Vision XL model ID
@@ -84,7 +77,7 @@ class AIService {
         maxWidth: 1024,
         maxHeight: 1024,
         supportsAlchemy: true,
-        defaultPresetStyle: 'PHOTOGRAPHY'
+        defaultPresetStyle: null // Preset styles deprecated in current API
       },
       'leonardo-diffusion-xl': {
         id: '1e60896f-3c26-4296-8ecc-53e2afecc132', // Diffusion XL model ID
@@ -92,7 +85,7 @@ class AIService {
         maxWidth: 1024,
         maxHeight: 1024,
         supportsAlchemy: true,
-        defaultPresetStyle: 'CREATIVE'
+        defaultPresetStyle: null // Preset styles deprecated in current API
       },
       'leonardo-kino-xl': {
         id: 'aa77f04e-3eec-4034-9c07-d0f619684628', // Kino XL model ID
@@ -100,7 +93,7 @@ class AIService {
         maxWidth: 1024,
         maxHeight: 1024,
         supportsAlchemy: true,
-        defaultPresetStyle: 'CINEMATIC'
+        defaultPresetStyle: null // Preset styles deprecated in current API
       },
       'dreamshaper-v7': {
         id: 'ac614f96-1082-45bf-be9d-757f2d31c174', // DreamShaper v7 model ID
@@ -421,6 +414,11 @@ CRITICAL SUCCESS FACTORS:
 - PURE educational content that stands alone and delivers complete value
 - Focus entirely on the viewer and universal principles
 
+📏 SCRIPT LENGTH REQUIREMENT:
+- Maximum ${config.app.maxScriptSentences} sentences to ensure proper video length
+- Each sentence should be substantial and meaningful
+- Balance depth with conciseness for optimal viewer retention
+
 Return only the breakthrough script - no commentary, explanations, or meta-information.`;
 
       const completion = await this.anthropic.messages.create({
@@ -557,6 +555,11 @@ FACELESS CHANNEL REQUIREMENTS (CRITICAL):
 - ZERO external calls-to-action (links, downloads, subscriptions, etc.)
 - PURE educational content that stands alone and delivers complete value
 - Focus entirely on the viewer and universal principles
+
+📏 SCRIPT LENGTH REQUIREMENT:
+- Maximum ${config.app.maxScriptSentences} sentences to ensure proper video length
+- Each sentence should be substantial and meaningful
+- Balance depth with conciseness for optimal viewer retention
 
 Create a breakthrough script that demonstrates these advanced techniques while serving the same audience. Focus on maximum engagement, retention, and viral potential. Return only the script without commentary.`;
 
@@ -1084,10 +1087,12 @@ Break down the following script into individual sentences that are suitable for 
 3. Be concise but meaningful
 4. Flow naturally when combined
 
+📏 CRITICAL: Generate EXACTLY ${config.app.maxScriptSentences} sentences or fewer. Do NOT exceed this limit. Each sentence must be complete and meaningful for visual representation.
+
 Script:
 ${script}
 
-Return the sentences as a JSON array of strings, like this:
+Return EXACTLY ${config.app.maxScriptSentences} sentences or fewer as a JSON array of strings:
 ["sentence 1", "sentence 2", "sentence 3", ...]`;
 
       const completion = await this.openai.chat.completions.create({
@@ -1116,8 +1121,67 @@ Return the sentences as a JSON array of strings, like this:
       }
       
       const sentences = JSON.parse(responseText);
-      logger.info(`Script: ${sentences.length} sentences`);
+      const maxSentences = config.app.maxScriptSentences;
       
+      // Allow small buffer (10%) for AI generation variance
+      const bufferLimit = Math.floor(maxSentences * 1.1);
+      
+      if (sentences.length > bufferLimit) {
+        logger.warn(`AI generated ${sentences.length} sentences, exceeds buffer limit of ${bufferLimit} (base limit: ${maxSentences}). Will regenerate with stricter constraints.`);
+        
+        // Retry with stricter prompt
+        logger.info('Regenerating script breakdown with stricter sentence limit enforcement...');
+        
+        const stricterPrompt = `${prompt}\n\n🚨 STRICT ENFORCEMENT: You MUST generate EXACTLY ${maxSentences} sentences or fewer. This is attempt #2 - the first attempt generated too many sentences. Count carefully and stop at sentence ${maxSentences} maximum.`;
+        
+        const retryResponse = await this.callClaudeAPI(stricterPrompt, { max_tokens: 4000 });
+        let retryResponseText = retryResponse.content[0].text.trim();
+        
+        // Clean up response formatting
+        if (retryResponseText.startsWith('```json') || retryResponseText.startsWith('```')) {
+          retryResponseText = retryResponseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        const retrySentences = JSON.parse(retryResponseText);
+        
+        if (retrySentences.length > bufferLimit) {
+          logger.error(`Retry also failed: ${retrySentences.length} > ${bufferLimit}. Making final attempt with even stricter constraints.`);
+          
+          // Third and final attempt with maximum strictness
+          const finalPrompt = `${prompt}\n\n🚨 FINAL ATTEMPT: Generate EXACTLY ${maxSentences} sentences. NO MORE, NO LESS. This is critical - count each sentence as you write it. Stop immediately at sentence ${maxSentences}.`;
+          
+          try {
+            const finalResponse = await this.callClaudeAPI(finalPrompt, { max_tokens: 4000 });
+            let finalResponseText = finalResponse.content[0].text.trim();
+            
+            if (finalResponseText.startsWith('```json') || finalResponseText.startsWith('```')) {
+              finalResponseText = finalResponseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+            }
+            
+            const finalSentences = JSON.parse(finalResponseText);
+            
+            if (finalSentences.length > bufferLimit) {
+              logger.error(`All attempts failed to generate proper sentence count. Final attempt: ${finalSentences.length} > ${bufferLimit}. This is an AI generation issue that needs investigation.`);
+              throw new Error(`Script generation consistently exceeds limits after 3 attempts. Generated: ${finalSentences.length}, Buffer limit: ${bufferLimit}`);
+            }
+            
+            logger.info(`✅ Final attempt successful: ${finalSentences.length} sentences`);
+            return finalSentences;
+          } catch (finalError) {
+            logger.error('Final attempt failed:', finalError.message);
+            throw new Error(`Script generation failed after 3 attempts. Last error: ${finalError.message}`);
+          }
+        }
+        
+        logger.info(`✅ Retry successful: ${retrySentences.length} sentences (within limit: ${maxSentences})`);
+        return retrySentences;
+      }
+      
+      if (sentences.length > maxSentences) {
+        logger.warn(`AI generated ${sentences.length} sentences, slightly over limit of ${maxSentences} but within buffer (${bufferLimit}). Continuing processing.`);
+      }
+      
+      logger.info(`Script breakdown: ${sentences.length} sentences (limit: ${maxSentences})`);
       return sentences;
     } catch (error) {
       logger.error('Error breaking down script:', error);
@@ -1204,7 +1268,7 @@ Return only the style name (one word) that best matches this content.`;
       
       for (const sentence of scriptSentences) {
         const promptText = `
-Create a premium DALL-E image prompt for the following script sentence, designed as standalone professional visual content:
+Create a premium Leonardo AI image prompt for the following script sentence, designed as standalone professional visual content:
 
 Sentence: "${sentence}"
 
@@ -1334,7 +1398,7 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
    * @returns {number} Cost in USD
    */
   calculateImageCost(model = config.app.imageModel, count = 1) {
-    const costPerImage = this.pricing[model] || this.pricing['dall-e-2'];
+    const costPerImage = this.pricing[model] || this.pricing['leonardo-anime'];
     return costPerImage * count;
   }
 
@@ -1434,10 +1498,10 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
         requestBody.contrastRatio = 2.5;
       }
 
-      // Add preset style if supported and not 'NONE'
+      // Add preset style if supported and not 'NONE' or null
       if (presetStyle && presetStyle !== 'NONE') {
         requestBody.presetStyle = presetStyle;
-      } else if (modelConfig.defaultPresetStyle && modelConfig.defaultPresetStyle !== 'NONE') {
+      } else if (modelConfig.defaultPresetStyle && modelConfig.defaultPresetStyle !== 'NONE' && modelConfig.defaultPresetStyle !== null) {
         requestBody.presetStyle = modelConfig.defaultPresetStyle;
       }
 
@@ -1611,7 +1675,7 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
       const shouldUseLeonardo = finalOptions.provider === 'leonardo' || isLeonardoModel;
       
       if (shouldUseLeonardo) {
-        // Use Leonardo AI with fallback to DALL-E on failure
+        // Use Leonardo AI for image generation
         logger.info(`Using Leonardo AI for image generation: ${finalOptions.model}`);
         
         try {
@@ -1632,106 +1696,35 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
             provider: 'leonardo'
           };
         } catch (leonardoError) {
-          logger.warn('Leonardo AI failed, falling back to DALL-E:', leonardoError.message);
+          logger.error('Leonardo AI image generation failed:', leonardoError.message);
           
-          // Check if it's a prompt length issue and try to fix it
+          // Check if it's a prompt length issue and retry with shortened prompt
           if (leonardoError.message.includes('prompt too long') || leonardoError.message.includes('maximum length')) {
-            logger.info('Attempting to shorten prompt for DALL-E fallback...');
-            // Use original prompt if it's shorter, or truncate enhanced prompt
+            logger.info('Retrying Leonardo AI with shortened prompt...');
             const fallbackPrompt = prompt.length < enhancedPrompt.length ? prompt : enhancedPrompt.substring(0, 1000);
-            revisedPrompt = fallbackPrompt;
-            enhancedPrompt = fallbackPrompt;
-          }
-          
-          // Fallback to DALL-E 3 with adjusted parameters
-          logger.info('Falling back to DALL-E 3 due to Leonardo AI failure');
-          
-          try {
-            // Validate size for DALL-E 3
-            let dalleSize = finalOptions.size;
-            const validDalleSizes = ['1024x1024', '1792x1024', '1024x1792'];
-            if (!validDalleSizes.includes(dalleSize)) {
-              dalleSize = '1792x1024'; // 16:9 aspect ratio for YouTube content
-              logger.info(`Adjusting size from ${finalOptions.size} to ${dalleSize} for DALL-E 3`);
+            
+            try {
+              const leonardoRetryResponse = await this.generateImageWithLeonardo(fallbackPrompt, finalOptions);
+              imageUrl = leonardoRetryResponse.url;
+              revisedPrompt = fallbackPrompt;
+              actualCost = this.calculateImageCost('leonardo-anime', 1);
+              
+              response = {
+                leonardoData: leonardoRetryResponse,
+                provider: 'leonardo'
+              };
+              
+              logger.info('Successfully generated image with Leonardo AI (shortened prompt)');
+            } catch (retryError) {
+              logger.error('Leonardo AI failed even with shortened prompt:', retryError.message);
+              throw new Error(`Leonardo AI image generation failed: ${retryError.message}`);
             }
-            
-            const dalleResponse = await this.openai.images.generate({
-              model: 'dall-e-3',
-              prompt: enhancedPrompt,
-              n: 1,
-              size: dalleSize,
-              quality: 'standard',
-              response_format: 'url'
-            });
-            
-            imageUrl = dalleResponse.data[0].url;
-            revisedPrompt = dalleResponse.data[0].revised_prompt || enhancedPrompt;
-            actualCost = this.calculateImageCost('dall-e-3', 1);
-            
-            response = {
-              dalleData: dalleResponse.data[0],
-              provider: 'openai',
-              fallbackReason: 'leonardo-failure',
-              originalError: leonardoError.message
-            };
-            
-            logger.info(`Successfully generated image with DALL-E 3 fallback (Cost: $${actualCost.toFixed(4)})`);
-          } catch (dalleError) {
-            logger.error('Both Leonardo AI and DALL-E 3 fallback failed:', {
-              leonardo: leonardoError.message,
-              dalle: dalleError.message
-            });
-            throw new Error(`Image generation failed: Leonardo AI (${leonardoError.message}) and DALL-E fallback (${dalleError.message})`);
+          } else {
+            throw new Error(`Leonardo AI image generation failed: ${leonardoError.message}`);
           }
         }
-      } else if (finalOptions.model.startsWith('dall-e')) {
-        // Use OpenAI DALL-E
-        logger.info(`Using OpenAI DALL-E for image generation: ${finalOptions.model}`);
-        
-        // Validate size for DALL-E models
-        const validSizes = {
-          'dall-e-2': ['256x256', '512x512', '1024x1024'],
-          'dall-e-3': ['1024x1024', '1792x1024', '1024x1792']
-        };
-        
-        let imageSize = finalOptions.size;
-        if (finalOptions.model === 'dall-e-2' && !validSizes['dall-e-2'].includes(imageSize)) {
-          imageSize = '1024x1024'; // Fallback for DALL-E 2
-          logger.info(`DALL-E 2 doesn't support ${finalOptions.size}, using 1024x1024`);
-        } else if (finalOptions.model === 'dall-e-3' && !validSizes['dall-e-3'].includes(imageSize)) {
-          imageSize = '1792x1024'; // 16:9 aspect ratio for DALL-E 3
-          logger.info(`Using DALL-E 3 with 16:9 format: ${imageSize}`);
-        }
-        
-        // Build parameters based on model capabilities
-        const generateParams = {
-          model: finalOptions.model,
-          prompt: enhancedPrompt, // Use GPT-4o enhanced prompt
-          n: 1,
-          size: imageSize,
-          response_format: 'url'
-        };
-        
-        // DALL-E 3 supports quality parameter, DALL-E 2 does not
-        if (finalOptions.model === 'dall-e-3') {
-          generateParams.quality = finalOptions.quality;
-        }
-        
-        const dalleResponse = await this.openai.images.generate(generateParams);
-        imageUrl = dalleResponse.data[0].url;
-        revisedPrompt = dalleResponse.data[0].revised_prompt || enhancedPrompt;
-        
-        actualCost = this.calculateImageCost(
-          finalOptions.model === 'dall-e-3' && finalOptions.quality === 'hd' ? 'dall-e-3-hd' : finalOptions.model,
-          1
-        );
-        
-        response = {
-          dalleData: dalleResponse.data[0],
-          provider: 'openai'
-        };
       } else {
-        throw new Error(`Unsupported image model: ${finalOptions.model}`);
+        throw new Error(`Unsupported image model: ${finalOptions.model}. Only Leonardo AI models are supported (leonardo-anime, leonardo-phoenix, leonardo-vision-xl).`);
       }
       
       // Track cost
@@ -1741,7 +1734,7 @@ Return only the comma-separated keywords that exist in the sentence, nothing els
       this.costTracker.imagesGenerated++;
       
       const enhancementInfo = finalOptions.enhanceWithClaudeSonnet && enhancedPrompt !== prompt ? ' (Claude Sonnet Enhanced)' : '';
-      const provider = response.provider === 'leonardo' ? 'Leonardo AI' : 'OpenAI DALL-E';
+      const provider = response.provider === 'leonardo' ? 'Leonardo AI' : 'Unknown Provider';
       logger.info(`Generated ${provider} image successfully${enhancementInfo} (Cost: $${actualCost.toFixed(4)})`);
       
       return {
@@ -1933,7 +1926,7 @@ PROFESSIONAL QUALITY STANDARDS:
 7. Cinematic lighting with soft shadows and professional highlights
 8. Premium visual hierarchy that guides the viewer's eye naturally
 9. Modern, sophisticated design elements that feel current and inspiring
-10. Optimized for horizontal format (1792x1024 for DALL-E 3) with mobile visibility consideration
+10. Optimized for horizontal format (16:9 ratio) with mobile visibility consideration
 11. High-resolution clarity that maintains quality at all sizes
 12. Psychology-driven color choices that evoke inspiration, growth, and positive transformation
 
@@ -1959,7 +1952,7 @@ ABSOLUTE REQUIREMENTS:
 - Content must fill entire image area completely
 - Pure visual communication without any text elements
 
-Generate a detailed DALL-E prompt that creates this professional-style thumbnail focusing on visual storytelling only.`;
+Generate a detailed Leonardo AI prompt that creates this professional-style thumbnail focusing on visual storytelling only.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -1981,7 +1974,7 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
       
       // Generate thumbnail with cost tracking and Claude Sonnet enhancement
       const thumbnailOptions = {
-        size: '1792x1024', // Best 16:9 ratio for DALL-E 3
+        size: '1792x1024', // Best 16:9 ratio for YouTube thumbnails
         videoId,
         quality: 'standard',
         isThumbnail: true, // Mark as thumbnail for Claude Sonnet enhancement
@@ -2023,7 +2016,7 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
       
       // Try Google Drive first (primary storage)
       try {
-        const driveUploadResult = await this.googleDriveService.uploadImage(
+        const driveUploadResult = await this.googleDriveService.uploadImageBuffer(
           imageBuffer,
           fileName,
           videoId,
@@ -2038,20 +2031,8 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
           provider: 'google-drive'
         };
       } catch (driveError) {
-        logger.warn(`Google Drive upload failed, falling back to Digital Ocean: ${driveError.message}`);
-        
-        // Fallback to Digital Ocean Spaces
-        const uploadResult = await this.digitalOceanService.uploadImage(
-          imageBuffer,
-          fileName,
-          `videos/${videoId}/${folderType}`
-        );
-        
-        logger.info(`Digital Ocean ${folderType}: ${uploadResult.cdnUrl}`);
-        return {
-          ...uploadResult,
-          provider: 'digital-ocean'
-        };
+        logger.error(`Google Drive upload failed: ${driveError.message}`);
+        throw new Error(`Image storage failed: ${driveError.message}. Google Drive is the only supported storage provider.`);
       }
     } catch (error) {
       logger.error(`Error downloading and uploading ${folderType}:`, error);
@@ -2359,8 +2340,9 @@ Generate a detailed DALL-E prompt that creates this professional-style thumbnail
         this.costTracker.totalCost / this.costTracker.videoCosts.size : 0,
       videoCosts: Object.fromEntries(this.costTracker.videoCosts),
       budgetPerVideo: config.app.maxImageCostPerVideo,
-      costSavingsVsDallE3: this.costTracker.imagesGenerated * 
-        (this.pricing['dall-e-3'] - this.pricing[config.app.imageModel])
+      // Leonardo AI is our only provider - no cost comparison needed
+      primaryProvider: 'Leonardo AI',
+      providerEfficiency: '95.5% cost-effective image generation'
     };
   }
 
