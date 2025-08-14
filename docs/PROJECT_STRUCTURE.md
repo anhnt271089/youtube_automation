@@ -32,7 +32,9 @@ youtube_automation/
 │   │   └── youtubeService.js    # YouTube API integration
 │   │
 │   ├── 📁 utils/               # Utility functions
-│   │   └── logger.js           # Winston logging configuration
+│   │   ├── logger.js           # Winston logging configuration
+│   │   ├── consoleFormatter.js # Standardized console output formatting
+│   │   └── metadataValidator.js # Metadata validation utilities
 │   │
 │   └── index.js                # Main application entry point
 │
