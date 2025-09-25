@@ -13,7 +13,7 @@ import path from 'path';
 import { createServer } from 'http';
 import { URL } from 'url';
 import open from 'open';
-import { config } from '../config/config.js';
+import { config } from '../../config/config.js';
 
 const SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',

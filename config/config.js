@@ -24,7 +24,7 @@ export const config = {
     
     // Legacy Service Account (for backwards compatibility)
     clientEmail: process.env.GOOGLE_CLIENT_EMAIL,
-    privateKey: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    privateKey: process.env.GOOGLE_PRIVATE_KEY?.replace(/\n/g, '\n'),
   },
   notion: {
     token: process.env.NOTION_TOKEN,
@@ -41,7 +41,7 @@ export const config = {
     apiKey: process.env.LEONARDO_API_KEY,
     baseUrl: 'https://cloud.leonardo.ai/api/rest/v1',
     defaultModel: process.env.LEONARDO_DEFAULT_MODEL || 'leonardo-anime',
-    defaultPresetStyle: process.env.LEONARDO_PRESET_STYLE || 'ANIME_ILLUSTRATION',
+    defaultPresetStyle: process.env.LEONARDO_PRESET_STYLE || null, // Most models don't use preset styles anymore
     enableAlchemy: process.env.LEONARDO_ENABLE_ALCHEMY !== 'false', // Default true for better quality
     creditsPerGeneration: parseInt(process.env.LEONARDO_CREDITS_PER_GENERATION) || 7, // Estimated cost
     maxRetries: parseInt(process.env.LEONARDO_MAX_RETRIES) || 3,
@@ -55,14 +55,7 @@ export const config = {
     maxRetries: parseInt(process.env.TELEGRAM_MAX_RETRIES) || 3,
     retryDelay: parseInt(process.env.TELEGRAM_RETRY_DELAY) || 1000, // 1 second initial delay
   },
-  digitalOcean: {
-    endpoint: process.env.DO_SPACES_ENDPOINT || 'nyc3.digitaloceanspaces.com',
-    region: process.env.DO_SPACES_REGION || 'nyc3',
-    accessKey: process.env.DO_SPACES_ACCESS_KEY,
-    secretKey: process.env.DO_SPACES_SECRET_KEY,
-    bucketName: process.env.DO_SPACES_BUCKET_NAME,
-    cdnUrl: process.env.DO_SPACES_CDN_URL, // Optional CDN endpoint
-  },
+  // Digital Ocean has been replaced with Google Drive for storage
   transcript: {
     enableFallbacks: process.env.ENABLE_TRANSCRIPT_FALLBACKS !== 'false', // Default true
     enableWhisperFallback: process.env.ENABLE_WHISPER_FALLBACK === 'true', // Default false (costs money)
@@ -80,11 +73,13 @@ export const config = {
     enableScriptBreakdown: process.env.ENABLE_SCRIPT_BREAKDOWN === 'true', // Default false
     imageGenerationLimit: parseInt(process.env.IMAGE_GENERATION_LIMIT) || 0, // 0 = no limit
     autoApproveScripts: process.env.AUTO_APPROVE_SCRIPTS === 'true', // Default false
+    // Script length control
+    maxScriptSentences: parseInt(process.env.MAX_SCRIPT_SENTENCES) || 60, // Default 60 sentences for ~5 min videos
     // YouTube thumbnail generation settings
-    enableThumbnailGeneration: process.env.ENABLE_THUMBNAIL_GENERATION !== 'false', // Default true
+    enableThumbnailGeneration: process.env.ENABLE_THUMBNAIL_GENERATION === 'true', // Default false unless explicitly enabled
     thumbnailCount: parseInt(process.env.THUMBNAIL_COUNT) || 2, // Number of thumbnails to generate
     thumbnailFormat: process.env.THUMBNAIL_FORMAT || 'JPG', // PNG or JPG
-    thumbnailQuality: process.env.THUMBNAIL_QUALITY || 'standard', // standard or hd for DALL-E 3
+    thumbnailQuality: process.env.THUMBNAIL_QUALITY || 'standard', // Standard quality for Leonardo AI
     // Thumbnail optimization settings
     enableThumbnailConceptGeneration: process.env.ENABLE_THUMBNAIL_CONCEPT_GENERATION !== 'false', // Default true
     thumbnailProcessingMode: process.env.THUMBNAIL_PROCESSING_MODE || 'smart', // smart|immediate|batch
@@ -94,11 +89,18 @@ export const config = {
     imageAspectRatio: process.env.IMAGE_ASPECT_RATIO || '16:9', // YouTube video format
     imageWidth: parseInt(process.env.IMAGE_WIDTH) || 1920,
     imageHeight: parseInt(process.env.IMAGE_HEIGHT) || 1080,
-    imageModel: process.env.IMAGE_MODEL || 'leonardo-anime', // leonardo-anime, leonardo-phoenix, leonardo-vision-xl, dall-e-3, dall-e-2
-    imageProvider: process.env.IMAGE_PROVIDER || 'leonardo', // leonardo, openai
+    imageModel: process.env.IMAGE_MODEL || 'leonardo-anime', // leonardo-anime, leonardo-phoenix, leonardo-vision-xl (Leonardo AI only)
+    imageProvider: 'leonardo', // Fixed to Leonardo AI only
     enhancePromptsWithClaudeSonnet: process.env.ENHANCE_PROMPTS_WITH_CLAUDE_SONNET !== 'false', // Default true - use Claude Sonnet for Leonardo AI prompt optimization (85% cheaper!)
     costTrackingEnabled: process.env.COST_TRACKING_ENABLED !== 'false',
     maxImageCostPerVideo: parseFloat(process.env.MAX_IMAGE_COST_PER_VIDEO) || 1.50, // $1.50 budget
+    // Interactive Content Generation Settings
+    useInteractiveGeneration: process.env.USE_INTERACTIVE_GENERATION === 'true', // Default false
+    interactiveContentTypes: (process.env.INTERACTIVE_CONTENT_TYPES || '').split(',').filter(Boolean), // script,thumbnails,description,title
+    fallbackToAPI: process.env.FALLBACK_TO_API !== 'false', // Default true - fallback to API if interactive fails
+    interactiveGenerationTimeout: parseInt(process.env.INTERACTIVE_GENERATION_TIMEOUT) || 3600000, // 1 hour default
+    queueCleanupInterval: parseInt(process.env.QUEUE_CLEANUP_INTERVAL) || 604800000, // 7 days default
+    enableQueuePrioritization: process.env.ENABLE_QUEUE_PRIORITIZATION !== 'false', // Default true
   }
 };
 
@@ -118,11 +120,9 @@ export const validateConfig = () => {
 
   // Optional but recommended
   const recommended = [
-    'OPENAI_API_KEY', // For AI content generation
-    'ANTHROPIC_API_KEY', // For AI fallback
-    'LEONARDO_API_KEY', // For image generation
-    'DO_SPACES_ACCESS_KEY', // For image storage (legacy)
-    'DO_SPACES_SECRET_KEY' // For image storage (legacy)
+    'OPENAI_API_KEY', // For AI content generation (GPT-4o mini for script breakdown)
+    'ANTHROPIC_API_KEY', // For Claude Sonnet AI enhancement
+    'LEONARDO_API_KEY', // For Leonardo AI image generation (required)
   ];
 
   const missing = required.filter(key => !process.env[key]);
@@ -133,6 +133,7 @@ export const validateConfig = () => {
   }
   
   if (missingRecommended.length > 0) {
+    // Use console.warn directly to avoid circular dependency with logger
     console.warn(`⚠️  Missing optional environment variables: ${missingRecommended.join(', ')}`);
     console.warn('Some features may not work without these configurations.');
   }

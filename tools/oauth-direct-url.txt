@@ -1,0 +1,26 @@
+# Direct Google OAuth Authorization URL
+
+Try this direct authorization URL instead of the OAuth playground:
+
+https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive&response_type=code&client_id=610931361339-crj2epvio6m28id8klvth81tep2dilsi.apps.googleusercontent.com&redirect_uri=urn:ietf:wg:oauth:2.0:oob
+
+## Instructions:
+
+1. Click the URL above (or copy/paste into browser)
+2. Sign in with your Google account
+3. Grant permissions for Sheets and Drive access
+4. You'll get an authorization code
+5. Copy that code and run: node tools/exchange-oauth-code.js YOUR_CODE_HERE
+
+## Alternative: Manual Token Exchange
+
+If that doesn't work, we can use curl to exchange the code for tokens manually.
+
+## Troubleshooting:
+
+The 400 error in OAuth playground might be because:
+1. The OAuth client isn't configured for playground use
+2. The redirect URI doesn't match what's configured in Google Console
+3. The client credentials need to be refreshed
+
+Try the direct URL above first - it uses a simpler "out of band" redirect that should work better.
