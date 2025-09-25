@@ -528,13 +528,13 @@ class GoogleSheetsCreator {
   async setupScriptBreakdownSheet(spreadsheetId, sheetId) {
     // Script Breakdown headers
     const headers = [
-      'Sentence #', 'Script Text', 'Image Prompt', 'Image URL', 
+      'Sentence #', 'Script Text', 'Image Prompt', 'Search phrase', 'Image URL',
       'Editor Keywords', 'Status', 'Word Count'
     ];
 
     await this.sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: 'Script Breakdown!A1:G1',
+      range: 'Script Breakdown!A1:H1',
       valueInputOption: 'USER_ENTERED',
       resource: {
         values: [headers]

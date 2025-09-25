@@ -84,10 +84,11 @@ class GoogleSheetsService {
       sentenceNumber: 0,    // A: Sentence Number
       scriptText: 1,        // B: Script Text
       imagePrompt: 2,       // C: Image Prompt
-      imageUrl: 3,          // D: Generated Image URL
-      editorKeywords: 4,    // E: Editor Keywords
-      status: 5,            // F: Status
-      wordCount: 6          // G: Word Count
+      searchPhrase: 3,      // D: Search phrase (for Pexels asset search)
+      imageUrl: 4,          // E: Generated Image URL
+      editorKeywords: 5,    // F: Editor Keywords
+      status: 6,            // G: Status
+      wordCount: 7          // H: Word Count
     };
   }
 
@@ -101,6 +102,100 @@ class GoogleSheetsService {
     // Only escape single quotes - Google Drive API fails with over-escaping
     // Parentheses, double quotes, and other characters are handled natively
     return str.replace(/'/g, '\\\'');
+  }
+
+  /**
+   * Generate enhanced search phrase for Pexels by analyzing both script text and image prompt
+   * Creates more contextual and relevant search terms for asset discovery
+   */
+  generateEnhancedSearchPhrase(scriptText = '', imagePrompt = '') {
+    const visualKeywords = [
+      // People & Actions
+      'person', 'people', 'man', 'woman', 'child', 'family', 'team', 'group',
+      'working', 'thinking', 'writing', 'reading', 'talking', 'meeting', 'walking',
+      'running', 'smiling', 'laughing', 'studying', 'learning',
+
+      // Business & Technology
+      'office', 'business', 'computer', 'laptop', 'phone', 'technology', 'startup',
+      'meeting', 'presentation', 'teamwork', 'success', 'growth', 'innovation',
+      'strategy', 'planning', 'analysis', 'data', 'chart', 'graph',
+
+      // Lifestyle & Health
+      'fitness', 'health', 'exercise', 'yoga', 'meditation', 'wellness', 'food',
+      'cooking', 'travel', 'nature', 'outdoor', 'lifestyle', 'home', 'family',
+      'relationship', 'happiness', 'stress', 'relaxation',
+
+      // Education & Learning
+      'education', 'learning', 'book', 'study', 'student', 'teacher', 'school',
+      'university', 'knowledge', 'skill', 'training', 'development', 'course',
+
+      // Finance & Money
+      'money', 'finance', 'investment', 'savings', 'budget', 'planning', 'wealth',
+      'financial', 'bank', 'economy', 'business', 'entrepreneur', 'success',
+
+      // Emotions & Concepts
+      'motivation', 'inspiration', 'focus', 'productivity', 'time', 'goals',
+      'achievement', 'mindset', 'positive', 'negative', 'change', 'progress'
+    ];
+
+    const stopWords = new Set([
+      'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of',
+      'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before',
+      'after', 'above', 'below', 'under', 'over', 'between', 'among', 'this', 'that',
+      'these', 'those', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have',
+      'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may',
+      'might', 'must', 'can', 'very', 'really', 'just', 'now', 'then', 'here', 'there'
+    ]);
+
+    let allText = `${scriptText} ${imagePrompt}`.toLowerCase();
+
+    // Clean and extract meaningful words
+    let words = allText
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .split(' ')
+      .filter(word =>
+        word.length > 2 &&
+        !stopWords.has(word) &&
+        !word.match(/^(detailed|realistic|high-quality|professional|cinematic|dramatic|beautiful|stunning|amazing|incredible|perfect|image|photo|picture|shot|scene|view|illustration|artwork)$/)
+      );
+
+    // Prioritize visual keywords that appear in the text
+    const relevantVisualKeywords = visualKeywords.filter(keyword =>
+      allText.includes(keyword) ||
+      words.some(word => word.includes(keyword) || keyword.includes(word))
+    );
+
+    // Score words based on frequency and relevance
+    const wordCount = {};
+    words.forEach(word => {
+      wordCount[word] = (wordCount[word] || 0) + 1;
+    });
+
+    // Combine high-frequency words with relevant visual keywords
+    const topWords = Object.entries(wordCount)
+      .sort(([,a], [,b]) => b - a)
+      .map(([word]) => word)
+      .slice(0, 5);
+
+    // Create final search phrase
+    const searchTerms = [
+      ...relevantVisualKeywords.slice(0, 2),
+      ...topWords.filter(word => !relevantVisualKeywords.includes(word)).slice(0, 2)
+    ];
+
+    // If no good terms found, fall back to basic extraction
+    if (searchTerms.length === 0) {
+      const fallbackWords = words
+        .filter(word => word.length > 3)
+        .slice(0, 3);
+      searchTerms.push(...fallbackWords);
+    }
+
+    return searchTerms
+      .slice(0, 3)
+      .join(' ')
+      .trim() || 'business person';
   }
 
   /**
@@ -850,13 +945,13 @@ END OF BACKUP - Original script preserved before regeneration`;
       // Prepare script breakdown data
       const breakdownData = [];
       for (let i = 0; i < scriptSentences.length; i++) {
-        const row = new Array(7).fill(''); // Initialize 7 columns
+        const row = new Array(8).fill(''); // Initialize 8 columns (added search phrase)
         row[this.scriptColumns.sentenceNumber] = i + 1;
-        
+
         // Ensure full script text is preserved (Google Sheets supports up to 50,000 characters per cell)
         const fullScriptText = scriptSentences[i] ? scriptSentences[i].toString().trim() : '';
         row[this.scriptColumns.scriptText] = fullScriptText;
-        
+
         // Extract image prompt text properly (handle both string and object formats)
         let fullImagePrompt = '';
         if (imagePrompts[i]) {
@@ -869,11 +964,19 @@ END OF BACKUP - Original script preserved before regeneration`;
           }
         }
         row[this.scriptColumns.imagePrompt] = fullImagePrompt;
-        
+
+        // Generate enhanced search phrase for Pexels asset search
+        // Combine script text analysis with image prompt for better relevance
+        let searchPhrase = '';
+        if (fullScriptText || fullImagePrompt) {
+          searchPhrase = this.generateEnhancedSearchPhrase(fullScriptText, fullImagePrompt);
+        }
+        row[this.scriptColumns.searchPhrase] = searchPhrase;
+
         // Ensure editor keywords are preserved
         const fullKeywords = editorKeywords[i] ? editorKeywords[i].toString().trim() : '';
         row[this.scriptColumns.editorKeywords] = fullKeywords;
-        
+
         row[this.scriptColumns.status] = 'Pending';
         row[this.scriptColumns.wordCount] = `=LEN(TRIM(B${i + 2}))-LEN(SUBSTITUTE(TRIM(B${i + 2})," ",""))+1`; // Word count formula
         breakdownData.push(row);
@@ -882,7 +985,7 @@ END OF BACKUP - Original script preserved before regeneration`;
       // Update script breakdown sheet
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: workbookId,
-        range: `${this.detailSheets.scriptBreakdown}!A2:G${breakdownData.length + 1}`,
+        range: `${this.detailSheets.scriptBreakdown}!A2:H${breakdownData.length + 1}`,
         valueInputOption: 'USER_ENTERED',
         resource: {
           values: breakdownData
@@ -1454,10 +1557,10 @@ END OF BACKUP - Original script preserved before regeneration`;
       const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
 
       try {
-        // Get all data from Script Breakdown sheet (A:G covers all columns)
+        // Get all data from Script Breakdown sheet (A:H covers all columns including searchPhrase)
         const response = await this.sheets.spreadsheets.values.get({
           spreadsheetId: workbookId,
-          range: `${this.detailSheets.scriptBreakdown}!A:G`
+          range: `${this.detailSheets.scriptBreakdown}!A:H`
         });
 
         const values = response.data.values || [];
@@ -1481,6 +1584,7 @@ END OF BACKUP - Original script preserved before regeneration`;
             sentenceNumber: row[this.scriptColumns.sentenceNumber] || (i),
             scriptText: row[this.scriptColumns.scriptText] || '',
             imagePrompt: row[this.scriptColumns.imagePrompt] || '', // This should contain the image prompt
+            searchPhrase: row[this.scriptColumns.searchPhrase] || '', // Pexels search phrase
             imageUrl: row[this.scriptColumns.imageUrl] || '',
             editorKeywords: row[this.scriptColumns.editorKeywords] || '',
             status: row[this.scriptColumns.status] || 'Pending',
