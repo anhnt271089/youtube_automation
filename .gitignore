@@ -10,6 +10,9 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env copy
+*.env.backup
+*.env.bak
 
 # Logs
 logs/
@@ -53,14 +56,11 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
-.env.test
-
 # IDE files
 .vscode/
 .idea/
 *.swp
+.swp
 *.swo
 *~
 
@@ -73,11 +73,55 @@ jspm_packages/
 ehthumbs.db
 Thumbs.db
 
-# Project specific
+# Project specific temporary files
 temp/
 output/
 *.temp
 *.tmp
 
+# Development and debugging files
+tools/test-*.js
+tools/debug-*.js
+tools/fix-*.js
+tools/diagnose-*.js
+tools/investigate-*.js
+tools/manual-*.js
+tools/complete-*.js
+tools/emergency-*.js
+tools/check-*queue*.js
+tools/check-*sheets*.js
+tools/google-sheets-direct-check.js
+tools/refresh-google-tokens.js
+tools/setup-google-auth.js
+tools/generate-content.js
+debug-*.js
+test-*.js
+
+# Lock and queue files
+locks/
+*.lock
+queue/
+
+# Backup and cache files
+data/metadata/backups/
+*_backup.json
+*.backup
+*.bak
+*_cache.json
+cache/
+
+# Test data files
+data/test_*.json
+data/debug_*.json
+test_*.json
+debug_*.json
+
+# MCP servers (development artifacts)
+mcp-servers/
+
+# Templates (if they contain sensitive data)
+# Note: Uncomment if templates contain API keys or sensitive info
+# templates/
+
 # Claude configuration
-.claude/
+.claude/.env copy
