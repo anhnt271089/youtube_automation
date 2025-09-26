@@ -25,7 +25,9 @@
     "generate-content": "node tools/generate-content.js",
     "check-queue": "node tools/check-generation-queue.js",
     "queue-status": "node tools/check-generation-queue.js",
-    "test-interactive": "node tools/test-interactive-content-system.js"
+    "test-interactive": "node tools/test-interactive-content-system.js",
+    "download-pexels-assets": "node tools/download-pexels-assets.js",
+    "test-pexels": "node tools/download-pexels-assets.js --health-check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",

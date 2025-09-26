@@ -37,6 +37,14 @@ export const config = {
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY,
   },
+  pexels: {
+    apiKey: process.env.PEXELS_API_KEY,
+    baseUrl: 'https://api.pexels.com/v1',
+    searchResultsPerPage: 10,
+    downloadTimeout: 30000, // 30 seconds
+    maxRetries: 3,
+    retryDelay: 1000, // 1 second
+  },
   leonardo: {
     apiKey: process.env.LEONARDO_API_KEY,
     baseUrl: 'https://cloud.leonardo.ai/api/rest/v1',
@@ -123,6 +131,7 @@ export const validateConfig = () => {
     'OPENAI_API_KEY', // For AI content generation (GPT-4o mini for script breakdown)
     'ANTHROPIC_API_KEY', // For Claude Sonnet AI enhancement
     'LEONARDO_API_KEY', // For Leonardo AI image generation (required)
+    'PEXELS_API_KEY', // For Pexels asset download functionality
   ];
 
   const missing = required.filter(key => !process.env[key]);
