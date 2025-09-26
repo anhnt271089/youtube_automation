@@ -1,7 +1,7 @@
 {
   "videoId": "VID-0008",
   "version": "1.0",
-  "createdAt": "2025-08-12T05:30:04.858Z",
+  "createdAt": "2025-08-12T13:30:03.561Z",
   "originalMetadata": {
     "videoId": "H67kfrqHP2A",
     "title": "How to Control your Brain ( before it's TOO late )",
@@ -36,8 +36,8 @@
       }
     },
     "duration": "1:25",
-    "viewCount": 287436,
-    "likeCount": 23788,
+    "viewCount": 287686,
+    "likeCount": 23817,
     "tags": [],
     "categoryId": "27",
     "transcript": [
@@ -167,8 +167,8 @@
     },
     "thumbnailUrl": "https://img.youtube.com/vi/H67kfrqHP2A/maxresdefault.jpg",
     "originalUrl": "https://www.youtube.com/watch?v=H67kfrqHP2A",
-    "fetchedAt": "2025-08-12T05:30:04.858Z",
-    "checksum": "8c81aa08936779e1b9ee2cc6dd83bcd1d7bc45944979fcce9b5931c94c8c9696"
+    "fetchedAt": "2025-08-12T13:30:03.561Z",
+    "checksum": "6a1cf8bc2fb37881e5969b23a8c1d16b7df74c69f6d9cd5ca42c03f7599b34ce"
   },
   "workflowMetadata": {
     "processedAt": null,
@@ -179,7 +179,7 @@
     "processingAttempts": 0
   },
   "systemIntegrity": {
-    "lastValidated": "2025-08-12T05:30:04.858Z",
+    "lastValidated": "2025-08-12T13:30:03.561Z",
     "validationStatus": "verified",
     "backupCreated": true
   }

@@ -1397,73 +1397,9 @@ class WorkflowService {
         }
       }
 
-      // Generate 2 YouTube thumbnails and upload to Google Drive
-      let youtubeThumbnailResults = null;
-      if (config.app.enableThumbnailGeneration === true) { // Only if explicitly enabled
-        try {
-          // Check for cached thumbnail concepts (optimization)
-          let storedConcepts = null;
-          if (config.app.enableThumbnailConceptGeneration) {
-            try {
-              storedConcepts = await this.sheetsService.getStoredThumbnailConcepts(videoInfo.videoId);
-              if (storedConcepts) {
-                logger.info(`🎨 Using cached thumbnail concepts for ${videoDisplayId} (90% faster generation)`);
-              } else {
-                logger.info(`🎨 No cached concepts found for ${videoDisplayId}, generating fresh concepts`);
-              }
-            } catch (conceptError) {
-              logger.warn(`Failed to retrieve cached concepts for ${videoDisplayId}:`, conceptError.message);
-            }
-          }
-          
-          logger.info(`🎨 Generating 2 YouTube thumbnails for ${videoDisplayId}${storedConcepts ? ' (using pre-computed concepts)' : ''}`);
-          
-          // Generate and upload 2 thumbnails (with cached concepts if available)
-          youtubeThumbnailResults = await this.thumbnailService.processVideoThumbnails(videoData, videoDisplayId, false, this.sheetsService, storedConcepts);
-          
-          // Thumbnail results available in youtubeThumbnailResults for Telegram notifications
-          
-          // Use reliable metadata for thumbnail notification
-          const youtubeThumbnailMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
-          
-          await this.telegramService.sendMessage(
-            '🎨 <b>YouTube Thumbnails Generated</b>\n\n' +
-            `🎬 ${videoDisplayId} - ${youtubeThumbnailMetadata.title}\n` +
-            `🖼️ Generated: ${youtubeThumbnailResults.generated} thumbnails\n` +
-            `✅ Uploaded: ${youtubeThumbnailResults.uploaded} successfully\n` +
-            `📐 Size: ${youtubeThumbnailResults.specifications.width}x${youtubeThumbnailResults.specifications.height}\n` +
-            `🎨 Styles: ${youtubeThumbnailResults.thumbnails.thumbnail1.style} & ${youtubeThumbnailResults.thumbnails.thumbnail2.style}\n` +
-            `📁 [Drive Folder](${youtubeThumbnailResults.driveFolder})\n\n` +
-            '💡 <i>Both thumbnails ready for YouTube upload</i>'
-          );
-          
-          logger.info(`🎨 YouTube thumbnails completed for ${videoDisplayId}: ${youtubeThumbnailResults.uploaded}/${youtubeThumbnailResults.generated} uploaded`);
-          
-        } catch (thumbnailError) {
-          logger.error(`❌ Failed to generate YouTube thumbnails for ${videoDisplayId}:`, thumbnailError);
-          
-          // Thumbnail generation failed - error logged and notified via Telegram
-          
-          // Send error notification
-          const thumbnailErrorMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
-          await this.telegramService.sendMessage(
-            '❌ <b>Thumbnail Generation Failed</b>\n\n' +
-            `🎬 ${videoDisplayId} - ${thumbnailErrorMetadata.title}\n` +
-            `🚨 Error: ${thumbnailError.message}\n\n` +
-            '💡 <i>Processing continues - thumbnails can be generated manually</i>'
-          );
-        }
-      } else {
-        logger.info(`🚫 Thumbnail generation disabled for ${videoDisplayId} (ENABLE_THUMBNAIL_GENERATION=${process.env.ENABLE_THUMBNAIL_GENERATION})`);
-        // Send notification that thumbnails were skipped
-        const skippedMetadata = await this.getReliableVideoMetadata(videoInfo.videoId);
-        await this.telegramService.sendMessage(
-          '🚫 <b>Thumbnail Generation Skipped</b>\n\n' +
-          `🎬 ${videoDisplayId} - ${skippedMetadata.title}\n` +
-          '⚙️ ENABLE_THUMBNAIL_GENERATION is disabled\n\n' +
-          '💡 <i>Enable in .env file to generate thumbnails automatically</i>'
-        );
-      }
+      // NOTE: Thumbnail generation moved to AFTER script approval
+      // This ensures proper workflow: Script Generation → Manual Approval → Thumbnail Generation
+      logger.info(`🎨 Thumbnails will generate after script approval for ${videoDisplayId}`);
 
       // Update status to Completed with enhanced metadata (workflow ends here)
       await this.updateVideoStatus(videoInfo.videoId, 'Completed', {

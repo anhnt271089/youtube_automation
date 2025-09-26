@@ -1,0 +1,111 @@
+{
+  "videoId": "VID-0016",
+  "version": "1.0",
+  "createdAt": "2025-09-25T09:20:03.654Z",
+  "originalMetadata": {
+    "videoId": "fnf8tJV3I1M",
+    "title": "Watch This Before Dopamine Destroys Your Brain",
+    "description": "Why do you still feel empty no matter how much pleasure you chase? Dopamine tricks your brain into short-term highs, leaving you unsatisfied. In this video, I’ll show you the truth about dopamine, purpose, and how to find real happiness that lasts.\n\n1. Why you never feel satisfied in life\n2. How dopamine is destroying your brain\n3. The truth about dopamine and happiness\n4. How to find real purpose in life\n5. Why nothing ever feels enough\n\n#dopamine #selfimprovement #purpose #mindset #motivation",
+    "channelTitle": "BeyondBeing",
+    "publishedAt": "2025-09-21T12:30:55Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/fnf8tJV3I1M/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/fnf8tJV3I1M/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/fnf8tJV3I1M/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/fnf8tJV3I1M/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      },
+      "maxres": {
+        "url": "https://i.ytimg.com/vi/fnf8tJV3I1M/maxresdefault.jpg",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "duration": "1:16",
+    "viewCount": 56335,
+    "likeCount": 5004,
+    "tags": [],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "Why do you still feel empty no matter how much pleasure you chase",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "Dopamine tricks your brain into short-term highs, leaving you unsatisfied",
+        "start": 3000,
+        "duration": 3000
+      },
+      {
+        "text": "In this video, I’ll show you the truth about dopamine, purpose, and how to find real happiness that lasts",
+        "start": 6000,
+        "duration": 3000
+      },
+      {
+        "text": "Why you never feel satisfied in life 2",
+        "start": 9000,
+        "duration": 3000
+      },
+      {
+        "text": "How dopamine is destroying your brain 3",
+        "start": 12000,
+        "duration": 3000
+      },
+      {
+        "text": "The truth about dopamine and happiness 4",
+        "start": 15000,
+        "duration": 3000
+      },
+      {
+        "text": "How to find real purpose in life 5",
+        "start": 18000,
+        "duration": 3000
+      },
+      {
+        "text": "Why nothing ever feels enough #dopamine #selfimprovement #purpose #mindset #motivation",
+        "start": 21000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "Why do you still feel empty no matter how much pleasure you chase Dopamine tricks your brain into short-term highs, leaving you unsatisfied In this video, I’ll show you the truth about dopamine, purpose, and how to find real happiness that lasts Why you never feel satisfied in life 2 How dopamine is destroying your brain 3 The truth about dopamine and happiness 4 How to find real purpose in life 5 Why nothing ever feels enough #dopamine #selfimprovement #purpose #mindset #motivation",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 487,
+      "segments": 8,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/fnf8tJV3I1M/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=fnf8tJV3I1M",
+    "fetchedAt": "2025-09-25T09:20:03.654Z",
+    "checksum": "c72135376dac65a0d19159353ce0a03e9d7b06667b7a8d72ba08bc2b5f0d107d"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-09-25T09:20:03.654Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}

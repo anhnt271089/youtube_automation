@@ -3,6 +3,8 @@
  * Provides content SEO analysis and keyword optimization recommendations
  */
 
+import logger from '../utils/logger.js';
+
 class KeywordAnalyzer {
   constructor(aiService) {
     this.aiService = aiService;
@@ -29,7 +31,7 @@ class KeywordAnalyzer {
         actionableSteps: this.generateActionableSteps(recommendations)
       };
     } catch (error) {
-      console.error('Keyword strategy analysis failed:', error);
+      logger.error('Keyword strategy analysis failed:', error);
       return this.generateFallbackAnalysis(keywordData);
     }
   }
@@ -114,7 +116,7 @@ Evaluate and return JSON analysis:
       
       return JSON.parse(responseText);
     } catch (error) {
-      console.error('Keyword analysis failed:', error);
+      logger.error('Keyword analysis failed:', error);
       return this.generateFallbackAnalysis(keywordData);
     }
   }
@@ -238,7 +240,7 @@ Provide JSON analysis:
       
       return JSON.parse(responseText);
     } catch (error) {
-      console.error('Competitive analysis failed:', error);
+      logger.error('Competitive analysis failed:', error);
       return {
         marketOpportunities: ['Analyze competitor content for keyword gaps'],
         competitiveThreats: ['Monitor competitor keyword rankings'],

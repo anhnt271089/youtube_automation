@@ -310,7 +310,7 @@ npm run typecheck    # TypeScript checking
 2. **Google API Authentication**
    - Ensure service account has proper permissions
    - Check that Drive folder is shared with service account email
-   - Verify private key format (replace \\n with actual newlines)
+   - Verify private key format (replace \n with actual newlines)
 
 3. **Notion Database Issues**
    - Confirm all required properties exist in database

@@ -212,7 +212,7 @@ class CTAPolicyTester {
     // Escape special regex characters
     const escapedTitle = sectionTitle.replace(/[()]/g, '\\$&');
     // Extract until the next major section (with ❌ or ✅ starting the line) or end of text
-    const sectionRegex = new RegExp(`${escapedTitle}[\\s\\S]*?(?=\\n❌|\\n✅|$)`, 'i');
+    const sectionRegex = new RegExp(`${escapedTitle}[\\s\\S]*?(?=\n❌|\n✅|$)`, 'i');
     const match = policyText.match(sectionRegex);
     return match ? match[0] : null;
   }

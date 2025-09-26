@@ -7,9 +7,20 @@
  */
 
 import { config } from '../config/config.js';
+import {
+  formatHeader,
+  formatSubHeader,
+  formatSuccess,
+  formatError,
+  formatInfo,
+  formatListItem,
+  formatTable,
+  formatSeparator,
+  EMOJIS
+} from '../src/utils/consoleFormatter.js';
 
 function calculateCosts() {
-  console.log('📊 YouTube Image Generation Cost Analysis\n');
+  console.log(formatHeader('YouTube Image Generation Cost Analysis', { emoji: EMOJIS.GOOGLE }));
   
   // Pricing per image
   const pricing = {
@@ -26,7 +37,7 @@ function calculateCosts() {
     { name: 'Scale Production (500 videos, 25 images each)', images: 12500 }
   ];
   
-  console.log('💰 Cost Comparison by Model:\n');
+  console.log(formatSubHeader('Cost Comparison by Model', { emoji: '💰' }));
   
   scenarios.forEach(scenario => {
     console.log(`📹 ${scenario.name}:`);

@@ -1,11 +1,20 @@
 import GoogleDriveService from '../src/services/googleDriveService.js';
+import {
+  formatHeader,
+  formatSubHeader,
+  formatSuccess,
+  formatError,
+  formatInfo,
+  formatListItem,
+  EMOJIS
+} from '../src/utils/consoleFormatter.js';
 
 async function checkVideoStatus() {
   try {
     const googleDriveService = new GoogleDriveService();
     
-    console.log('🔍 Checking current video status in master sheet...');
-    console.log('Master sheet ID: 1ZwFAUc2ijEUxulxgFxXQPx1isMSyH71-HKmhf4SoklI');
+    console.log(formatHeader('Checking Current Video Status', { emoji: EMOJIS.VALIDATING }));
+    console.log(formatInfo('Master sheet ID: 1ZwFAUc2ijEUxulxgFxXQPx1isMSyH71-HKmhf4SoklI', { emoji: EMOJIS.GOOGLE }));
     
     // Get all data from the master sheet
     const data = await googleDriveService.getSpreadsheetData(
@@ -14,7 +23,7 @@ async function checkVideoStatus() {
     );
     
     if (!data || data.length === 0) {
-      console.log('❌ No data found in master sheet');
+      console.log(formatError('No data found in master sheet'));
       return null;
     }
     
@@ -31,10 +40,10 @@ async function checkVideoStatus() {
     
     // Process data rows (skip header row)
     const dataRows = data.slice(1);
-    console.log(`\n📊 Total videos in sheet: ${dataRows.length}`);
+    console.log(formatInfo(`Total videos in sheet: ${dataRows.length}`, { emoji: EMOJIS.GOOGLE }));
     
     // Show all videos with their current status
-    console.log(`\n🎬 Current video status:\n`);
+    console.log(formatSubHeader('Current Video Status', { emoji: EMOJIS.VIDEO }));
     
     dataRows.forEach((row, index) => {
       const videoId = row[videoIdIndex] || '';

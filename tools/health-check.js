@@ -7,94 +7,106 @@
 
 import GoogleDriveService from '../src/services/googleDriveService.js';
 import YouTubeService from '../src/services/youtubeService.js';
-import NotionService from '../src/services/notionService.js';
 import TelegramService from '../src/services/telegramService.js';
 import AIService from '../src/services/aiService.js';
-import DigitalOceanService from '../src/services/digitalOceanService.js';
 import logger from '../src/utils/logger.js';
+import {
+  formatHeader,
+  formatSubHeader,
+  formatSuccess,
+  formatError,
+  formatInfo,
+  formatStep,
+  formatProgress,
+  formatWarning,
+  formatSeparator,
+  formatCompletion,
+  formatListItem,
+  EMOJIS
+} from '../src/utils/consoleFormatter.js';
 
 class HealthChecker {
   constructor() {
     this.services = {
       'Google Drive': new GoogleDriveService(),
       'YouTube': new YouTubeService(),
-      'Notion': new NotionService(),
       'Telegram': new TelegramService(),
-      'AI': new AIService(),
-      'Digital Ocean': new DigitalOceanService()
+      'AI': new AIService()
     };
   }
 
   async checkAllServices() {
-    console.log('🔍 YouTube Automation System Health Check\n');
+    console.log(formatHeader('YouTube Automation System Health Check', { emoji: EMOJIS.VALIDATING }));
     
     const results = {};
     let overallHealthy = true;
 
     for (const [serviceName, service] of Object.entries(this.services)) {
-      console.log(`Checking ${serviceName}...`);
+      console.log(formatInfo(`Checking ${serviceName}...`, { emoji: EMOJIS.PROCESSING }));
       
       try {
         await service.healthCheck();
-        console.log(`✅ ${serviceName}: Healthy`);
+        console.log(formatSuccess(`${serviceName}: Healthy`));
         results[serviceName] = { status: 'healthy', error: null };
       } catch (error) {
-        console.log(`❌ ${serviceName}: Failed`);
-        console.log(`   Error: ${error.message}`);
+        console.log(formatError(`${serviceName}: Failed`));
+        console.log(formatListItem(`Error: ${error.message}`, { indent: 1 }));
         results[serviceName] = { status: 'failed', error: error.message };
         overallHealthy = false;
 
         // Special handling for Google Sheets API
         if (serviceName === 'Google Drive' && error.message.includes('Sheets API')) {
-          console.log(`   🔧 Solution: Enable Google Sheets API in Google Cloud Console`);
-          console.log(`   📋 See GOOGLE_SHEETS_SETUP.md for instructions`);
+          console.log(formatListItem('Solution: Enable Google Sheets API in Google Cloud Console', { bullet: EMOJIS.FIXING, indent: 1 }));
+          console.log(formatListItem('See GOOGLE_SHEETS_SETUP.md for instructions', { bullet: EMOJIS.INFO, indent: 1 }));
         }
       }
       console.log('');
     }
 
     // Summary
-    console.log('📊 Health Check Summary:');
-    console.log('=======================');
+    console.log(formatSubHeader('Health Check Summary', { emoji: EMOJIS.GOOGLE }));
+    console.log(formatSeparator(40, '='));
     
     for (const [serviceName, result] of Object.entries(results)) {
-      const status = result.status === 'healthy' ? '✅' : '❌';
-      console.log(`${status} ${serviceName}: ${result.status.toUpperCase()}`);
+      const status = result.status === 'healthy' ? EMOJIS.SUCCESS : EMOJIS.ERROR;
+      console.log(formatListItem(`${serviceName}: ${result.status.toUpperCase()}`, { bullet: status }));
     }
 
-    console.log(`\n🏥 Overall System Health: ${overallHealthy ? '✅ HEALTHY' : '❌ NEEDS ATTENTION'}`);
+    const overallStatus = overallHealthy ? 'HEALTHY' : 'NEEDS ATTENTION';
+    const overallEmoji = overallHealthy ? EMOJIS.SUCCESS : EMOJIS.ERROR;
+    console.log(formatInfo(`Overall System Health: ${overallStatus}`, { emoji: overallEmoji }));
 
     if (!overallHealthy) {
-      console.log('\n🔧 Issues detected. Please resolve the failed services above.');
-      console.log('📖 Refer to the documentation and setup guides for solutions.');
+      console.log(formatWarning('Issues detected. Please resolve the failed services above.', { emoji: EMOJIS.FIXING }));
+      console.log(formatInfo('Refer to the documentation and setup guides for solutions.', { emoji: EMOJIS.INFO }));
     }
 
     return { overallHealthy, results };
   }
 
   async testGoogleSheets() {
-    console.log('🧪 Google Sheets API Specific Test\n');
+    console.log(formatSubHeader('Google Sheets API Specific Test', { emoji: EMOJIS.TESTING }));
     
     const driveService = new GoogleDriveService();
     
     try {
       await driveService.testSheetsAPI();
-      console.log('✅ Google Sheets API is enabled and working');
-      console.log('   Your system can create script breakdown spreadsheets');
+      console.log(formatSuccess('Google Sheets API is enabled and working'));
+      console.log(formatListItem('Your system can create script breakdown spreadsheets', { indent: 1 }));
       return true;
     } catch (error) {
-      console.log('❌ Google Sheets API is not working');
-      console.log(`   Error: ${error.message}`);
+      console.log(formatError('Google Sheets API is not working'));
+      console.log(formatListItem(`Error: ${error.message}`, { indent: 1 }));
       
       if (error.message.includes('has not been used') || error.message.includes('disabled')) {
-        console.log('\n🔧 SOLUTION: Enable Google Sheets API');
-        console.log('📋 Steps:');
-        console.log('   1. Go to: https://console.cloud.google.com/apis/library');
-        console.log('   2. Search for "Google Sheets API"');
-        console.log('   3. Click on "Google Sheets API"');
-        console.log('   4. Click "ENABLE"');
-        console.log('   5. Wait 1-2 minutes for activation');
-        console.log('\n📄 For detailed instructions, see: GOOGLE_SHEETS_SETUP.md');
+        console.log(formatSubHeader('SOLUTION: Enable Google Sheets API', { emoji: EMOJIS.FIXING }));
+        console.log(formatSubHeader('Steps', { emoji: EMOJIS.INFO }));
+        console.log(formatListItem('Go to: https://console.cloud.google.com/apis/library'));
+        console.log(formatListItem('Search for "Google Sheets API"'));
+        console.log(formatListItem('Click on "Google Sheets API"'));
+        console.log(formatListItem('Click "ENABLE"'));
+        console.log(formatListItem('Wait 1-2 minutes for activation'));
+        console.log(formatInfo('For detailed instructions, see: GOOGLE_SHEETS_SETUP.md', { emoji: EMOJIS.INFO }));
       }
       
       return false;
@@ -122,7 +134,7 @@ async function main() {
 // Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
-    console.error('Health check failed:', error);
+    console.error(formatError(`Health check failed: ${error.message}`));
     process.exit(1);
   });
 }

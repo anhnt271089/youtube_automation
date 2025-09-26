@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../../config/config.js';
 import logger from '../utils/logger.js';
 import GoogleDriveService from './googleDriveService.js';
+import InteractiveContentService from './InteractiveContentService.js';
 import axios from 'axios';
 // import fs from 'fs';
 // import path from 'path';
@@ -18,6 +19,7 @@ class AIService {
     });
     
     this.googleDriveService = new GoogleDriveService();
+    this.interactiveService = new InteractiveContentService();
     
     // Leonardo AI HTTP client
     this.leonardoClient = axios.create({
@@ -1134,7 +1136,11 @@ Return EXACTLY ${config.app.maxScriptSentences} sentences or fewer as a JSON arr
         
         const stricterPrompt = `${prompt}\n\n🚨 STRICT ENFORCEMENT: You MUST generate EXACTLY ${maxSentences} sentences or fewer. This is attempt #2 - the first attempt generated too many sentences. Count carefully and stop at sentence ${maxSentences} maximum.`;
         
-        const retryResponse = await this.callClaudeAPI(stricterPrompt, { max_tokens: 4000 });
+        const retryResponse = await this.anthropic.messages.create({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: stricterPrompt }]
+        });
         let retryResponseText = retryResponse.content[0].text.trim();
         
         // Clean up response formatting
@@ -1151,7 +1157,11 @@ Return EXACTLY ${config.app.maxScriptSentences} sentences or fewer as a JSON arr
           const finalPrompt = `${prompt}\n\n🚨 FINAL ATTEMPT: Generate EXACTLY ${maxSentences} sentences. NO MORE, NO LESS. This is critical - count each sentence as you write it. Stop immediately at sentence ${maxSentences}.`;
           
           try {
-            const finalResponse = await this.callClaudeAPI(finalPrompt, { max_tokens: 4000 });
+            const finalResponse = await this.anthropic.messages.create({
+              model: 'claude-3-5-sonnet-20241022',
+              max_tokens: 4000,
+              messages: [{ role: 'user', content: finalPrompt }]
+            });
             let finalResponseText = finalResponse.content[0].text.trim();
             
             if (finalResponseText.startsWith('```json') || finalResponseText.startsWith('```')) {
@@ -2611,6 +2621,278 @@ Style 2: Professional/Clean - Use minimal design, clear typography, and visual m
     } catch (error) {
       logger.error('AI service health check failed:', error);
       throw error;
+    }
+  }
+
+  // Interactive Content Generation Methods
+
+  /**
+   * Generate script with interactive mode support
+   */
+  async generateScriptInteractive(originalTranscript, videoMetadata, contextAnalysis = null, keywordData = null, videoId = null) {
+    try {
+      // Check if interactive mode is enabled for scripts
+      if (config.app.useInteractiveGeneration && this.interactiveService.isInteractiveMode('script')) {
+        logger.info(`Queueing script generation for ${videoId} (interactive mode)`);
+        
+        const queueData = {
+          title: videoMetadata.title,
+          url: videoMetadata.url,
+          duration: videoMetadata.duration,
+          targetLength: '5-7 minutes',
+          contentType: 'faceless',
+          transcript: originalTranscript,
+          keywords: keywordData || {},
+          videoId,
+          targetAudience: 'general'
+        };
+        
+        const queueId = await this.interactiveService.addToQueue(videoId, 'script', queueData, 'normal');
+        
+        // Check if content already exists
+        const existingContent = await this.interactiveService.checkGeneratedContent(videoId, 'script');
+        if (existingContent) {
+          logger.info(`Found existing script content for ${videoId}`);
+          return existingContent.content;
+        }
+        
+        // Return a placeholder indicating interactive generation is needed
+        return {
+          interactiveMode: true,
+          queueId,
+          status: 'pending_interactive_generation',
+          message: 'Script generation queued for interactive processing'
+        };
+      }
+      
+      // Fallback to API generation
+      if (config.app.fallbackToAPI) {
+        logger.info(`Falling back to API generation for script ${videoId}`);
+        return await this.generateAttractiveScript(originalTranscript, videoMetadata, contextAnalysis, keywordData, videoId);
+      }
+      
+      throw new Error('Interactive generation disabled and API fallback disabled');
+      
+    } catch (error) {
+      logger.error('Script interactive generation failed:', error);
+      
+      // Fallback to API if enabled
+      if (config.app.fallbackToAPI) {
+        logger.info('Attempting API fallback for script generation');
+        return await this.generateAttractiveScript(originalTranscript, videoMetadata, contextAnalysis, keywordData, videoId);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Generate thumbnails with interactive mode support
+   */
+  async generateThumbnailsInteractive(videoTitle, script, options = {}, videoId = null) {
+    try {
+      // Check if interactive mode is enabled for thumbnails
+      if (config.app.useInteractiveGeneration && this.interactiveService.isInteractiveMode('thumbnails')) {
+        logger.info(`Queueing thumbnail generation for ${videoId} (interactive mode)`);
+        
+        const queueData = {
+          title: videoTitle,
+          url: options.url || '',
+          contentType: 'faceless',
+          keyTopics: options.keyTopics || [],
+          targetAudience: options.targetAudience || 'general',
+          duration: options.duration || '',
+          scriptSummary: typeof script === 'string' ? script.substring(0, 500) : JSON.stringify(script).substring(0, 500),
+          videoId
+        };
+        
+        const queueId = await this.interactiveService.addToQueue(videoId, 'thumbnails', queueData, 'normal');
+        
+        // Check if content already exists
+        const existingContent = await this.interactiveService.checkGeneratedContent(videoId, 'thumbnails');
+        if (existingContent) {
+          logger.info(`Found existing thumbnail content for ${videoId}`);
+          return existingContent.content;
+        }
+        
+        // Return a placeholder indicating interactive generation is needed
+        return {
+          interactiveMode: true,
+          queueId,
+          status: 'pending_interactive_generation',
+          message: 'Thumbnail generation queued for interactive processing'
+        };
+      }
+      
+      // Fallback to API generation
+      if (config.app.fallbackToAPI) {
+        logger.info(`Falling back to API generation for thumbnails ${videoId}`);
+        return await this.generateThumbnail(videoTitle, script, options);
+      }
+      
+      throw new Error('Interactive generation disabled and API fallback disabled');
+      
+    } catch (error) {
+      logger.error('Thumbnail interactive generation failed:', error);
+      
+      // Fallback to API if enabled
+      if (config.app.fallbackToAPI) {
+        logger.info('Attempting API fallback for thumbnail generation');
+        return await this.generateThumbnail(videoTitle, script, options);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Generate description with interactive mode support
+   */
+  async generateDescriptionInteractive(script, originalMetadata, keywords = [], videoId = null) {
+    try {
+      // Check if interactive mode is enabled for descriptions
+      if (config.app.useInteractiveGeneration && this.interactiveService.isInteractiveMode('description')) {
+        logger.info(`Queueing description generation for ${videoId} (interactive mode)`);
+        
+        const queueData = {
+          title: originalMetadata.title,
+          url: originalMetadata.url || '',
+          duration: originalMetadata.duration || '',
+          contentType: 'faceless',
+          targetAudience: 'general',
+          scriptSummary: typeof script === 'string' ? script.substring(0, 1000) : JSON.stringify(script).substring(0, 1000),
+          keywords: keywords,
+          videoId
+        };
+        
+        const queueId = await this.interactiveService.addToQueue(videoId, 'description', queueData, 'normal');
+        
+        // Check if content already exists
+        const existingContent = await this.interactiveService.checkGeneratedContent(videoId, 'description');
+        if (existingContent) {
+          logger.info(`Found existing description content for ${videoId}`);
+          return existingContent.content;
+        }
+        
+        // Return a placeholder indicating interactive generation is needed
+        return {
+          interactiveMode: true,
+          queueId,
+          status: 'pending_interactive_generation',
+          message: 'Description generation queued for interactive processing'
+        };
+      }
+      
+      // Fallback to API generation
+      if (config.app.fallbackToAPI) {
+        logger.info(`Falling back to API generation for description ${videoId}`);
+        return await this.generateOptimizedDescription(script, originalMetadata, keywords);
+      }
+      
+      throw new Error('Interactive generation disabled and API fallback disabled');
+      
+    } catch (error) {
+      logger.error('Description interactive generation failed:', error);
+      
+      // Fallback to API if enabled
+      if (config.app.fallbackToAPI) {
+        logger.info('Attempting API fallback for description generation');
+        return await this.generateOptimizedDescription(script, originalMetadata, keywords);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Generate title variations with interactive mode support
+   */
+  async generateTitleInteractive(script, originalTitle, keywords = [], videoId = null) {
+    try {
+      // Check if interactive mode is enabled for titles
+      if (config.app.useInteractiveGeneration && this.interactiveService.isInteractiveMode('title')) {
+        logger.info(`Queueing title generation for ${videoId} (interactive mode)`);
+        
+        const queueData = {
+          originalTitle,
+          url: '',
+          contentType: 'faceless',
+          targetAudience: 'general',
+          duration: '',
+          contentSummary: typeof script === 'string' ? script.substring(0, 500) : JSON.stringify(script).substring(0, 500),
+          keywords: keywords,
+          videoId
+        };
+        
+        const queueId = await this.interactiveService.addToQueue(videoId, 'title', queueData, 'normal');
+        
+        // Check if content already exists
+        const existingContent = await this.interactiveService.checkGeneratedContent(videoId, 'title');
+        if (existingContent) {
+          logger.info(`Found existing title content for ${videoId}`);
+          return existingContent.content;
+        }
+        
+        // Return a placeholder indicating interactive generation is needed
+        return {
+          interactiveMode: true,
+          queueId,
+          status: 'pending_interactive_generation',
+          message: 'Title generation queued for interactive processing'
+        };
+      }
+      
+      // Fallback to API generation
+      if (config.app.fallbackToAPI) {
+        logger.info(`Falling back to API generation for title ${videoId}`);
+        return await this.generateOptimizedTitle(script, originalTitle, keywords);
+      }
+      
+      throw new Error('Interactive generation disabled and API fallback disabled');
+      
+    } catch (error) {
+      logger.error('Title interactive generation failed:', error);
+      
+      // Fallback to API if enabled
+      if (config.app.fallbackToAPI) {
+        logger.info('Attempting API fallback for title generation');
+        return await this.generateOptimizedTitle(script, originalTitle, keywords);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Check if interactive content is ready and retrieve it
+   */
+  async checkInteractiveContent(videoId, contentType) {
+    try {
+      return await this.interactiveService.checkGeneratedContent(videoId, contentType);
+    } catch (error) {
+      logger.error(`Failed to check interactive content for ${videoId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get interactive generation status
+   */
+  async getInteractiveStatus(videoId) {
+    try {
+      const status = await this.interactiveService.getQueueStatus();
+      const pendingQueue = await this.interactiveService.loadPendingQueue();
+      
+      const videoItems = pendingQueue.filter(item => item.videoId === videoId);
+      
+      return {
+        hasPendingItems: videoItems.length > 0,
+        pendingItems: videoItems,
+        overallStatus: status
+      };
+    } catch (error) {
+      logger.error(`Failed to get interactive status for ${videoId}:`, error);
+      return { hasPendingItems: false, pendingItems: [], overallStatus: null };
     }
   }
 }

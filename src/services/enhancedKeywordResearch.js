@@ -3,6 +3,8 @@
  * Implements advanced content SEO best practices for YouTube automation
  */
 
+import logger from '../utils/logger.js';
+
 class EnhancedKeywordResearch {
   constructor(aiService) {
     this.aiService = aiService;
@@ -59,7 +61,7 @@ class EnhancedKeywordResearch {
         recommendations: this.generateKeywordRecommendations(keywordData, contentAnalysis)
       };
     } catch (error) {
-      console.error('Enhanced keyword research failed:', error);
+      logger.error('Enhanced keyword research failed:', error);
       // Fallback to basic keyword research
       return this.aiService.performKeywordResearch(videoContent);
     }
@@ -116,7 +118,7 @@ Perform deep content analysis and return JSON with:
       
       return JSON.parse(responseText);
     } catch (error) {
-      console.error('Content analysis failed:', error);
+      logger.error('Content analysis failed:', error);
       return {
         mainTopics: ['general content'],
         niche: 'general',
@@ -203,7 +205,7 @@ Return as JSON:
       
       return JSON.parse(responseText);
     } catch (error) {
-      console.error('Comprehensive keyword generation failed:', error);
+      logger.error('Comprehensive keyword generation failed:', error);
       // Fallback to basic structure
       return {
         primaryKeywords: [],
@@ -272,7 +274,7 @@ Return as JSON:
       
       return JSON.parse(responseText);
     } catch (error) {
-      console.error('Search intent analysis failed:', error);
+      logger.error('Search intent analysis failed:', error);
       return {
         informational: allKeywords.slice(0, 5),
         navigational: [],
@@ -337,7 +339,7 @@ Return as JSON array of 15-20 semantic keywords:
       const result = JSON.parse(responseText);
       return result.semanticKeywords || [];
     } catch (error) {
-      console.error('Semantic keyword generation failed:', error);
+      logger.error('Semantic keyword generation failed:', error);
       return [];
     }
   }
@@ -399,7 +401,7 @@ Return as JSON array of 12-15 question keywords:
       const result = JSON.parse(responseText);
       return result.questionKeywords || [];
     } catch (error) {
-      console.error('Question keyword generation failed:', error);
+      logger.error('Question keyword generation failed:', error);
       return [];
     }
   }
@@ -461,7 +463,7 @@ Return as JSON:
       
       return JSON.parse(responseText);
     } catch (error) {
-      console.error('Competitive keyword generation failed:', error);
+      logger.error('Competitive keyword generation failed:', error);
       return {
         competitorKeywords: [],
         gapOpportunities: [],

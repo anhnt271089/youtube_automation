@@ -1,7 +1,7 @@
 {
   "videoId": "VID-0013",
   "version": "1.0",
-  "createdAt": "2025-08-12T05:51:53.329Z",
+  "createdAt": "2025-08-12T14:20:04.340Z",
   "originalMetadata": {
     "videoId": "4-KKcOT9DL0",
     "title": "The Art of Being Unbothered By Opinions ( Don't let them Shape you )",
@@ -36,8 +36,8 @@
       }
     },
     "duration": "1:23",
-    "viewCount": 6945,
-    "likeCount": 551,
+    "viewCount": 6973,
+    "likeCount": 553,
     "tags": [],
     "categoryId": "27",
     "transcript": [
@@ -67,8 +67,8 @@
     },
     "thumbnailUrl": "https://img.youtube.com/vi/4-KKcOT9DL0/maxresdefault.jpg",
     "originalUrl": "https://www.youtube.com/watch?v=4-KKcOT9DL0",
-    "fetchedAt": "2025-08-12T05:51:53.329Z",
-    "checksum": "a14765a52862adf5deaf05a76b60c6395cdbd30e3195d19e54e94793d158f161"
+    "fetchedAt": "2025-08-12T14:20:04.340Z",
+    "checksum": "b753463970fc18e08c821f520095e5860935aa52cf94650661a6f7a083cfb282"
   },
   "workflowMetadata": {
     "processedAt": null,
@@ -79,7 +79,7 @@
     "processingAttempts": 0
   },
   "systemIntegrity": {
-    "lastValidated": "2025-08-12T05:51:53.329Z",
+    "lastValidated": "2025-08-12T14:20:04.340Z",
     "validationStatus": "verified",
     "backupCreated": true
   }

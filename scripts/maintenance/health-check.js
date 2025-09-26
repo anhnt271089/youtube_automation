@@ -6,22 +6,22 @@
  */
 
 import GoogleDriveService from '../../src/services/googleDriveService.js';
+import GoogleSheetsService from '../../src/services/googleSheetsService.js';
 import YouTubeService from '../../src/services/youtubeService.js';
 import NotionService from '../../src/services/notionService.js';
 import TelegramService from '../../src/services/telegramService.js';
 import AIService from '../../src/services/aiService.js';
-import DigitalOceanService from '../../src/services/digitalOceanService.js';
 import logger from '../../src/utils/logger.js';
 
 class HealthChecker {
   constructor() {
     this.services = {
       'Google Drive': new GoogleDriveService(),
+      'Google Sheets': new GoogleSheetsService(),
       'YouTube': new YouTubeService(),
       'Notion': new NotionService(),
       'Telegram': new TelegramService(),
-      'AI': new AIService(),
-      'Digital Ocean': new DigitalOceanService()
+      'AI': new AIService()
     };
   }
 
