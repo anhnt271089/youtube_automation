@@ -1,0 +1,51 @@
+{
+  "name": "Thumbnail Concept Generation Template", 
+  "description": "Content-aware viral thumbnail generation with psychological triggers",
+  "prompt": "# Viral Thumbnail Concept Generation\n\n## Video Information\n- **Title**: {{title}}\n- **Video URL**: {{url}}\n- **Content Type**: {{contentType}}\n- **Key Topics**: {{keyTopics}}\n- **Target Audience**: {{targetAudience}}\n- **Duration**: {{duration}}\n\n## Script Context\n{{scriptSummary}}\n\n## Thumbnail Psychology Requirements\n\nGenerate thumbnail concepts using viral psychology principles:\n\n### 1. Visual Hierarchy\n- **Primary focus**: Main visual element (60% attention)\n- **Secondary elements**: Supporting visuals (30%)\n- **Text overlay**: Key message (10%)\n- **Color psychology**: Emotion-driving palette\n- **Contrast optimization**: High visibility in feeds\n\n### 2. Psychological Triggers\n- **Curiosity gaps**: Visual questions that demand answers\n- **Pattern interrupts**: Unexpected visual elements\n- **Social proof**: Implied popularity/authority\n- **FOMO activation**: Urgency and exclusivity cues\n- **Emotional resonance**: Target specific feelings\n\n### 3. Click Psychology\n- **Open loops**: Visual storytelling with missing pieces\n- **Benefit preview**: Show transformation/result\n- **Authority signals**: Credibility indicators\n- **Relatability**: Target audience representation\n- **Intrigue factors**: \"What happens next?\" elements\n\n### 4. Content-Aware Design\n- **Script alignment**: Visuals match key talking points\n- **Moment capture**: Represent video's peak moments\n- **Value preview**: Show what viewer will learn/gain\n- **Emotion matching**: Thumbnail mood = video mood\n- **Journey visualization**: Show before/after or process\n\n### 5. Technical Optimization\n- **Mobile-first**: Optimized for phone screens\n- **Feed visibility**: High contrast, bold elements\n- **Text readability**: Large, clear typography\n- **Brand consistency**: Channel aesthetic alignment\n- **A/B test variants**: Multiple concept approaches\n\n## Output Format\n\nProvide thumbnail concepts in this exact JSON structure:\n\n```json\n{\n  \"videoId\": \"{{videoId}}\",\n  \"title\": \"{{title}}\",\n  \"thumbnailConcepts\": [\n    {\n      \"conceptId\": \"concept_1\",\n      \"title\": \"Primary Concept Name\",\n      \"description\": \"Detailed visual description\",\n      \"imagePrompt\": \"Leonardo AI generation prompt\",\n      \"psychologyTriggers\": [\"curiosity\", \"authority\", \"fomo\"],\n      \"visualElements\": {\n        \"mainSubject\": \"Primary visual focus\",\n        \"background\": \"Background design\",\n        \"colors\": [\"#color1\", \"#color2\", \"#color3\"],\n        \"textOverlay\": \"Key text elements\",\n        \"composition\": \"Layout strategy\"\n      },\n      \"emotionalTone\": \"Target emotion\",\n      \"targetAudience\": \"Specific viewer segment\",\n      \"clickProbability\": \"High/Medium/Low\",\n      \"contentAlignment\": \"How it matches video content\",\n      \"uniqueSellingPoint\": \"What makes this stand out\"\n    }\n  ],\n  \"recommendations\": {\n    \"primaryChoice\": \"concept_id\",\n    \"reasoning\": \"Why this concept is optimal\",\n    \"abTestSuggestions\": [\"concept_1\", \"concept_2\"],\n    \"optimizationNotes\": [\"Additional improvement suggestions\"]\n  },\n  \"metadata\": {\n    \"generatedAt\": \"[timestamp]\",\n    \"contentAnalysis\": \"Key themes from video\",\n    \"competitorAnalysis\": \"How to differentiate\",\n    \"trendAlignment\": \"Current YouTube trends incorporated\",\n    \"viralPotential\": \"Score 1-10 with reasoning\"\n  }\n}\n```\n\n## Leonardo AI Prompt Guidelines\n\n### Style Requirements\n- **Ultra-realistic photography** for authority/credibility\n- **Vibrant, high contrast** for feed visibility\n- **Professional lighting** for quality perception\n- **Sharp focus** on main subject\n- **YouTube-optimized** 16:9 aspect ratio\n\n### Composition Rules\n- **Rule of thirds** for visual balance\n- **Leading lines** toward main subject\n- **Negative space** for text overlay areas\n- **Scale hierarchy** for importance ranking\n- **Color psychology** for emotional triggers\n\n### Common Elements to Avoid\n- Generic stock photo aesthetics\n- Cluttered compositions\n- Poor contrast/visibility\n- Misleading representations\n- Overused YouTube clichés\n\n### Quality Standards\n- High resolution (1920x1080 minimum)\n- Professional photography quality\n- Brand-appropriate styling\n- Mobile-optimized visibility\n- Feed-scroll stopping power\n\n## Success Metrics Focus\n- Click-through rate optimization (12%+ target)\n- Feed visibility and scroll-stopping power\n- Brand recognition and consistency\n- Content accuracy and alignment\n- Viral sharing potential",
+  "instructions": [
+    "Generate 3-5 distinct concept variations",
+    "Focus on stopping scroll behavior in feeds",
+    "Ensure thumbnails accurately represent content",
+    "Use psychology triggers, not just aesthetics", 
+    "Optimize for mobile viewing primarily",
+    "Create clear visual hierarchy",
+    "Include one 'safe' and one 'bold' concept",
+    "Consider A/B testing potential",
+    "Align with video's emotional tone",
+    "Differentiate from competitor thumbnails"
+  ],
+  "expectedFormat": {
+    "type": "JSON",
+    "structure": {
+      "videoId": "string",
+      "title": "string",
+      "thumbnailConcepts": "array of concept objects",
+      "recommendations": "object with optimization guidance",
+      "metadata": "object with analysis and scoring"
+    }
+  },
+  "examples": [
+    {
+      "title": "Authority-Based Concept",
+      "description": "Professional person pointing at chart/data with shocked expression, vibrant background, large text overlay with key statistic"
+    },
+    {
+      "title": "Curiosity-Driven Concept", 
+      "description": "Split-screen before/after or comparison, question mark overlay, contrasting colors, mysterious element partially hidden"
+    },
+    {
+      "title": "FOMO-Triggered Concept",
+      "description": "Crowd or trending elements, urgency indicators, exclusive-looking design, premium/VIP aesthetic"
+    }
+  ],
+  "variables": [
+    "title",
+    "url",
+    "contentType", 
+    "keyTopics",
+    "targetAudience",
+    "duration",
+    "scriptSummary",
+    "videoId"
+  ]
+}

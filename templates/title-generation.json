@@ -1,0 +1,56 @@
+{
+  "name": "Title Variation Generation Template",
+  "description": "Viral YouTube title optimization with psychological triggers",
+  "prompt": "# YouTube Title Optimization & Variation Generation\n\n## Video Information\n- **Original Title**: {{originalTitle}}\n- **Video URL**: {{url}}\n- **Content Type**: {{contentType}}\n- **Target Audience**: {{targetAudience}}\n- **Duration**: {{duration}}\n\n## Content Analysis\n{{contentSummary}}\n\n## Keywords & SEO Data\n{{keywords}}\n\n## Title Optimization Requirements\n\nGenerate 5-10 title variations using viral psychology and SEO best practices:\n\n### 1. Psychological Triggers\n- **Curiosity gaps**: Create information voids that demand resolution\n- **Pattern interrupts**: Unexpected angles or contrarian viewpoints\n- **Authority signals**: Credibility and expertise indicators\n- **Social proof**: Popularity, trends, or widespread adoption\n- **FOMO activation**: Urgency, exclusivity, or limited availability\n- **Benefit clarity**: Clear value proposition and outcomes\n- **Emotional resonance**: Target specific feelings and desires\n\n### 2. Title Categories to Generate\n- **Curiosity-driven**: Question-based or mystery elements\n- **Benefit-focused**: Clear outcome or transformation\n- **Authority-based**: Expert insight or insider knowledge\n- **Controversy/contrarian**: Challenge common beliefs\n- **List/number-based**: Specific, countable elements\n- **Problem-solution**: Address pain points directly\n- **Trend-based**: Current events or viral topics\n- **Personal/story**: Relatable experiences\n\n## Output Format\n\nProvide title variations in this exact JSON structure:\n\n```json\n{\n  \"videoId\": \"{{videoId}}\",\n  \"originalTitle\": \"{{originalTitle}}\",\n  \"titleVariations\": [\n    {\n      \"id\": \"variation_1\",\n      \"title\": \"Optimized title text\",\n      \"category\": \"curiosity-driven\",\n      \"psychologyTriggers\": [\"curiosity_gap\", \"authority\"],\n      \"clickProbability\": \"High/Medium/Low\",\n      \"reasoning\": \"Why this title is effective\",\n      \"viralPotential\": \"Score 1-10\"\n    }\n  ],\n  \"recommendations\": {\n    \"primaryChoice\": \"variation_id\",\n    \"reasoning\": \"Why this is the optimal choice\"\n  }\n}\n```\n\n## Quality Standards\n- Accurate content representation\n- No clickbait or misleading claims\n- Clear value proposition\n- Mobile-optimized length (60-70 characters)\n- Algorithm preference signals",
+  "instructions": [
+    "Generate 5-10 distinct title variations",
+    "Include different psychological triggers",
+    "Optimize for mobile viewing (60-70 characters)",
+    "Ensure accurate content representation",
+    "Use power words strategically",
+    "Include primary keyword naturally",
+    "Create curiosity without misleading",
+    "Consider A/B testing potential",
+    "Differentiate from competitor titles",
+    "Focus on click probability optimization"
+  ],
+  "expectedFormat": {
+    "type": "JSON",
+    "structure": {
+      "videoId": "string",
+      "originalTitle": "string",
+      "titleVariations": "array of title objects with analysis",
+      "recommendations": "optimization guidance",
+      "analysis": "comparative analysis and opportunities",
+      "metadata": "generation details and alignment"
+    }
+  },
+  "examples": [
+    {
+      "title": "Curiosity Hook",
+      "content": "Why 97% of People Fail at This (And How to Be in the 3%)"
+    },
+    {
+      "title": "Benefit Promise",
+      "content": "Master [Skill] in 30 Days: The Complete Step-by-Step Guide"
+    },
+    {
+      "title": "Authority Signal",
+      "content": "Harvard Study Reveals the Surprising Truth About [Topic]"
+    },
+    {
+      "title": "Problem-Solution",
+      "content": "Stop [Problem] Forever: The Method That Actually Works"
+    }
+  ],
+  "variables": [
+    "originalTitle",
+    "url",
+    "contentType",
+    "targetAudience",
+    "duration",
+    "contentSummary",
+    "keywords",
+    "videoId"
+  ]
+}

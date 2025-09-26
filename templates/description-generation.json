@@ -1,0 +1,54 @@
+{
+  "name": "Video Description Generation Template",
+  "description": "SEO-optimized video descriptions with engagement optimization",
+  "prompt": "# YouTube Video Description Generation\n\n## Video Information\n- **Title**: {{title}}\n- **Video URL**: {{url}}\n- **Duration**: {{duration}}\n- **Content Type**: {{contentType}}\n- **Target Audience**: {{targetAudience}}\n\n## Content Summary\n{{scriptSummary}}\n\n## Keywords & SEO Data\n{{keywords}}\n\n## Description Requirements\n\nCreate an SEO-optimized video description that maximizes discoverability and engagement:\n\n### 1. Structure & Length\n- **Total length**: 200-500 words optimal\n- **Above fold**: First 125 characters (mobile preview)\n- **Hook section**: Compelling opening (first 2-3 lines)\n- **Content preview**: What viewers will learn\n- **SEO optimization**: Strategic keyword placement\n- **Engagement drivers**: Comments, likes, sharing prompts\n\n### 2. Opening Hook (First 125 Characters)\n- **Value proposition**: Clear benefit statement\n- **Curiosity trigger**: Compelling reason to watch\n- **Keyword integration**: Primary keyword naturally included\n- **Urgency/relevance**: Why this matters now\n- **Emotional hook**: Connect with viewer needs\n\n### 3. Content Preview Section\n- **Timestamp highlights**: Key moments in video\n- **Learning outcomes**: What viewer will gain\n- **Value bullets**: Specific takeaways\n- **Problem/solution**: Address viewer pain points\n- **Social proof**: Why this content matters\n\n### 4. SEO Optimization\n- **Primary keyword**: 2-3 mentions naturally integrated\n- **LSI keywords**: Related terms throughout\n- **Long-tail phrases**: Specific search terms\n- **Topic clusters**: Related concept coverage\n- **Search intent**: Match user search behavior\n\n### 5. Engagement Elements\n- **Comment prompts**: Questions to drive discussion\n- **Community building**: Encourage interaction\n- **Sharing triggers**: Reasons to share content\n- **Subscribe motivation**: Value of following channel\n- **Series connection**: Link to related content\n\n## Output Format\n\nProvide the description in this exact JSON structure:\n\n```json\n{\n  \"videoId\": \"{{videoId}}\",\n  \"title\": \"{{title}}\",\n  \"description\": {\n    \"fullText\": \"Complete description text\",\n    \"sections\": {\n      \"hook\": \"First 125 characters optimized for mobile preview\",\n      \"contentPreview\": \"What viewers will learn and key highlights\",\n      \"valueProposition\": \"Why this video matters and what makes it unique\",\n      \"engagement\": \"Questions and prompts to drive comments and interaction\",\n      \"tags\": [\"#hashtag1\", \"#hashtag2\", \"#hashtag3\"]\n    },\n    \"seoMetrics\": {\n      \"primaryKeyword\": \"Main target keyword\",\n      \"keywordDensity\": \"2-3%\",\n      \"lsiKeywords\": [\"related\", \"terms\", \"used\"],\n      \"searchIntent\": \"informational/tutorial/review\",\n      \"readabilityScore\": \"8th grade level\"\n    },\n    \"characterCount\": \"Total character count\",\n    \"estimatedReadTime\": \"30-45 seconds\"\n  },\n  \"metadata\": {\n    \"generatedAt\": \"[timestamp]\",\n    \"optimizationFocus\": \"Primary optimization strategy\",\n    \"targetAudience\": \"Specific viewer demographics\",\n    \"engagementPotential\": \"High/Medium/Low with reasoning\",\n    \"seoStrength\": \"Score 1-10 with analysis\",\n    \"competitorAnalysis\": \"How this stands out from similar content\"\n  }\n}\n```\n\n## Quality Standards\n- Authentic and helpful tone\n- Accurate content representation\n- Professional grammar and spelling\n- Strategic keyword placement\n- Engagement-optimized structure\n- Mobile-first formatting\n- No external CTAs or promotion\n- Value-focused messaging",
+  "instructions": [
+    "Front-load the most compelling information",
+    "Use the primary keyword in the first 25 words",
+    "Create scannable content with short paragraphs",
+    "Include 2-3 questions to drive comments",
+    "Use 3-5 relevant hashtags at the end",
+    "Maintain professional but engaging tone",
+    "Focus on viewer value, not channel promotion",
+    "Optimize for mobile reading experience",
+    "Include specific learning outcomes",
+    "End with engagement-driving question"
+  ],
+  "expectedFormat": {
+    "type": "JSON",
+    "structure": {
+      "videoId": "string",
+      "title": "string",
+      "description": {
+        "fullText": "complete description",
+        "sections": "object with hook, content, engagement parts",
+        "seoMetrics": "keyword and optimization data"
+      },
+      "metadata": "analysis and scoring information"
+    }
+  },
+  "examples": [
+    {
+      "title": "Hook Example",
+      "content": "Discover the 3 psychology tricks that boost productivity by 40% - and why most people get them completely wrong."
+    },
+    {
+      "title": "Engagement Example",
+      "content": "Which of these strategies surprised you the most? Drop a comment below and let me know if you've tried any of these approaches!"
+    },
+    {
+      "title": "Value Proposition Example", 
+      "content": "In this video, you'll learn exactly how to implement these research-backed techniques in under 10 minutes, with real examples you can use today."
+    }
+  ],
+  "variables": [
+    "title",
+    "url",
+    "duration", 
+    "contentType",
+    "targetAudience",
+    "scriptSummary",
+    "keywords",
+    "videoId"
+  ]
+}

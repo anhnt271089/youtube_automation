@@ -1,0 +1,56 @@
+{
+  "name": "Script Generation Template",
+  "description": "Advanced YouTube script generation with viral copywriting psychology",
+  "prompt": "# YouTube Script Generation Task\n\n## Video Information\n- **Title**: {{title}}\n- **Video URL**: {{url}}\n- **Original Duration**: {{duration}}\n- **Target Length**: {{targetLength}}\n- **Channel Type**: Faceless YouTube Channel\n- **Content Type**: {{contentType}}\n\n## Source Content\n{{transcript}}\n\n## Keywords & SEO\n{{keywords}}\n\n## Advanced Script Requirements\n\nCreate a viral-optimized YouTube script using advanced copywriting psychology:\n\n### 1. Hook Architecture (First 15 seconds)\n- **Pattern Interrupt**: Unexpected statement or question\n- **Curiosity Gap**: Create information void that demands resolution\n- **Authority Challenge**: Question commonly held beliefs\n- **Identity Disruption**: Challenge viewer's self-perception\n- **Social Proof**: Reference widespread phenomenon\n\n### 2. Hero's Journey Structure\n- **Opening Crisis**: Present the problem/opportunity\n- **Stakes Escalation**: Why this matters NOW\n- **Journey Guide**: Position yourself as the mentor\n- **Transformation Promise**: What viewer will become\n- **Call to Adventure**: Specific next steps\n\n### 3. Retention Engineering\n- **15-second checkpoints**: Hook renewal every 15 seconds\n- **Nested loops**: Open multiple curiosity gaps\n- **Callback references**: Reference earlier points\n- **Pattern variations**: Change pacing/energy every 30 seconds\n- **Preview hooks**: \"Coming up in this video...\"\n\n### 4. Psychological Techniques\n- **Pre-suasion**: Prime mindset before main points\n- **Embedded commands**: Subtle action triggers\n- **Social currency**: Shareable insights/quotes\n- **Controversy ladders**: Escalating bold statements\n- **Scarcity psychology**: Limited time/opportunity\n\n### 5. Language Patterns\n- **Power words**: Action-driving vocabulary\n- **Sensory language**: Visual, auditory, kinesthetic\n- **Metaphor systems**: Consistent analogies\n- **Rhythm variations**: Short punchy + longer explanatory\n- **Direct address**: \"You\" language for connection\n\n## Output Format\n\nProvide the script in this exact JSON structure:\n\n```json\n{\n  \"videoId\": \"{{videoId}}\",\n  \"title\": \"{{title}}\",\n  \"script\": {\n    \"hook\": {\n      \"text\": \"[15-second hook with pattern interrupt]\",\n      \"techniques\": [\"pattern_interrupt\", \"curiosity_gap\"],\n      \"timestamp\": \"0:00-0:15\"\n    },\n    \"introduction\": {\n      \"text\": \"[Stakes + credibility establishment]\",\n      \"techniques\": [\"authority_building\", \"stakes_escalation\"],\n      \"timestamp\": \"0:15-0:45\"\n    },\n    \"main_content\": [\n      {\n        \"section\": \"Point 1\",\n        \"text\": \"[Main point with examples]\",\n        \"techniques\": [\"social_proof\", \"embedded_commands\"],\n        \"timestamp\": \"0:45-2:00\",\n        \"retention_hooks\": [\"preview\", \"callback\"]\n      }\n    ],\n    \"conclusion\": {\n      \"text\": \"[Transformation summary + next steps]\",\n      \"techniques\": [\"transformation_promise\", \"call_to_action\"],\n      \"timestamp\": \"[final_section]\"\n    }\n  },\n  \"metadata\": {\n    \"totalLength\": \"[estimated_duration]\",\n    \"wordCount\": \"[word_count]\",\n    \"retentionScore\": \"[predicted_retention]\",\n    \"viralPotential\": \"[viral_score_1-10]\",\n    \"techniques_used\": [\"list_of_psychology_techniques\"],\n    \"target_audience\": \"{{targetAudience}}\",\n    \"generated_at\": \"[timestamp]\"\n  }\n}\n```\n\n## Quality Standards\n- No external CTAs or promotional content\n- 90%+ retention at 15 seconds target\n- 75%+ average watch time optimization\n- Quotable moments for social sharing\n- Algorithm-friendly engagement hooks\n- Natural speech patterns for voiceover\n\n## Success Metrics Focus\n- Click-through rate optimization (15%+ target)\n- Comment engagement (3%+ first hour)\n- Share psychology integration\n- Subscriber conversion (2%+ target)\n- Algorithm preference signals",
+  "instructions": [
+    "Focus on the first 15 seconds - this determines video success",
+    "Use psychological triggers, not just information",
+    "Create quotable moments for social media sharing",
+    "Build retention checkpoints every 15 seconds",
+    "Optimize for algorithm preference signals",
+    "Use faceless channel voice - no personal branding",
+    "Include nested curiosity loops throughout",
+    "End with clear transformation promise",
+    "Avoid external CTAs completely",
+    "Target 75%+ average watch time"
+  ],
+  "expectedFormat": {
+    "type": "JSON",
+    "structure": {
+      "videoId": "string",
+      "title": "string", 
+      "script": {
+        "hook": "object with text, techniques, timestamp",
+        "introduction": "object with text, techniques, timestamp",
+        "main_content": "array of content sections",
+        "conclusion": "object with text, techniques, timestamp"
+      },
+      "metadata": "object with analytics and optimization data"
+    }
+  },
+  "examples": [
+    {
+      "title": "Example Hook",
+      "content": "\"If you're still doing [common practice], you're literally sabotaging your own success. And I'm about to show you exactly why 97% of people fail at this - and the 3% secret that changes everything.\""
+    },
+    {
+      "title": "Example Retention Hook",  
+      "content": "\"But here's where it gets really interesting - and this is something most experts won't tell you...\""
+    },
+    {
+      "title": "Example Social Currency",
+      "content": "\"This is one of those insights that makes you look smart at dinner parties.\""
+    }
+  ],
+  "variables": [
+    "title",
+    "url", 
+    "duration",
+    "targetLength",
+    "contentType",
+    "transcript",
+    "keywords",
+    "videoId",
+    "targetAudience"
+  ]
+}
