@@ -1017,14 +1017,14 @@ END OF BACKUP - Original script preserved before regeneration`;
 
       // Update status
       updates.push({
-        range: `${this.detailSheets.scriptBreakdown}!F${rowIndex}`,
+        range: `${this.detailSheets.scriptBreakdown}!G${rowIndex}`, // Status column (Column G)
         values: [[status]]
       });
 
       // Update image URL if provided
       if (imageUrl) {
         updates.push({
-          range: `${this.detailSheets.scriptBreakdown}!D${rowIndex}`,
+          range: `${this.detailSheets.scriptBreakdown}!E${rowIndex}`, // Image URL column (Column E)
           values: [[imageUrl]]
         });
       }
@@ -1062,7 +1062,7 @@ END OF BACKUP - Original script preserved before regeneration`;
       // Get all sentences status
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: workbookId,
-        range: `${this.detailSheets.scriptBreakdown}!F:F`
+        range: `${this.detailSheets.scriptBreakdown}!G:G` // Status column (Column G)
       });
 
       const statusValues = response.data.values || [];
@@ -1641,11 +1641,11 @@ END OF BACKUP - Original script preserved before regeneration`;
       // Update the specific cells for this sentence
       const updates = [
         {
-          range: `${this.detailSheets.scriptBreakdown}!D${rowNumber}`, // Image URL column
+          range: `${this.detailSheets.scriptBreakdown}!E${rowNumber}`, // Image URL column (Column E)
           values: [[imageUrl || '']]
         },
         {
-          range: `${this.detailSheets.scriptBreakdown}!F${rowNumber}`, // Status column
+          range: `${this.detailSheets.scriptBreakdown}!G${rowNumber}`, // Status column (Column G)
           values: [[status]]
         }
       ];
