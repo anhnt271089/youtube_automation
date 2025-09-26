@@ -42,7 +42,7 @@ try {
   logger.error(`❌ Failed to create voice script for ${videoDisplayId}:`, voiceScriptError);
   // Send notification but don't fail the entire workflow
   await this.telegramService.sendMessage(
-    `⚠️ <b>Voice Script Creation Warning</b>\\n\\n🎬 ${videoDisplayId}\\n❌ Error: ${voiceScriptError.message}\\n\\n🔄 Will attempt again during next processing cycle`
+    `⚠️ <b>Voice Script Creation Warning</b>\n\n🎬 ${videoDisplayId}\n❌ Error: ${voiceScriptError.message}\n\n🔄 Will attempt again during next processing cycle`
   );
 }
 ```
