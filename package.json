@@ -10,7 +10,6 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "setup-notion": "node scripts/setup/updateNotionDatabase.js",
     "test-youtube": "node scripts/development/test-youtube-metadata.js",
     "test-youtube-basic": "node scripts/development/test-youtube-basic.js",
     "test-transcript-fallbacks": "node scripts/development/test-transcript-fallbacks.js",
@@ -22,13 +21,14 @@
     "test-google": "node scripts/development/test-google-integration.js",
     "test-google-health": "node scripts/development/test-google-integration.js --health",
     "test-sheet-headers": "node tests/integration/test-google-sheets-headers.js",
-    "refresh-google-tokens": "node scripts/setup/setup-google-oauth.js --refresh"
+    "refresh-google-tokens": "node scripts/setup/setup-google-oauth.js --refresh",
+    "generate-content": "node tools/generate-content.js",
+    "check-queue": "node tools/check-generation-queue.js",
+    "queue-status": "node tools/check-generation-queue.js",
+    "test-interactive": "node tools/test-interactive-content-system.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
-    "@aws-sdk/client-s3": "^3.862.0",
-    "@aws-sdk/s3-request-presigner": "^3.862.0",
-    "@notionhq/client": "^2.2.15",
     "axios": "^1.7.2",
     "commander": "^14.0.0",
     "dotenv": "^16.4.5",
@@ -61,7 +61,8 @@
     "automation",
     "ai",
     "content",
-    "notion",
+    "google-sheets",
+    "google-drive",
     "telegram"
   ],
   "author": "Ryan Nguyen",
