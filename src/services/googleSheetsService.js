@@ -4,6 +4,9 @@ import logger from '../utils/logger.js';
 import GoogleDriveService from './googleDriveService.js';
 import AIService from './aiService.js';
 
+// Import AssetDownloadOrchestrator - using lazy loading to prevent circular dependency
+let AssetDownloadOrchestrator = null;
+
 class GoogleSheetsService {
   /**
    * Get current timestamp in configured timezone for Google Sheets display
@@ -41,6 +44,9 @@ class GoogleSheetsService {
     this.drive = google.drive({ version: 'v3', auth });
     this.driveService = new GoogleDriveService();
     this.aiService = new AIService();
+
+    // Initialize AssetDownloadOrchestrator lazily to prevent circular dependency
+    this.assetOrchestrator = null;
     
     // Master sheet for video tracking
     this.masterSheetId = config.google.masterSheetId;
@@ -208,6 +214,57 @@ class GoogleSheetsService {
       .replace(/\s+/g, ' ')
       .trim()
       .substring(0, 100);
+  }
+
+  /**
+   * Get AssetDownloadOrchestrator instance (lazy loading to prevent circular dependency)
+   */
+  async getAssetOrchestrator() {
+    if (!this.assetOrchestrator) {
+      if (!AssetDownloadOrchestrator) {
+        // Dynamic import to prevent circular dependency
+        const module = await import('./assetDownloadOrchestrator.js');
+        AssetDownloadOrchestrator = module.default;
+      }
+      this.assetOrchestrator = new AssetDownloadOrchestrator();
+    }
+    return this.assetOrchestrator;
+  }
+
+  /**
+   * Trigger automatic asset download if conditions are met
+   * @param {string} videoId - Video ID
+   * @param {string} triggerReason - Why asset download was triggered
+   * @returns {Promise<Object>} Asset download result or skip reason
+   */
+  async triggerAssetDownload(videoId, triggerReason = 'Script approved') {
+    try {
+      const orchestrator = await this.getAssetOrchestrator();
+
+      logger.info(`🎯 Triggering asset download for ${videoId}: ${triggerReason}`);
+
+      const result = await orchestrator.handleScriptApproval(videoId, { triggerReason });
+
+      if (result.skipped) {
+        logger.info(`Asset download skipped for ${videoId}: ${result.reason}`);
+      } else if (result.success) {
+        logger.info(`✅ Asset download completed for ${videoId}:`, {
+          successCount: result.result?.successCount,
+          failureCount: result.result?.failureCount
+        });
+      } else {
+        logger.warn(`❌ Asset download failed for ${videoId}: ${result.reason}`);
+      }
+
+      return result;
+    } catch (error) {
+      logger.error(`Error triggering asset download for ${videoId}:`, error.message);
+      return {
+        success: false,
+        error: error.message,
+        triggerReason
+      };
+    }
   }
 
   /**
@@ -386,6 +443,9 @@ class GoogleSheetsService {
         throw new Error(`Unknown field: ${fieldName}`);
       }
 
+      // Store previous value for change detection
+      const previousValue = videoRow.data[this.masterColumns[fieldName]];
+
       const column = String.fromCharCode(65 + this.masterColumns[fieldName]); // Convert to A, B, C...
       const timestamp = this.getCurrentTimestamp();
 
@@ -411,6 +471,29 @@ class GoogleSheetsService {
       });
 
       logger.info(`Updated video ${videoId} field ${fieldName} to: ${value}`);
+
+      // Check for script approval change and trigger asset download
+      if (fieldName === 'scriptApproved' &&
+          value === 'Approved' &&
+          previousValue !== 'Approved') {
+        logger.info(`🎯 Script approval detected for ${videoId} - triggering asset download`);
+
+        // Trigger asset download asynchronously to not block the field update
+        this.triggerAssetDownload(videoId, 'Field update to approved')
+          .then(result => {
+            if (result.success) {
+              logger.info(`Asset download triggered successfully for ${videoId}`);
+            } else if (result.skipped) {
+              logger.info(`Asset download skipped for ${videoId}: ${result.reason}`);
+            } else {
+              logger.warn(`Asset download trigger failed for ${videoId}: ${result.reason}`);
+            }
+          })
+          .catch(error => {
+            logger.error(`Error in async asset download trigger for ${videoId}:`, error.message);
+          });
+      }
+
       return true;
     }, 'updateVideoField');
   }
@@ -1107,15 +1190,23 @@ END OF BACKUP - Original script preserved before regeneration`;
   }
 
   /**
-   * Approve script (set dropdown to 'Approved')
+   * Approve script (set dropdown to 'Approved') and trigger asset download
    */
   async approveScript(videoId) {
     return this.retryOperation(async () => {
+      // Update script approval status first
       await this.updateVideoStatus(videoId, 'Approved', {
         scriptApproved: 'Approved'
       });
       logger.info(`Approved script for video: ${videoId}`);
-      return true;
+
+      // Trigger automatic asset download
+      const assetDownloadResult = await this.triggerAssetDownload(videoId, 'Script approval');
+
+      return {
+        scriptApproved: true,
+        assetDownload: assetDownloadResult
+      };
     }, 'approveScript');
   }
 
@@ -1903,10 +1994,10 @@ END OF BACKUP - Original script preserved before regeneration`;
       for (let i = 1; i < values.length; i++) {
         const row = values[i];
         const cooldownUntil = row[this.masterColumns.regenCooldownUntil];
-        
+
         if (cooldownUntil) {
           const cooldownDate = new Date(cooldownUntil);
-          
+
           if (cooldownDate > now) {
             videos.push({
               videoId: row[this.masterColumns.videoId],
@@ -1922,6 +2013,219 @@ END OF BACKUP - Original script preserved before regeneration`;
 
       return videos;
     }, 'getVideosInCooldown');
+  }
+
+  /**
+   * Get videos with approved scripts that may need asset downloads
+   * Optimized for cron job scheduler to identify videos requiring processing
+   *
+   * @returns {Promise<Array>} Videos needing asset download processing
+   */
+  async getVideosNeedingAssetDownload() {
+    return this.retryOperation(async () => {
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: this.masterSheetId,
+        range: 'Videos!A:T'
+      });
+
+      const values = response.data.values || [];
+      if (values.length <= 1) {
+        return [];
+      }
+
+      const candidateVideos = [];
+
+      // Skip header row and check each video
+      for (let i = 1; i < values.length; i++) {
+        const row = values[i];
+        const videoId = row[this.masterColumns.videoId];
+        const scriptApproved = row[this.masterColumns.scriptApproved];
+        const detailWorkbookUrl = row[this.masterColumns.detailWorkbookUrl];
+        const title = row[this.masterColumns.title] || 'Unknown Title';
+
+        // Must have video ID, approved script, and detail workbook
+        if (!videoId || scriptApproved !== 'Approved' || !detailWorkbookUrl) {
+          continue;
+        }
+
+        candidateVideos.push({
+          videoId,
+          title,
+          scriptApproved,
+          detailWorkbookUrl,
+          createdTime: row[this.masterColumns.createdTime],
+          lastEditedTime: row[this.masterColumns.lastEditedTime],
+          viewCount: row[this.masterColumns.viewCount] || '0',
+          rowData: row
+        });
+      }
+
+      logger.info(`Found ${candidateVideos.length} videos with approved scripts for asset download evaluation`);
+      return candidateVideos;
+    }, 'getVideosNeedingAssetDownload');
+  }
+
+  /**
+   * Check if a video's assets have already been processed
+   * Examines script breakdown to determine if asset downloads completed
+   *
+   * @param {string} videoId - Video ID to check
+   * @returns {Promise<Object>} Processing status with details
+   */
+  async checkVideoAssetProcessingStatus(videoId) {
+    return this.retryOperation(async () => {
+      try {
+        const breakdown = await this.getScriptBreakdown(videoId);
+
+        if (!breakdown || breakdown.length === 0) {
+          return {
+            processed: false,
+            reason: 'No script breakdown found',
+            totalEntries: 0,
+            processedEntries: 0
+          };
+        }
+
+        // Count entries with images/assets
+        const processedEntries = breakdown.filter(entry =>
+          entry.imageUrl && entry.imageUrl.trim() !== ''
+        );
+
+        const totalEntries = breakdown.length;
+        const processedCount = processedEntries.length;
+        const processedPercentage = processedCount / totalEntries;
+
+        // Consider processed if >30% has assets (allows for incomplete processing)
+        const isProcessed = processedPercentage > 0.3;
+
+        return {
+          processed: isProcessed,
+          totalEntries,
+          processedEntries: processedCount,
+          processedPercentage: Math.round(processedPercentage * 100),
+          reason: isProcessed
+            ? `${processedCount}/${totalEntries} entries have assets (${Math.round(processedPercentage * 100)}%)`
+            : 'Insufficient asset coverage',
+          breakdown: breakdown.map(entry => ({
+            sentenceNumber: entry.sentenceNumber,
+            hasAsset: !!(entry.imageUrl && entry.imageUrl.trim()),
+            status: entry.status || 'Unknown'
+          }))
+        };
+
+      } catch (error) {
+        return {
+          processed: false,
+          reason: `Error checking breakdown: ${error.message}`,
+          totalEntries: 0,
+          processedEntries: 0,
+          error: error.message
+        };
+      }
+    }, 'checkVideoAssetProcessingStatus');
+  }
+
+  /**
+   * Get detailed status for multiple videos for scheduler monitoring
+   *
+   * @param {Array<string>} videoIds - Array of video IDs to check
+   * @returns {Promise<Array>} Array of video status objects
+   */
+  async getMultipleVideoAssetStatus(videoIds) {
+    const results = [];
+
+    for (const videoId of videoIds) {
+      try {
+        const assetStatus = await this.checkVideoAssetProcessingStatus(videoId);
+        const videoDetails = await this.getVideoDetails(videoId);
+
+        results.push({
+          videoId,
+          title: videoDetails?.title || 'Unknown Title',
+          scriptApproved: videoDetails?.scriptApproved,
+          assetStatus,
+          lastCheck: new Date()
+        });
+      } catch (error) {
+        results.push({
+          videoId,
+          title: 'Error',
+          error: error.message,
+          lastCheck: new Date()
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Update asset processing tracking fields (for scheduler coordination)
+   *
+   * @param {string} videoId - Video ID
+   * @param {Object} processingData - Processing status data
+   */
+  async updateAssetProcessingTracking(videoId, processingData) {
+    return this.retryOperation(async () => {
+      const updates = {};
+
+      // Update last edited time to track scheduler activity
+      updates.lastEditedTime = this.getCurrentTimestamp();
+
+      // Add processing notes if provided
+      if (processingData.schedulerRun) {
+        updates.lastEditedTime = `${this.getCurrentTimestamp()} (Scheduler: ${processingData.schedulerRun})`;
+      }
+
+      await this.updateVideoFields(videoId, updates);
+
+      logger.debug(`Updated asset processing tracking for ${videoId}`, processingData);
+      return true;
+    }, 'updateAssetProcessingTracking');
+  }
+
+  /**
+   * Get summary statistics for asset download status across all videos
+   * Useful for monitoring and reporting
+   *
+   * @returns {Promise<Object>} Summary statistics
+   */
+  async getAssetDownloadSummaryStats() {
+    return this.retryOperation(async () => {
+      const allVideos = await this.getAllVideos();
+
+      const stats = {
+        total: allVideos.length,
+        scriptApproved: 0,
+        needingAssets: 0,
+        assetsProcessed: 0,
+        processingErrors: 0,
+        lastUpdated: new Date()
+      };
+
+      for (const video of allVideos) {
+        // Count approved scripts
+        if (video.scriptApproved === 'Approved') {
+          stats.scriptApproved++;
+
+          // Check asset processing status for approved videos
+          try {
+            const assetStatus = await this.checkVideoAssetProcessingStatus(video.videoId);
+
+            if (assetStatus.processed) {
+              stats.assetsProcessed++;
+            } else {
+              stats.needingAssets++;
+            }
+          } catch (error) {
+            stats.processingErrors++;
+          }
+        }
+      }
+
+      logger.info('Asset download summary statistics generated', stats);
+      return stats;
+    }, 'getAssetDownloadSummaryStats');
   }
 
 }

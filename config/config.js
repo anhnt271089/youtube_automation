@@ -45,6 +45,31 @@ export const config = {
     maxRetries: 3,
     retryDelay: 1000, // 1 second
   },
+  assetDownload: {
+    // Automatic asset download orchestration settings
+    enableAutoDownload: process.env.ENABLE_AUTO_ASSET_DOWNLOAD !== 'false', // Default true
+    maxRetries: parseInt(process.env.ASSET_DOWNLOAD_MAX_RETRIES) || 3,
+    retryDelay: parseInt(process.env.ASSET_DOWNLOAD_RETRY_DELAY) || 5000, // 5 seconds
+    processingTimeout: parseInt(process.env.ASSET_DOWNLOAD_TIMEOUT) || 300000, // 5 minutes
+    delayBetweenProcessing: parseInt(process.env.ASSET_DOWNLOAD_DELAY) || 2000, // 2 seconds between assets
+    cooldownPeriodMinutes: parseInt(process.env.ASSET_DOWNLOAD_COOLDOWN) || 15, // 15 minutes between retries for same video
+    maxConcurrentProcessing: parseInt(process.env.ASSET_DOWNLOAD_MAX_CONCURRENT) || 2, // Max videos processing simultaneously
+    enableStatusUpdates: process.env.ENABLE_ASSET_STATUS_UPDATES !== 'false', // Default true - update workflow status
+    enableNotifications: process.env.ENABLE_ASSET_NOTIFICATIONS !== 'false', // Default true - Telegram notifications
+  },
+  assetDownloadScheduler: {
+    // Cron-based scheduler for automatic asset downloads (reliable fallback system)
+    enabled: process.env.ASSET_SCHEDULER_ENABLED !== 'false', // Default true
+    cronPattern: process.env.ASSET_SCHEDULER_CRON_PATTERN || '*/7 * * * *', // Every 7 minutes default
+    maxConcurrentProcessing: parseInt(process.env.ASSET_SCHEDULER_MAX_CONCURRENT) || 3, // Max videos processing simultaneously
+    processingTimeout: parseInt(process.env.ASSET_SCHEDULER_TIMEOUT) || 600000, // 10 minutes per video
+    cooldownPeriodMinutes: parseInt(process.env.ASSET_SCHEDULER_COOLDOWN) || 30, // 30 minutes between retries for same video
+    enableRetryLogic: process.env.ASSET_SCHEDULER_ENABLE_RETRY !== 'false', // Default true
+    maxRetryAttempts: parseInt(process.env.ASSET_SCHEDULER_MAX_RETRIES) || 3,
+    enableStatusTracking: process.env.ASSET_SCHEDULER_STATUS_TRACKING !== 'false', // Default true
+    enableHealthChecks: process.env.ASSET_SCHEDULER_HEALTH_CHECKS !== 'false', // Default true
+    enableNotifications: process.env.ASSET_SCHEDULER_NOTIFICATIONS !== 'false', // Default true - Telegram notifications for scheduler events
+  },
   leonardo: {
     apiKey: process.env.LEONARDO_API_KEY,
     baseUrl: 'https://cloud.leonardo.ai/api/rest/v1',

@@ -151,11 +151,23 @@ class PexelsService {
       }
 
       const tempFilePath = path.join(tempDir, filename);
-      const buffer = await response.arrayBuffer();
-      await fs.writeFile(tempFilePath, Buffer.from(buffer));
 
-      logger.info(`Asset downloaded successfully: ${tempFilePath}`);
-      return tempFilePath;
+      // Write file with better error handling
+      try {
+        const buffer = await response.arrayBuffer();
+        await fs.writeFile(tempFilePath, Buffer.from(buffer));
+        logger.info(`Asset downloaded successfully: ${tempFilePath}`);
+        return tempFilePath;
+      } catch (fileError) {
+        logger.error(`Failed to write temporary file ${tempFilePath}:`, fileError.message);
+        // Try to clean up if the file was partially created
+        try {
+          await fs.unlink(tempFilePath);
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
+        throw new Error(`File write failed: ${fileError.message}`);
+      }
     }, `downloadAsset-${filename}`);
   }
 
@@ -254,7 +266,9 @@ class PexelsService {
       // Determine asset type based on word count
       const assetType = this.getAssetTypeByWordCount(wordCount);
       const fileExtension = this.getFileExtension(assetType);
-      const filename = `S-${sentenceNumber}${fileExtension}`;
+      // Use video ID and timestamp in filename to prevent concurrent file conflicts
+      const timestamp = Date.now();
+      const filename = `${videoId}_S-${sentenceNumber}_${timestamp}${fileExtension}`;
 
       logger.info(`Asset type for sentence ${sentenceNumber}: ${assetType}`);
 
@@ -285,18 +299,22 @@ class PexelsService {
         downloadUrl = this.getBestPhotoUrl(selectedAsset);
       }
 
-      // Download asset to temporary location
-      const tempFilePath = await this.downloadAsset(downloadUrl, filename);
+      // Download asset to temporary location with unique filename
+      const tempFilename = filename;  // This is already unique with videoId and timestamp
+      const tempFilePath = await this.downloadAsset(downloadUrl, tempFilename);
+
+      // Generate clean filename for Google Drive upload (without timestamp)
+      const uploadFilename = `S-${sentenceNumber}${fileExtension}`;
 
       try {
         // Create Assets subfolder if it doesn't exist and get its ID
         const assetsFolderId = await this.driveService.findOrCreateSubfolder(folderId, 'Assets');
 
-        // Upload to Google Drive in the Assets subfolder
+        // Upload to Google Drive in the Assets subfolder with clean filename
         const mimeType = assetType === 'video' ? 'video/mp4' : 'image/jpeg';
         const uploadResult = await this.driveService.uploadFile(
           tempFilePath,
-          filename,
+          uploadFilename,
           assetsFolderId,
           mimeType
         );
@@ -319,12 +337,12 @@ class PexelsService {
           'Complete'
         );
 
-        logger.info(`Successfully processed sentence ${sentenceNumber} for ${videoId}: ${filename}`);
+        logger.info(`Successfully processed sentence ${sentenceNumber} for ${videoId}: ${uploadFilename}`);
 
         return {
           success: true,
           sentenceNumber: sentenceNumber,
-          filename: filename,
+          filename: uploadFilename,
           assetType: assetType,
           pexelsId: selectedAsset.id,
           driveUrl: shareableLink.publicUrl,
@@ -367,12 +385,19 @@ class PexelsService {
 
   /**
    * Main method: Process all Script Breakdown sentences for asset download
+   * Enhanced with orchestrator integration and improved status reporting
    * @param {string} videoId - Video ID to process
+   * @param {Object} options - Processing options
    * @returns {Promise<Object>} Processing results summary
    */
-  async processScriptBreakdownAssets(videoId) {
+  async processScriptBreakdownAssets(videoId, options = {}) {
+    const startTime = new Date();
+
     try {
-      logger.info(`Starting Pexels asset processing for ${videoId}`);
+      logger.info(`🎬 Starting Pexels asset processing for ${videoId}`, {
+        triggeredBy: options.triggeredBy || 'manual',
+        timestamp: startTime.toISOString()
+      });
 
       // Get video details to find Drive folder
       const videoDetails = await this.sheetsService.getVideoDetails(videoId);
@@ -386,15 +411,43 @@ class PexelsService {
         throw new Error(`Invalid Drive folder URL: ${videoDetails.driveFolder}`);
       }
 
-      logger.info(`Using Drive folder: ${videoDetails.driveFolder}`);
+      logger.info(`📁 Using Drive folder: ${videoDetails.driveFolder}`);
 
-      // Get Script Breakdown data
+      // Get Script Breakdown data - only process sentences that need assets
       const scriptBreakdown = await this.sheetsService.getScriptBreakdown(videoId);
       if (!scriptBreakdown || scriptBreakdown.length === 0) {
         throw new Error(`No script breakdown found for video: ${videoId}`);
       }
 
-      logger.info(`Found ${scriptBreakdown.length} sentences to process for ${videoId}`);
+      // Filter to only sentences that need processing
+      const sentencesToProcess = scriptBreakdown.filter(sentence => {
+        return (
+          sentence.searchPhrase &&
+          sentence.searchPhrase.trim() !== '' &&
+          sentence.status !== 'Complete' &&
+          sentence.status !== 'Generated' &&
+          sentence.status !== 'Asset Downloaded'
+        );
+      });
+
+      if (sentencesToProcess.length === 0) {
+        logger.info(`✅ All sentences already have assets for ${videoId} - nothing to process`);
+        return {
+          videoId: videoId,
+          totalSentences: scriptBreakdown.length,
+          processedCount: 0,
+          successCount: 0,
+          failureCount: 0,
+          skippedCount: scriptBreakdown.length,
+          videoAssets: 0,
+          photoAssets: 0,
+          results: [],
+          errors: [],
+          message: 'All sentences already have assets'
+        };
+      }
+
+      logger.info(`📋 Found ${scriptBreakdown.length} total sentences, processing ${sentencesToProcess.length} that need assets`);
 
       const results = {
         videoId: videoId,
@@ -402,17 +455,24 @@ class PexelsService {
         processedCount: 0,
         successCount: 0,
         failureCount: 0,
+        skippedCount: scriptBreakdown.length - sentencesToProcess.length,
         videoAssets: 0,
         photoAssets: 0,
         results: [],
-        errors: []
+        errors: [],
+        processingStartTime: startTime,
+        videoDetails: {
+          title: videoDetails.title,
+          driveFolder: videoDetails.driveFolder
+        }
       };
 
-      // Process each sentence
-      for (const sentence of scriptBreakdown) {
+      // Process each sentence that needs assets
+      for (const sentence of sentencesToProcess) {
         results.processedCount++;
 
-        logger.info(`Processing ${results.processedCount}/${results.totalSentences}: Sentence ${sentence.sentenceNumber}`);
+        const progress = `${results.processedCount}/${sentencesToProcess.length}`;
+        logger.info(`🔄 Processing ${progress}: Sentence ${sentence.sentenceNumber} - "${sentence.searchPhrase}"`);
 
         const result = await this.processSentenceAsset(videoId, sentence, folderId);
         results.results.push(result);
@@ -424,6 +484,7 @@ class PexelsService {
           } else {
             results.photoAssets++;
           }
+          logger.info(`✅ ${progress} Success: Sentence ${sentence.sentenceNumber} → ${result.filename}`);
         } else {
           results.failureCount++;
           results.errors.push({
@@ -431,24 +492,58 @@ class PexelsService {
             reason: result.reason,
             searchPhrase: sentence.searchPhrase
           });
+          logger.warn(`❌ ${progress} Failed: Sentence ${sentence.sentenceNumber} → ${result.reason}`);
         }
 
-        // Add a small delay between requests to be respectful to Pexels API
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Add respectful delay between requests
+        if (results.processedCount < sentencesToProcess.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
-      logger.info(`Completed Pexels asset processing for ${videoId}:`);
-      logger.info(`  • Total sentences: ${results.totalSentences}`);
-      logger.info(`  • Successful downloads: ${results.successCount}`);
-      logger.info(`  • Failed downloads: ${results.failureCount}`);
-      logger.info(`  • Video assets: ${results.videoAssets}`);
-      logger.info(`  • Photo assets: ${results.photoAssets}`);
+      const endTime = new Date();
+      const duration = Math.round((endTime - startTime) / 1000);
+      results.processingEndTime = endTime;
+      results.processingDuration = duration;
+
+      // Enhanced completion logging
+      logger.info(`✅ Completed Pexels asset processing for ${videoId} in ${duration}s:`);
+      logger.info(`   📊 Processed: ${results.processedCount}/${sentencesToProcess.length} sentences`);
+      logger.info(`   ✅ Successful: ${results.successCount} assets downloaded`);
+      logger.info(`   ❌ Failed: ${results.failureCount} downloads`);
+      logger.info(`   📹 Video assets: ${results.videoAssets}`);
+      logger.info(`   📸 Photo assets: ${results.photoAssets}`);
+      logger.info(`   ⏭️ Skipped: ${results.skippedCount} (already have assets)`);
+
+      if (results.errors.length > 0) {
+        logger.warn(`   🚨 Errors encountered:`);
+        results.errors.forEach(error => {
+          logger.warn(`      S-${error.sentenceNumber}: ${error.reason} ("${error.searchPhrase}")`);
+        });
+      }
 
       return results;
 
     } catch (error) {
-      logger.error(`Failed to process script breakdown assets for ${videoId}:`, error.message);
-      throw error;
+      const endTime = new Date();
+      const duration = Math.round((endTime - startTime) / 1000);
+
+      logger.error(`❌ Failed to process script breakdown assets for ${videoId} after ${duration}s:`, error.message);
+
+      return {
+        videoId: videoId,
+        success: false,
+        error: error.message,
+        processingStartTime: startTime,
+        processingEndTime: endTime,
+        processingDuration: duration,
+        totalSentences: 0,
+        processedCount: 0,
+        successCount: 0,
+        failureCount: 1,
+        results: [],
+        errors: [{ reason: error.message }]
+      };
     }
   }
 

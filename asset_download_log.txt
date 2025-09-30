@@ -1,0 +1,680 @@
+🚀 Pexels Asset Download Test Tool
+
+
+============================================================
+🎬 PEXELS ASSET PROCESSING
+============================================================
+Processing assets for video: VID-0013
+[[32minfo[39m]: 📋 PexelsService initialized successfully {"service":"youtube-automation"} 16:43:18
+
+────────────────────────────────────────
+📋 Video Validation
+────────────────────────────────────────
+✅ Found video: The Art of Being Unbothered By Opinions ( Don't let them Shape you )
+ℹ️  Status: Completed
+ℹ️  Drive Folder: https://drive.google.com/drive/folders/1V6vGIzZtJQkSKFDOCtygdhCexQHNnMYj
+[[32minfo[39m]: 📋 Retrieved script breakdown for VID-0013: 65 sentences {"service":"youtube-automation"} 16:43:19
+✅ Found Script Breakdown with 65 sentences
+
+────────────────────────────────────────
+📋 Processing Preview
+────────────────────────────────────────
+ℹ️  Will download: 58 videos, 7 photos
+
+📝 Preview of sentences to process:
+   S-1: "people outdoor soft" (18 words) → 🎬 VIDEO
+   S-2: "person people create" (12 words) → 🎬 VIDEO
+   S-3: "working phone scientist" (10 words) → 🎬 VIDEO
+   S-4: "strategy inspiration mental" (12 words) → 🎬 VIDEO
+   S-5: "person people opinions" (10 words) → 🎬 VIDEO
+ℹ️  ... and 60 more sentences
+
+⚠️  This will download and upload assets to Google Drive (Assets subfolder).
+   All assets will be landscape orientation only and status will be set to "Complete".
+   Press Ctrl+C to cancel, or wait 5 seconds to continue...
+
+Starting in 5 seconds...Starting in 4 seconds...Starting in 3 seconds...Starting in 2 seconds...Starting in 1 seconds...
+
+
+────────────────────────────────────────
+📋 Asset Processing
+────────────────────────────────────────
+[[32minfo[39m]: 📋 🎬 Starting Pexels asset processing for VID-0013 {"service":"youtube-automation","triggeredBy":"manual"} 16:43:24
+[[32minfo[39m]: 📋 📁 Using Drive folder: https://drive.google.com/drive/folders/1V6vGIzZtJQkSKFDOCtygdhCexQHNnMYj {"service":"youtube-automation"} 16:43:25
+[[32minfo[39m]: 📋 Retrieved script breakdown for VID-0013: 65 sentences {"service":"youtube-automation"} 16:43:26
+[[32minfo[39m]: 📋 📋 Found 65 total sentences, processing 47 that need assets {"service":"youtube-automation"} 16:43:26
+[[32minfo[39m]: 📋 🔄 Processing 1/47: Sentence 19 - "presentation focus observer" {"service":"youtube-automation"} 16:43:26
+[[32minfo[39m]: 📋 Processing sentence 19 for VID-0013: "presentation focus observer" (6 words) {"service":"youtube-automation"} 16:43:26
+[[32minfo[39m]: 📋 Asset type for sentence 19: photo {"service":"youtube-automation"} 16:43:26
+[[32minfo[39m]: 📋 Found 10 photos for query: "presentation focus observer" {"service":"youtube-automation"} 16:43:27
+[[32minfo[39m]: 📋 Randomly selected asset 10/10: 13537707 {"service":"youtube-automation"} 16:43:27
+[[32minfo[39m]: 📋 Downloading asset: S-19.jpg from https://images.pexels.com/photos/13537707/pexels-photo-13537707.jpeg {"service":"youtube-automation"} 16:43:27
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-19.jpg {"service":"youtube-automation"} 16:43:29
+[[32minfo[39m]: 📋 Uploaded: S-19.jpg {"service":"youtube-automation"} 16:43:35
+[[32minfo[39m]: 📋 Updated sentence 19 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:43:37
+[[32minfo[39m]: 📋 Successfully processed sentence 19 for VID-0013: S-19.jpg {"service":"youtube-automation"} 16:43:37
+[[32minfo[39m]: 📋 ✅ 1/47 Success: Sentence 19 → S-19.jpg {"service":"youtube-automation"} 16:43:37
+[[32minfo[39m]: 📋 🔄 Processing 2/47: Sentence 20 - "focus visual opinion" {"service":"youtube-automation"} 16:43:38
+[[32minfo[39m]: 📋 Processing sentence 20 for VID-0013: "focus visual opinion" (9 words) {"service":"youtube-automation"} 16:43:38
+[[32minfo[39m]: 📋 Asset type for sentence 20: video {"service":"youtube-automation"} 16:43:38
+[[32minfo[39m]: 📋 Found 10 videos for query: "focus visual opinion" {"service":"youtube-automation"} 16:43:39
+[[32minfo[39m]: 📋 Filtered to 6 landscape videos for query: "focus visual opinion" {"service":"youtube-automation"} 16:43:39
+[[32minfo[39m]: 📋 Randomly selected asset 3/6: 3545769 {"service":"youtube-automation"} 16:43:39
+[[32minfo[39m]: 📋 Downloading asset: S-20.mp4 from https://videos.pexels.com/video-files/3545769/3545769-hd_1280_720_24fps.mp4 {"service":"youtube-automation"} 16:43:39
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-20.mp4 {"service":"youtube-automation"} 16:43:40
+[[32minfo[39m]: 📋 Uploaded: S-20.mp4 {"service":"youtube-automation"} 16:43:46
+[[32minfo[39m]: 📋 Updated sentence 20 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:43:50
+[[32minfo[39m]: 📋 Successfully processed sentence 20 for VID-0013: S-20.mp4 {"service":"youtube-automation"} 16:43:50
+[[32minfo[39m]: 📋 ✅ 2/47 Success: Sentence 20 → S-20.mp4 {"service":"youtube-automation"} 16:43:50
+[[32minfo[39m]: 📋 🔄 Processing 3/47: Sentence 21 - "office knowledge figure" {"service":"youtube-automation"} 16:43:51
+[[32minfo[39m]: 📋 Processing sentence 21 for VID-0013: "office knowledge figure" (9 words) {"service":"youtube-automation"} 16:43:51
+[[32minfo[39m]: 📋 Asset type for sentence 21: video {"service":"youtube-automation"} 16:43:51
+[[32minfo[39m]: 📋 Found 10 videos for query: "office knowledge figure" {"service":"youtube-automation"} 16:43:52
+[[32minfo[39m]: 📋 Filtered to 2 landscape videos for query: "office knowledge figure" {"service":"youtube-automation"} 16:43:52
+[[32minfo[39m]: 📋 Randomly selected asset 1/2: 6281208 {"service":"youtube-automation"} 16:43:52
+[[32minfo[39m]: 📋 Downloading asset: S-21.mp4 from https://videos.pexels.com/video-files/6281208/6281208-hd_1920_1080_24fps.mp4 {"service":"youtube-automation"} 16:43:52
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-21.mp4 {"service":"youtube-automation"} 16:43:54
+[[32minfo[39m]: 📋 Uploaded: S-21.mp4 {"service":"youtube-automation"} 16:43:58
+[[32minfo[39m]: 📋 Updated sentence 21 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:44:02
+[[32minfo[39m]: 📋 Successfully processed sentence 21 for VID-0013: S-21.mp4 {"service":"youtube-automation"} 16:44:02
+[[32minfo[39m]: 📋 ✅ 3/47 Success: Sentence 21 → S-21.mp4 {"service":"youtube-automation"} 16:44:02
+[[32minfo[39m]: 📋 🔄 Processing 4/47: Sentence 22 - "man presentation brain" {"service":"youtube-automation"} 16:44:03
+[[32minfo[39m]: 📋 Processing sentence 22 for VID-0013: "man presentation brain" (8 words) {"service":"youtube-automation"} 16:44:03
+[[32minfo[39m]: 📋 Asset type for sentence 22: video {"service":"youtube-automation"} 16:44:03
+[[32minfo[39m]: 📋 Found 10 videos for query: "man presentation brain" {"service":"youtube-automation"} 16:44:04
+[[32minfo[39m]: 📋 Filtered to 6 landscape videos for query: "man presentation brain" {"service":"youtube-automation"} 16:44:04
+[[32minfo[39m]: 📋 Randomly selected asset 3/6: 7147800 {"service":"youtube-automation"} 16:44:04
+[[32minfo[39m]: 📋 Downloading asset: S-22.mp4 from https://videos.pexels.com/video-files/7147800/7147800-hd_1280_720_50fps.mp4 {"service":"youtube-automation"} 16:44:04
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-22.mp4 {"service":"youtube-automation"} 16:44:07
+[[32minfo[39m]: 📋 Uploaded: S-22.mp4 {"service":"youtube-automation"} 16:44:12
+[[32minfo[39m]: 📋 Updated sentence 22 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:44:14
+[[32minfo[39m]: 📋 Successfully processed sentence 22 for VID-0013: S-22.mp4 {"service":"youtube-automation"} 16:44:14
+[[32minfo[39m]: 📋 ✅ 4/47 Success: Sentence 22 → S-22.mp4 {"service":"youtube-automation"} 16:44:14
+[[32minfo[39m]: 📋 🔄 Processing 5/47: Sentence 23 - "man thinking brain" {"service":"youtube-automation"} 16:44:15
+[[32minfo[39m]: 📋 Processing sentence 23 for VID-0013: "man thinking brain" (8 words) {"service":"youtube-automation"} 16:44:15
+[[32minfo[39m]: 📋 Asset type for sentence 23: video {"service":"youtube-automation"} 16:44:15
+[[32minfo[39m]: 📋 Found 10 videos for query: "man thinking brain" {"service":"youtube-automation"} 16:44:16
+[[32minfo[39m]: 📋 Filtered to 7 landscape videos for query: "man thinking brain" {"service":"youtube-automation"} 16:44:16
+[[32minfo[39m]: 📋 Randomly selected asset 6/7: 7789165 {"service":"youtube-automation"} 16:44:16
+[[32minfo[39m]: 📋 Downloading asset: S-23.mp4 from https://videos.pexels.com/video-files/7789165/7789165-hd_1280_720_25fps.mp4 {"service":"youtube-automation"} 16:44:16
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-23.mp4 {"service":"youtube-automation"} 16:44:16
+[[32minfo[39m]: 📋 Uploaded: S-23.mp4 {"service":"youtube-automation"} 16:44:19
+[[32minfo[39m]: 📋 Updated sentence 23 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:44:23
+[[32minfo[39m]: 📋 Successfully processed sentence 23 for VID-0013: S-23.mp4 {"service":"youtube-automation"} 16:44:23
+[[32minfo[39m]: 📋 ✅ 5/47 Success: Sentence 23 → S-23.mp4 {"service":"youtube-automation"} 16:44:23
+[[32minfo[39m]: 📋 🔄 Processing 6/47: Sentence 24 - "person team table" {"service":"youtube-automation"} 16:44:24
+[[32minfo[39m]: 📋 Processing sentence 24 for VID-0013: "person team table" (8 words) {"service":"youtube-automation"} 16:44:24
+[[32minfo[39m]: 📋 Asset type for sentence 24: video {"service":"youtube-automation"} 16:44:24
+[[32minfo[39m]: 📋 Found 10 videos for query: "person team table" {"service":"youtube-automation"} 16:44:26
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "person team table" {"service":"youtube-automation"} 16:44:26
+[[32minfo[39m]: 📋 Randomly selected asset 3/5: 6773874 {"service":"youtube-automation"} 16:44:26
+[[32minfo[39m]: 📋 Downloading asset: S-24.mp4 from https://videos.pexels.com/video-files/6773874/6773874-hd_1280_720_30fps.mp4 {"service":"youtube-automation"} 16:44:26
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-24.mp4 {"service":"youtube-automation"} 16:44:27
+[[32minfo[39m]: 📋 Uploaded: S-24.mp4 {"service":"youtube-automation"} 16:44:30
+[[32minfo[39m]: 📋 Updated sentence 24 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:44:34
+[[32minfo[39m]: 📋 Successfully processed sentence 24 for VID-0013: S-24.mp4 {"service":"youtube-automation"} 16:44:34
+[[32minfo[39m]: 📋 ✅ 6/47 Success: Sentence 24 → S-24.mp4 {"service":"youtube-automation"} 16:44:34
+[[32minfo[39m]: 📋 🔄 Processing 7/47: Sentence 25 - "person growth desk" {"service":"youtube-automation"} 16:44:35
+[[32minfo[39m]: 📋 Processing sentence 25 for VID-0013: "person growth desk" (10 words) {"service":"youtube-automation"} 16:44:35
+[[32minfo[39m]: 📋 Asset type for sentence 25: video {"service":"youtube-automation"} 16:44:35
+[[32minfo[39m]: 📋 Found 10 videos for query: "person growth desk" {"service":"youtube-automation"} 16:44:36
+[[32minfo[39m]: 📋 Filtered to 10 landscape videos for query: "person growth desk" {"service":"youtube-automation"} 16:44:36
+[[32minfo[39m]: 📋 Randomly selected asset 1/10: 4433139 {"service":"youtube-automation"} 16:44:36
+[[32minfo[39m]: 📋 Downloading asset: S-25.mp4 from https://videos.pexels.com/video-files/4433139/4433139-hd_1920_1080_25fps.mp4 {"service":"youtube-automation"} 16:44:36
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-25.mp4 {"service":"youtube-automation"} 16:44:37
+[[32minfo[39m]: 📋 Uploaded: S-25.mp4 {"service":"youtube-automation"} 16:44:39
+[[32minfo[39m]: 📋 Updated sentence 25 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:44:43
+[[32minfo[39m]: 📋 Successfully processed sentence 25 for VID-0013: S-25.mp4 {"service":"youtube-automation"} 16:44:43
+[[32minfo[39m]: 📋 ✅ 7/47 Success: Sentence 25 → S-25.mp4 {"service":"youtube-automation"} 16:44:43
+[[32minfo[39m]: 📋 🔄 Processing 8/47: Sentence 26 - "office laptop feedback" {"service":"youtube-automation"} 16:44:44
+[[32minfo[39m]: 📋 Processing sentence 26 for VID-0013: "office laptop feedback" (10 words) {"service":"youtube-automation"} 16:44:44
+[[32minfo[39m]: 📋 Asset type for sentence 26: video {"service":"youtube-automation"} 16:44:44
+[[32minfo[39m]: 📋 Found 10 videos for query: "office laptop feedback" {"service":"youtube-automation"} 16:44:45
+[[32minfo[39m]: 📋 Filtered to 6 landscape videos for query: "office laptop feedback" {"service":"youtube-automation"} 16:44:45
+[[32minfo[39m]: 📋 Randomly selected asset 5/6: 8631870 {"service":"youtube-automation"} 16:44:45
+[[32minfo[39m]: 📋 Downloading asset: S-26.mp4 from https://videos.pexels.com/video-files/8631870/8631870-hd_1920_1080_25fps.mp4 {"service":"youtube-automation"} 16:44:45
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-26.mp4 {"service":"youtube-automation"} 16:44:53
+[[32minfo[39m]: 📋 Uploaded: S-26.mp4 {"service":"youtube-automation"} 16:44:57
+[[32minfo[39m]: 📋 Updated sentence 26 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:45:02
+[[32minfo[39m]: 📋 Successfully processed sentence 26 for VID-0013: S-26.mp4 {"service":"youtube-automation"} 16:45:02
+[[32minfo[39m]: 📋 ✅ 8/47 Success: Sentence 26 → S-26.mp4 {"service":"youtube-automation"} 16:45:02
+[[32minfo[39m]: 📋 🔄 Processing 9/47: Sentence 27 - "office laptop desk" {"service":"youtube-automation"} 16:45:03
+[[32minfo[39m]: 📋 Processing sentence 27 for VID-0013: "office laptop desk" (8 words) {"service":"youtube-automation"} 16:45:03
+[[32minfo[39m]: 📋 Asset type for sentence 27: video {"service":"youtube-automation"} 16:45:03
+[[32minfo[39m]: 📋 Found 10 videos for query: "office laptop desk" {"service":"youtube-automation"} 16:45:05
+[[32minfo[39m]: 📋 Filtered to 1 landscape videos for query: "office laptop desk" {"service":"youtube-automation"} 16:45:05
+[[32minfo[39m]: 📋 Randomly selected asset 1/1: 3129424 {"service":"youtube-automation"} 16:45:05
+[[32minfo[39m]: 📋 Downloading asset: S-27.mp4 from https://videos.pexels.com/video-files/3129424/3129424-hd_1920_1080_24fps.mp4 {"service":"youtube-automation"} 16:45:05
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-27.mp4 {"service":"youtube-automation"} 16:45:06
+[[32minfo[39m]: 📋 Uploaded: S-27.mp4 {"service":"youtube-automation"} 16:45:09
+[[32minfo[39m]: 📋 Updated sentence 27 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:45:13
+[[32minfo[39m]: 📋 Successfully processed sentence 27 for VID-0013: S-27.mp4 {"service":"youtube-automation"} 16:45:13
+[[32minfo[39m]: 📋 ✅ 9/47 Success: Sentence 27 → S-27.mp4 {"service":"youtube-automation"} 16:45:13
+[[32minfo[39m]: 📋 🔄 Processing 10/47: Sentence 28 - "person growth insights" {"service":"youtube-automation"} 16:45:14
+[[32minfo[39m]: 📋 Processing sentence 28 for VID-0013: "person growth insights" (9 words) {"service":"youtube-automation"} 16:45:14
+[[32minfo[39m]: 📋 Asset type for sentence 28: video {"service":"youtube-automation"} 16:45:14
+[[32minfo[39m]: 📋 Found 10 videos for query: "person growth insights" {"service":"youtube-automation"} 16:45:15
+[[32minfo[39m]: 📋 Filtered to 6 landscape videos for query: "person growth insights" {"service":"youtube-automation"} 16:45:15
+[[32minfo[39m]: 📋 Randomly selected asset 6/6: 8126000 {"service":"youtube-automation"} 16:45:15
+[[32minfo[39m]: 📋 Downloading asset: S-28.mp4 from https://videos.pexels.com/video-files/8126000/8126000-hd_1920_1080_25fps.mp4 {"service":"youtube-automation"} 16:45:15
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-28.mp4 {"service":"youtube-automation"} 16:45:16
+[[32minfo[39m]: 📋 Uploaded: S-28.mp4 {"service":"youtube-automation"} 16:45:18
+[[32minfo[39m]: 📋 Updated sentence 28 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:45:23
+[[32minfo[39m]: 📋 Successfully processed sentence 28 for VID-0013: S-28.mp4 {"service":"youtube-automation"} 16:45:23
+[[32minfo[39m]: 📋 ✅ 10/47 Success: Sentence 28 → S-28.mp4 {"service":"youtube-automation"} 16:45:23
+[[32minfo[39m]: 📋 🔄 Processing 11/47: Sentence 29 - "learning office subject" {"service":"youtube-automation"} 16:45:24
+[[32minfo[39m]: 📋 Processing sentence 29 for VID-0013: "learning office subject" (10 words) {"service":"youtube-automation"} 16:45:24
+[[32minfo[39m]: 📋 Asset type for sentence 29: video {"service":"youtube-automation"} 16:45:24
+[[32minfo[39m]: 📋 Found 10 videos for query: "learning office subject" {"service":"youtube-automation"} 16:45:24
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "learning office subject" {"service":"youtube-automation"} 16:45:24
+[[32minfo[39m]: 📋 Randomly selected asset 1/5: 6631465 {"service":"youtube-automation"} 16:45:24
+[[32minfo[39m]: 📋 Downloading asset: S-29.mp4 from https://videos.pexels.com/video-files/6631465/6631465-hd_1366_720_25fps.mp4 {"service":"youtube-automation"} 16:45:24
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-29.mp4 {"service":"youtube-automation"} 16:45:26
+[[32minfo[39m]: 📋 Uploaded: S-29.mp4 {"service":"youtube-automation"} 16:45:29
+[[32minfo[39m]: 📋 Updated sentence 29 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:45:33
+[[32minfo[39m]: 📋 Successfully processed sentence 29 for VID-0013: S-29.mp4 {"service":"youtube-automation"} 16:45:33
+[[32minfo[39m]: 📋 ✅ 11/47 Success: Sentence 29 → S-29.mp4 {"service":"youtube-automation"} 16:45:33
+[[32minfo[39m]: 📋 🔄 Processing 12/47: Sentence 30 - "people office opinions" {"service":"youtube-automation"} 16:45:34
+[[32minfo[39m]: 📋 Processing sentence 30 for VID-0013: "people office opinions" (8 words) {"service":"youtube-automation"} 16:45:34
+[[32minfo[39m]: 📋 Asset type for sentence 30: video {"service":"youtube-automation"} 16:45:34
+[[32minfo[39m]: 📋 Found 10 videos for query: "people office opinions" {"service":"youtube-automation"} 16:45:35
+[[32minfo[39m]: 📋 Filtered to 9 landscape videos for query: "people office opinions" {"service":"youtube-automation"} 16:45:35
+[[32minfo[39m]: 📋 Randomly selected asset 6/9: 6561845 {"service":"youtube-automation"} 16:45:35
+[[32minfo[39m]: 📋 Downloading asset: S-30.mp4 from https://videos.pexels.com/video-files/6561845/6561845-hd_1280_720_50fps.mp4 {"service":"youtube-automation"} 16:45:35
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-30.mp4 {"service":"youtube-automation"} 16:45:35
+[[32minfo[39m]: 📋 Uploaded: S-30.mp4 {"service":"youtube-automation"} 16:45:38
+[[32minfo[39m]: 📋 Updated sentence 30 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:45:40
+[[32minfo[39m]: 📋 Successfully processed sentence 30 for VID-0013: S-30.mp4 {"service":"youtube-automation"} 16:45:40
+[[32minfo[39m]: 📋 ✅ 12/47 Success: Sentence 30 → S-30.mp4 {"service":"youtube-automation"} 16:45:40
+[[32minfo[39m]: 📋 🔄 Processing 13/47: Sentence 31 - "people team unbothered" {"service":"youtube-automation"} 16:45:41
+[[32minfo[39m]: 📋 Processing sentence 31 for VID-0013: "people team unbothered" (9 words) {"service":"youtube-automation"} 16:45:41
+[[32minfo[39m]: 📋 Asset type for sentence 31: video {"service":"youtube-automation"} 16:45:41
+[[32minfo[39m]: 📋 Found 10 videos for query: "people team unbothered" {"service":"youtube-automation"} 16:45:42
+[[32minfo[39m]: 📋 Filtered to 7 landscape videos for query: "people team unbothered" {"service":"youtube-automation"} 16:45:42
+[[32minfo[39m]: 📋 Randomly selected asset 4/7: 6774633 {"service":"youtube-automation"} 16:45:42
+[[32minfo[39m]: 📋 Downloading asset: S-31.mp4 from https://videos.pexels.com/video-files/6774633/6774633-hd_1280_720_30fps.mp4 {"service":"youtube-automation"} 16:45:42
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-31.mp4 {"service":"youtube-automation"} 16:45:42
+[[32minfo[39m]: 📋 Uploaded: S-31.mp4 {"service":"youtube-automation"} 16:45:45
+[[32minfo[39m]: 📋 Updated sentence 31 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:45:51
+[[32minfo[39m]: 📋 Successfully processed sentence 31 for VID-0013: S-31.mp4 {"service":"youtube-automation"} 16:45:51
+[[32minfo[39m]: 📋 ✅ 13/47 Success: Sentence 31 → S-31.mp4 {"service":"youtube-automation"} 16:45:51
+[[32minfo[39m]: 📋 🔄 Processing 14/47: Sentence 32 - "office focus soft" {"service":"youtube-automation"} 16:45:52
+[[32minfo[39m]: 📋 Processing sentence 32 for VID-0013: "office focus soft" (12 words) {"service":"youtube-automation"} 16:45:52
+[[32minfo[39m]: 📋 Asset type for sentence 32: video {"service":"youtube-automation"} 16:45:52
+[[32minfo[39m]: 📋 Found 10 videos for query: "office focus soft" {"service":"youtube-automation"} 16:45:53
+[[32minfo[39m]: 📋 Filtered to 7 landscape videos for query: "office focus soft" {"service":"youtube-automation"} 16:45:53
+[[32minfo[39m]: 📋 Randomly selected asset 2/7: 5717468 {"service":"youtube-automation"} 16:45:53
+[[32minfo[39m]: 📋 Downloading asset: S-32.mp4 from https://videos.pexels.com/video-files/5717468/5717468-hd_1280_720_25fps.mp4 {"service":"youtube-automation"} 16:45:53
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-32.mp4 {"service":"youtube-automation"} 16:45:56
+[[32minfo[39m]: 📋 Uploaded: S-32.mp4 {"service":"youtube-automation"} 16:45:59
+[[32minfo[39m]: 📋 Updated sentence 32 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:46:02
+[[32minfo[39m]: 📋 Successfully processed sentence 32 for VID-0013: S-32.mp4 {"service":"youtube-automation"} 16:46:02
+[[32minfo[39m]: 📋 ✅ 14/47 Success: Sentence 32 → S-32.mp4 {"service":"youtube-automation"} 16:46:02
+[[32minfo[39m]: 📋 🔄 Processing 15/47: Sentence 33 - "people office authentic" {"service":"youtube-automation"} 16:46:03
+[[32minfo[39m]: 📋 Processing sentence 33 for VID-0013: "people office authentic" (9 words) {"service":"youtube-automation"} 16:46:03
+[[32minfo[39m]: 📋 Asset type for sentence 33: video {"service":"youtube-automation"} 16:46:03
+[[32minfo[39m]: 📋 Found 10 videos for query: "people office authentic" {"service":"youtube-automation"} 16:46:04
+[[32minfo[39m]: 📋 Filtered to 10 landscape videos for query: "people office authentic" {"service":"youtube-automation"} 16:46:04
+[[32minfo[39m]: 📋 Randomly selected asset 8/10: 6918039 {"service":"youtube-automation"} 16:46:04
+[[32minfo[39m]: 📋 Downloading asset: S-33.mp4 from https://videos.pexels.com/video-files/6918039/6918039-hd_2048_1080_25fps.mp4 {"service":"youtube-automation"} 16:46:04
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-33.mp4 {"service":"youtube-automation"} 16:46:06
+[[32minfo[39m]: 📋 Uploaded: S-33.mp4 {"service":"youtube-automation"} 16:46:10
+[[32minfo[39m]: 📋 Updated sentence 33 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:46:15
+[[32minfo[39m]: 📋 Successfully processed sentence 33 for VID-0013: S-33.mp4 {"service":"youtube-automation"} 16:46:15
+[[32minfo[39m]: 📋 ✅ 15/47 Success: Sentence 33 → S-33.mp4 {"service":"youtube-automation"} 16:46:15
+[[32minfo[39m]: 📋 🔄 Processing 16/47: Sentence 34 - "person phone opinions" {"service":"youtube-automation"} 16:46:16
+[[32minfo[39m]: 📋 Processing sentence 34 for VID-0013: "person phone opinions" (8 words) {"service":"youtube-automation"} 16:46:16
+[[32minfo[39m]: 📋 Asset type for sentence 34: video {"service":"youtube-automation"} 16:46:16
+[[32minfo[39m]: 📋 Found 10 videos for query: "person phone opinions" {"service":"youtube-automation"} 16:46:17
+[[32minfo[39m]: 📋 Filtered to 4 landscape videos for query: "person phone opinions" {"service":"youtube-automation"} 16:46:17
+[[32minfo[39m]: 📋 Randomly selected asset 2/4: 8088611 {"service":"youtube-automation"} 16:46:17
+[[32minfo[39m]: 📋 Downloading asset: S-34.mp4 from https://videos.pexels.com/video-files/8088611/8088611-hd_1366_720_25fps.mp4 {"service":"youtube-automation"} 16:46:17
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-34.mp4 {"service":"youtube-automation"} 16:46:18
+[[32minfo[39m]: 📋 Uploaded: S-34.mp4 {"service":"youtube-automation"} 16:46:25
+[[32minfo[39m]: 📋 Updated sentence 34 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:46:29
+[[32minfo[39m]: 📋 Successfully processed sentence 34 for VID-0013: S-34.mp4 {"service":"youtube-automation"} 16:46:29
+[[32minfo[39m]: 📋 ✅ 16/47 Success: Sentence 34 → S-34.mp4 {"service":"youtube-automation"} 16:46:29
+[[32minfo[39m]: 📋 🔄 Processing 17/47: Sentence 35 - "office focus critic" {"service":"youtube-automation"} 16:46:30
+[[32minfo[39m]: 📋 Processing sentence 35 for VID-0013: "office focus critic" (8 words) {"service":"youtube-automation"} 16:46:30
+[[32minfo[39m]: 📋 Asset type for sentence 35: video {"service":"youtube-automation"} 16:46:30
+[[32minfo[39m]: 📋 Found 10 videos for query: "office focus critic" {"service":"youtube-automation"} 16:46:30
+[[32minfo[39m]: 📋 Filtered to 8 landscape videos for query: "office focus critic" {"service":"youtube-automation"} 16:46:30
+[[32minfo[39m]: 📋 Randomly selected asset 4/8: 7647788 {"service":"youtube-automation"} 16:46:30
+[[32minfo[39m]: 📋 Downloading asset: S-35.mp4 from https://videos.pexels.com/video-files/7647788/7647788-hd_1280_720_30fps.mp4 {"service":"youtube-automation"} 16:46:30
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-35.mp4 {"service":"youtube-automation"} 16:46:33
+[[32minfo[39m]: 📋 Uploaded: S-35.mp4 {"service":"youtube-automation"} 16:46:35
+[[32minfo[39m]: 📋 Updated sentence 35 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:46:38
+[[32minfo[39m]: 📋 Successfully processed sentence 35 for VID-0013: S-35.mp4 {"service":"youtube-automation"} 16:46:38
+[[32minfo[39m]: 📋 ✅ 17/47 Success: Sentence 35 → S-35.mp4 {"service":"youtube-automation"} 16:46:38
+[[32minfo[39m]: 📋 🔄 Processing 18/47: Sentence 36 - "focus values connection" {"service":"youtube-automation"} 16:46:39
+[[32minfo[39m]: 📋 Processing sentence 36 for VID-0013: "focus values connection" (11 words) {"service":"youtube-automation"} 16:46:39
+[[32minfo[39m]: 📋 Asset type for sentence 36: video {"service":"youtube-automation"} 16:46:39
+[[32minfo[39m]: 📋 Found 10 videos for query: "focus values connection" {"service":"youtube-automation"} 16:46:40
+[[32minfo[39m]: 📋 Filtered to 8 landscape videos for query: "focus values connection" {"service":"youtube-automation"} 16:46:40
+[[32minfo[39m]: 📋 Randomly selected asset 7/8: 8088611 {"service":"youtube-automation"} 16:46:40
+[[32minfo[39m]: 📋 Downloading asset: S-36.mp4 from https://videos.pexels.com/video-files/8088611/8088611-hd_1366_720_25fps.mp4 {"service":"youtube-automation"} 16:46:40
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-36.mp4 {"service":"youtube-automation"} 16:46:41
+[[32minfo[39m]: 📋 Uploaded: S-36.mp4 {"service":"youtube-automation"} 16:46:44
+[[32minfo[39m]: 📋 Updated sentence 36 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:46:48
+[[32minfo[39m]: 📋 Successfully processed sentence 36 for VID-0013: S-36.mp4 {"service":"youtube-automation"} 16:46:48
+[[32minfo[39m]: 📋 ✅ 18/47 Success: Sentence 36 → S-36.mp4 {"service":"youtube-automation"} 16:46:48
+[[32minfo[39m]: 📋 🔄 Processing 19/47: Sentence 37 - "phone knowledge emotional" {"service":"youtube-automation"} 16:46:49
+[[32minfo[39m]: 📋 Processing sentence 37 for VID-0013: "phone knowledge emotional" (6 words) {"service":"youtube-automation"} 16:46:49
+[[32minfo[39m]: 📋 Asset type for sentence 37: photo {"service":"youtube-automation"} 16:46:49
+[[32minfo[39m]: 📋 Found 10 photos for query: "phone knowledge emotional" {"service":"youtube-automation"} 16:46:50
+[[32minfo[39m]: 📋 Randomly selected asset 1/10: 3782212 {"service":"youtube-automation"} 16:46:50
+[[32minfo[39m]: 📋 Downloading asset: S-37.jpg from https://images.pexels.com/photos/3782212/pexels-photo-3782212.jpeg {"service":"youtube-automation"} 16:46:50
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-37.jpg {"service":"youtube-automation"} 16:46:50
+[[32minfo[39m]: 📋 Uploaded: S-37.jpg {"service":"youtube-automation"} 16:46:53
+[[32minfo[39m]: 📋 Updated sentence 37 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:46:58
+[[32minfo[39m]: 📋 Successfully processed sentence 37 for VID-0013: S-37.jpg {"service":"youtube-automation"} 16:46:58
+[[32minfo[39m]: 📋 ✅ 19/47 Success: Sentence 37 → S-37.jpg {"service":"youtube-automation"} 16:46:58
+[[32minfo[39m]: 📋 🔄 Processing 20/47: Sentence 38 - "growth motivation feedback" {"service":"youtube-automation"} 16:46:59
+[[32minfo[39m]: 📋 Processing sentence 38 for VID-0013: "growth motivation feedback" (8 words) {"service":"youtube-automation"} 16:46:59
+[[32minfo[39m]: 📋 Asset type for sentence 38: video {"service":"youtube-automation"} 16:46:59
+[[32minfo[39m]: 📋 Found 10 videos for query: "growth motivation feedback" {"service":"youtube-automation"} 16:47:00
+[[32minfo[39m]: 📋 Filtered to 6 landscape videos for query: "growth motivation feedback" {"service":"youtube-automation"} 16:47:00
+[[32minfo[39m]: 📋 Randomly selected asset 3/6: 7686627 {"service":"youtube-automation"} 16:47:00
+[[32minfo[39m]: 📋 Downloading asset: S-38.mp4 from https://videos.pexels.com/video-files/7686627/7686627-hd_1920_1080_24fps.mp4 {"service":"youtube-automation"} 16:47:00
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-38.mp4 {"service":"youtube-automation"} 16:47:02
+[[32minfo[39m]: 📋 Uploaded: S-38.mp4 {"service":"youtube-automation"} 16:47:10
+[[32minfo[39m]: 📋 Updated sentence 38 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:47:14
+[[32minfo[39m]: 📋 Successfully processed sentence 38 for VID-0013: S-38.mp4 {"service":"youtube-automation"} 16:47:14
+[[32minfo[39m]: 📋 ✅ 20/47 Success: Sentence 38 → S-38.mp4 {"service":"youtube-automation"} 16:47:14
+[[32minfo[39m]: 📋 🔄 Processing 21/47: Sentence 39 - "focus negative visual" {"service":"youtube-automation"} 16:47:15
+[[32minfo[39m]: 📋 Processing sentence 39 for VID-0013: "focus negative visual" (9 words) {"service":"youtube-automation"} 16:47:15
+[[32minfo[39m]: 📋 Asset type for sentence 39: video {"service":"youtube-automation"} 16:47:15
+[[32minfo[39m]: 📋 Found 10 videos for query: "focus negative visual" {"service":"youtube-automation"} 16:47:15
+[[32minfo[39m]: 📋 Filtered to 7 landscape videos for query: "focus negative visual" {"service":"youtube-automation"} 16:47:15
+[[32minfo[39m]: 📋 Randomly selected asset 2/7: 3719162 {"service":"youtube-automation"} 16:47:15
+[[32minfo[39m]: 📋 Downloading asset: S-39.mp4 from https://videos.pexels.com/video-files/3719162/3719162-hd_1920_1080_24fps.mp4 {"service":"youtube-automation"} 16:47:15
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-39.mp4 {"service":"youtube-automation"} 16:47:18
+[[32minfo[39m]: 📋 Uploaded: S-39.mp4 {"service":"youtube-automation"} 16:47:21
+[[32minfo[39m]: 📋 Updated sentence 39 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:47:23
+[[32minfo[39m]: 📋 Successfully processed sentence 39 for VID-0013: S-39.mp4 {"service":"youtube-automation"} 16:47:23
+[[32minfo[39m]: 📋 ✅ 21/47 Success: Sentence 39 → S-39.mp4 {"service":"youtube-automation"} 16:47:23
+[[32minfo[39m]: 📋 🔄 Processing 22/47: Sentence 40 - "office book subject" {"service":"youtube-automation"} 16:47:24
+[[32minfo[39m]: 📋 Processing sentence 40 for VID-0013: "office book subject" (8 words) {"service":"youtube-automation"} 16:47:24
+[[32minfo[39m]: 📋 Asset type for sentence 40: video {"service":"youtube-automation"} 16:47:24
+[[32minfo[39m]: 📋 Found 10 videos for query: "office book subject" {"service":"youtube-automation"} 16:47:25
+[[32minfo[39m]: 📋 Filtered to 6 landscape videos for query: "office book subject" {"service":"youtube-automation"} 16:47:25
+[[32minfo[39m]: 📋 Randomly selected asset 4/6: 2750158 {"service":"youtube-automation"} 16:47:25
+[[32minfo[39m]: 📋 Downloading asset: S-40.mp4 from https://videos.pexels.com/video-files/2750158/2750158-hd_1280_720_24fps.mp4 {"service":"youtube-automation"} 16:47:25
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-40.mp4 {"service":"youtube-automation"} 16:47:26
+[[32minfo[39m]: 📋 Uploaded: S-40.mp4 {"service":"youtube-automation"} 16:47:29
+[[32minfo[39m]: 📋 Updated sentence 40 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:47:33
+[[32minfo[39m]: 📋 Successfully processed sentence 40 for VID-0013: S-40.mp4 {"service":"youtube-automation"} 16:47:33
+[[32minfo[39m]: 📋 ✅ 22/47 Success: Sentence 40 → S-40.mp4 {"service":"youtube-automation"} 16:47:33
+[[32minfo[39m]: 📋 🔄 Processing 23/47: Sentence 41 - "analysis focus brain" {"service":"youtube-automation"} 16:47:34
+[[32minfo[39m]: 📋 Processing sentence 41 for VID-0013: "analysis focus brain" (10 words) {"service":"youtube-automation"} 16:47:34
+[[32minfo[39m]: 📋 Asset type for sentence 41: video {"service":"youtube-automation"} 16:47:34
+[[32minfo[39m]: 📋 Found 10 videos for query: "analysis focus brain" {"service":"youtube-automation"} 16:47:35
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "analysis focus brain" {"service":"youtube-automation"} 16:47:35
+[[32minfo[39m]: 📋 Randomly selected asset 4/5: 6134589 {"service":"youtube-automation"} 16:47:35
+[[32minfo[39m]: 📋 Downloading asset: S-41.mp4 from https://videos.pexels.com/video-files/6134589/6134589-hd_1280_720_25fps.mp4 {"service":"youtube-automation"} 16:47:35
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-41.mp4 {"service":"youtube-automation"} 16:47:36
+[[32minfo[39m]: 📋 Uploaded: S-41.mp4 {"service":"youtube-automation"} 16:47:39
+[[32minfo[39m]: 📋 Updated sentence 41 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:47:41
+[[32minfo[39m]: 📋 Successfully processed sentence 41 for VID-0013: S-41.mp4 {"service":"youtube-automation"} 16:47:41
+[[32minfo[39m]: 📋 ✅ 23/47 Success: Sentence 41 → S-41.mp4 {"service":"youtube-automation"} 16:47:41
+[[32minfo[39m]: 📋 🔄 Processing 24/47: Sentence 42 - "office focus athlete" {"service":"youtube-automation"} 16:47:42
+[[32minfo[39m]: 📋 Processing sentence 42 for VID-0013: "office focus athlete" (7 words) {"service":"youtube-automation"} 16:47:42
+[[32minfo[39m]: 📋 Asset type for sentence 42: video {"service":"youtube-automation"} 16:47:42
+[[32minfo[39m]: 📋 Found 10 videos for query: "office focus athlete" {"service":"youtube-automation"} 16:47:43
+[[32minfo[39m]: 📋 Filtered to 4 landscape videos for query: "office focus athlete" {"service":"youtube-automation"} 16:47:43
+[[32minfo[39m]: 📋 Randomly selected asset 3/4: 3254066 {"service":"youtube-automation"} 16:47:43
+[[32minfo[39m]: 📋 Downloading asset: S-42.mp4 from https://videos.pexels.com/video-files/3254066/3254066-hd_1920_1080_25fps.mp4 {"service":"youtube-automation"} 16:47:43
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-42.mp4 {"service":"youtube-automation"} 16:47:44
+[[32minfo[39m]: 📋 Uploaded: S-42.mp4 {"service":"youtube-automation"} 16:47:47
+[[32minfo[39m]: 📋 Updated sentence 42 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:47:49
+[[32minfo[39m]: 📋 Successfully processed sentence 42 for VID-0013: S-42.mp4 {"service":"youtube-automation"} 16:47:49
+[[32minfo[39m]: 📋 ✅ 24/47 Success: Sentence 42 → S-42.mp4 {"service":"youtube-automation"} 16:47:49
+[[32minfo[39m]: 📋 🔄 Processing 25/47: Sentence 43 - "phone startup expectations" {"service":"youtube-automation"} 16:47:50
+[[32minfo[39m]: 📋 Processing sentence 43 for VID-0013: "phone startup expectations" (10 words) {"service":"youtube-automation"} 16:47:50
+[[32minfo[39m]: 📋 Asset type for sentence 43: video {"service":"youtube-automation"} 16:47:50
+[[32minfo[39m]: 📋 Found 10 videos for query: "phone startup expectations" {"service":"youtube-automation"} 16:47:51
+[[32minfo[39m]: 📋 Filtered to 3 landscape videos for query: "phone startup expectations" {"service":"youtube-automation"} 16:47:51
+[[32minfo[39m]: 📋 Randomly selected asset 1/3: 7579950 {"service":"youtube-automation"} 16:47:51
+[[32minfo[39m]: 📋 Downloading asset: S-43.mp4 from https://videos.pexels.com/video-files/7579950/7579950-hd_2048_1080_25fps.mp4 {"service":"youtube-automation"} 16:47:51
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-43.mp4 {"service":"youtube-automation"} 16:47:52
+[[32minfo[39m]: 📋 Uploaded: S-43.mp4 {"service":"youtube-automation"} 16:47:54
+[[32minfo[39m]: 📋 Updated sentence 43 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:47:59
+[[32minfo[39m]: 📋 Successfully processed sentence 43 for VID-0013: S-43.mp4 {"service":"youtube-automation"} 16:47:59
+[[32minfo[39m]: 📋 ✅ 25/47 Success: Sentence 43 → S-43.mp4 {"service":"youtube-automation"} 16:47:59
+[[32minfo[39m]: 📋 🔄 Processing 26/47: Sentence 44 - "figure hidden" {"service":"youtube-automation"} 16:48:00
+[[32minfo[39m]: 📋 Processing sentence 44 for VID-0013: "figure hidden" (9 words) {"service":"youtube-automation"} 16:48:00
+[[32minfo[39m]: 📋 Asset type for sentence 44: video {"service":"youtube-automation"} 16:48:00
+[[32minfo[39m]: 📋 Found 10 videos for query: "figure hidden" {"service":"youtube-automation"} 16:48:01
+[[32minfo[39m]: 📋 Filtered to 6 landscape videos for query: "figure hidden" {"service":"youtube-automation"} 16:48:01
+[[32minfo[39m]: 📋 Randomly selected asset 5/6: 31159285 {"service":"youtube-automation"} 16:48:01
+[[32minfo[39m]: 📋 Downloading asset: S-44.mp4 from https://videos.pexels.com/video-files/31159285/13313172_640_360_25fps.mp4 {"service":"youtube-automation"} 16:48:01
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-44.mp4 {"service":"youtube-automation"} 16:48:01
+[[32minfo[39m]: 📋 Uploaded: S-44.mp4 {"service":"youtube-automation"} 16:48:03
+[[32minfo[39m]: 📋 Updated sentence 44 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:48:09
+[[32minfo[39m]: 📋 Successfully processed sentence 44 for VID-0013: S-44.mp4 {"service":"youtube-automation"} 16:48:09
+[[32minfo[39m]: 📋 ✅ 26/47 Success: Sentence 44 → S-44.mp4 {"service":"youtube-automation"} 16:48:09
+[[32minfo[39m]: 📋 🔄 Processing 27/47: Sentence 45 - "office relationship figure" {"service":"youtube-automation"} 16:48:10
+[[32minfo[39m]: 📋 Processing sentence 45 for VID-0013: "office relationship figure" (8 words) {"service":"youtube-automation"} 16:48:10
+[[32minfo[39m]: 📋 Asset type for sentence 45: video {"service":"youtube-automation"} 16:48:10
+[[32minfo[39m]: 📋 Found 10 videos for query: "office relationship figure" {"service":"youtube-automation"} 16:48:11
+[[32minfo[39m]: 📋 Filtered to 7 landscape videos for query: "office relationship figure" {"service":"youtube-automation"} 16:48:11
+[[32minfo[39m]: 📋 Randomly selected asset 4/7: 4100353 {"service":"youtube-automation"} 16:48:11
+[[32minfo[39m]: 📋 Downloading asset: S-45.mp4 from https://videos.pexels.com/video-files/4100353/4100353-hd_1366_720_50fps.mp4 {"service":"youtube-automation"} 16:48:11
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-45.mp4 {"service":"youtube-automation"} 16:48:12
+[[32minfo[39m]: 📋 Uploaded: S-45.mp4 {"service":"youtube-automation"} 16:48:14
+[[32minfo[39m]: 📋 Updated sentence 45 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:48:16
+[[32minfo[39m]: 📋 Successfully processed sentence 45 for VID-0013: S-45.mp4 {"service":"youtube-automation"} 16:48:16
+[[32minfo[39m]: 📋 ✅ 27/47 Success: Sentence 45 → S-45.mp4 {"service":"youtube-automation"} 16:48:16
+[[32minfo[39m]: 📋 🔄 Processing 28/47: Sentence 46 - "office wellness create" {"service":"youtube-automation"} 16:48:17
+[[32minfo[39m]: 📋 Processing sentence 46 for VID-0013: "office wellness create" (7 words) {"service":"youtube-automation"} 16:48:17
+[[32minfo[39m]: 📋 Asset type for sentence 46: video {"service":"youtube-automation"} 16:48:17
+[[32minfo[39m]: 📋 Found 10 videos for query: "office wellness create" {"service":"youtube-automation"} 16:48:19
+[[32minfo[39m]: 📋 Filtered to 8 landscape videos for query: "office wellness create" {"service":"youtube-automation"} 16:48:19
+[[32minfo[39m]: 📋 Randomly selected asset 7/8: 4486541 {"service":"youtube-automation"} 16:48:19
+[[32minfo[39m]: 📋 Downloading asset: S-46.mp4 from https://videos.pexels.com/video-files/4486541/4486541-hd_1280_720_50fps.mp4 {"service":"youtube-automation"} 16:48:19
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-46.mp4 {"service":"youtube-automation"} 16:48:22
+[[32minfo[39m]: 📋 Uploaded: S-46.mp4 {"service":"youtube-automation"} 16:48:26
+[[32minfo[39m]: 📋 Updated sentence 46 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:48:29
+[[32minfo[39m]: 📋 Successfully processed sentence 46 for VID-0013: S-46.mp4 {"service":"youtube-automation"} 16:48:29
+[[32minfo[39m]: 📋 ✅ 28/47 Success: Sentence 46 → S-46.mp4 {"service":"youtube-automation"} 16:48:29
+[[32minfo[39m]: 📋 🔄 Processing 29/47: Sentence 47 - "office phone subject" {"service":"youtube-automation"} 16:48:30
+[[32minfo[39m]: 📋 Processing sentence 47 for VID-0013: "office phone subject" (9 words) {"service":"youtube-automation"} 16:48:31
+[[32minfo[39m]: 📋 Asset type for sentence 47: video {"service":"youtube-automation"} 16:48:31
+[[32minfo[39m]: 📋 Found 10 videos for query: "office phone subject" {"service":"youtube-automation"} 16:48:32
+[[32minfo[39m]: 📋 Filtered to 2 landscape videos for query: "office phone subject" {"service":"youtube-automation"} 16:48:32
+[[32minfo[39m]: 📋 Randomly selected asset 1/2: 3129424 {"service":"youtube-automation"} 16:48:32
+[[32minfo[39m]: 📋 Downloading asset: S-47.mp4 from https://videos.pexels.com/video-files/3129424/3129424-hd_1920_1080_24fps.mp4 {"service":"youtube-automation"} 16:48:32
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-47.mp4 {"service":"youtube-automation"} 16:48:33
+[[32minfo[39m]: 📋 Uploaded: S-47.mp4 {"service":"youtube-automation"} 16:48:36
+[[32minfo[39m]: 📋 Updated sentence 47 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:48:38
+[[32minfo[39m]: 📋 Successfully processed sentence 47 for VID-0013: S-47.mp4 {"service":"youtube-automation"} 16:48:38
+[[32minfo[39m]: 📋 ✅ 29/47 Success: Sentence 47 → S-47.mp4 {"service":"youtube-automation"} 16:48:38
+[[32minfo[39m]: 📋 🔄 Processing 30/47: Sentence 48 - "focus premium conversation" {"service":"youtube-automation"} 16:48:39
+[[32minfo[39m]: 📋 Processing sentence 48 for VID-0013: "focus premium conversation" (9 words) {"service":"youtube-automation"} 16:48:39
+[[32minfo[39m]: 📋 Asset type for sentence 48: video {"service":"youtube-automation"} 16:48:39
+[[32minfo[39m]: 📋 Found 10 videos for query: "focus premium conversation" {"service":"youtube-automation"} 16:48:40
+[[32minfo[39m]: 📋 Filtered to 9 landscape videos for query: "focus premium conversation" {"service":"youtube-automation"} 16:48:40
+[[32minfo[39m]: 📋 Randomly selected asset 6/9: 7535113 {"service":"youtube-automation"} 16:48:40
+[[32minfo[39m]: 📋 Downloading asset: S-48.mp4 from https://videos.pexels.com/video-files/7535113/7535113-hd_1280_720_25fps.mp4 {"service":"youtube-automation"} 16:48:40
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-48.mp4 {"service":"youtube-automation"} 16:48:41
+[[32minfo[39m]: 📋 Uploaded: S-48.mp4 {"service":"youtube-automation"} 16:48:43
+[[32minfo[39m]: 📋 Updated sentence 48 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:48:46
+[[32minfo[39m]: 📋 Successfully processed sentence 48 for VID-0013: S-48.mp4 {"service":"youtube-automation"} 16:48:46
+[[32minfo[39m]: 📋 ✅ 30/47 Success: Sentence 48 → S-48.mp4 {"service":"youtube-automation"} 16:48:46
+[[32minfo[39m]: 📋 🔄 Processing 31/47: Sentence 49 - "person focus values" {"service":"youtube-automation"} 16:48:47
+[[32minfo[39m]: 📋 Processing sentence 49 for VID-0013: "person focus values" (9 words) {"service":"youtube-automation"} 16:48:47
+[[32minfo[39m]: 📋 Asset type for sentence 49: video {"service":"youtube-automation"} 16:48:47
+[[32minfo[39m]: 📋 Found 10 videos for query: "person focus values" {"service":"youtube-automation"} 16:48:48
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "person focus values" {"service":"youtube-automation"} 16:48:48
+[[32minfo[39m]: 📋 Randomly selected asset 1/5: 6030319 {"service":"youtube-automation"} 16:48:48
+[[32minfo[39m]: 📋 Downloading asset: S-49.mp4 from https://videos.pexels.com/video-files/6030319/6030319-hd_1280_720_25fps.mp4 {"service":"youtube-automation"} 16:48:48
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-49.mp4 {"service":"youtube-automation"} 16:48:50
+[[32minfo[39m]: 📋 Uploaded: S-49.mp4 {"service":"youtube-automation"} 16:48:58
+[[32minfo[39m]: 📋 Updated sentence 49 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:49:02
+[[32minfo[39m]: 📋 Successfully processed sentence 49 for VID-0013: S-49.mp4 {"service":"youtube-automation"} 16:49:02
+[[32minfo[39m]: 📋 ✅ 31/47 Success: Sentence 49 → S-49.mp4 {"service":"youtube-automation"} 16:49:02
+[[32minfo[39m]: 📋 🔄 Processing 32/47: Sentence 50 - "office focus figure" {"service":"youtube-automation"} 16:49:03
+[[32minfo[39m]: 📋 Processing sentence 50 for VID-0013: "office focus figure" (7 words) {"service":"youtube-automation"} 16:49:03
+[[32minfo[39m]: 📋 Asset type for sentence 50: video {"service":"youtube-automation"} 16:49:03
+[[32minfo[39m]: 📋 Found 10 videos for query: "office focus figure" {"service":"youtube-automation"} 16:49:05
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "office focus figure" {"service":"youtube-automation"} 16:49:05
+[[32minfo[39m]: 📋 Randomly selected asset 2/5: 7947507 {"service":"youtube-automation"} 16:49:05
+[[32minfo[39m]: 📋 Downloading asset: S-50.mp4 from https://videos.pexels.com/video-files/7947507/7947507-hd_1920_1080_30fps.mp4 {"service":"youtube-automation"} 16:49:05
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-50.mp4 {"service":"youtube-automation"} 16:49:05
+[[32minfo[39m]: 📋 Uploaded: S-50.mp4 {"service":"youtube-automation"} 16:49:08
+[[32minfo[39m]: 📋 Updated sentence 50 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:49:13
+[[32minfo[39m]: 📋 Successfully processed sentence 50 for VID-0013: S-50.mp4 {"service":"youtube-automation"} 16:49:13
+[[32minfo[39m]: 📋 ✅ 32/47 Success: Sentence 50 → S-50.mp4 {"service":"youtube-automation"} 16:49:13
+[[32minfo[39m]: 📋 🔄 Processing 33/47: Sentence 51 - "office book desk" {"service":"youtube-automation"} 16:49:14
+[[32minfo[39m]: 📋 Processing sentence 51 for VID-0013: "office book desk" (7 words) {"service":"youtube-automation"} 16:49:14
+[[32minfo[39m]: 📋 Asset type for sentence 51: video {"service":"youtube-automation"} 16:49:14
+[[32minfo[39m]: 📋 Found 10 videos for query: "office book desk" {"service":"youtube-automation"} 16:49:15
+[[32minfo[39m]: 📋 Filtered to 7 landscape videos for query: "office book desk" {"service":"youtube-automation"} 16:49:15
+[[32minfo[39m]: 📋 Randomly selected asset 1/7: 3195532 {"service":"youtube-automation"} 16:49:15
+[[32minfo[39m]: 📋 Downloading asset: S-51.mp4 from https://videos.pexels.com/video-files/3195532/3195532-hd_1920_1080_25fps.mp4 {"service":"youtube-automation"} 16:49:15
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-51.mp4 {"service":"youtube-automation"} 16:49:16
+[[32minfo[39m]: 📋 Uploaded: S-51.mp4 {"service":"youtube-automation"} 16:49:19
+[[32minfo[39m]: 📋 Updated sentence 51 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:49:22
+[[32minfo[39m]: 📋 Successfully processed sentence 51 for VID-0013: S-51.mp4 {"service":"youtube-automation"} 16:49:22
+[[32minfo[39m]: 📋 ✅ 33/47 Success: Sentence 51 → S-51.mp4 {"service":"youtube-automation"} 16:49:22
+[[32minfo[39m]: 📋 🔄 Processing 34/47: Sentence 52 - "person bench water" {"service":"youtube-automation"} 16:49:23
+[[32minfo[39m]: 📋 Processing sentence 52 for VID-0013: "person bench water" (7 words) {"service":"youtube-automation"} 16:49:23
+[[32minfo[39m]: 📋 Asset type for sentence 52: video {"service":"youtube-automation"} 16:49:23
+[[32minfo[39m]: 📋 Found 10 videos for query: "person bench water" {"service":"youtube-automation"} 16:49:24
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "person bench water" {"service":"youtube-automation"} 16:49:24
+[[32minfo[39m]: 📋 Randomly selected asset 3/5: 27721830 {"service":"youtube-automation"} 16:49:24
+[[32minfo[39m]: 📋 Downloading asset: S-52.mp4 from https://videos.pexels.com/video-files/27721830/12210447_640_360_24fps.mp4 {"service":"youtube-automation"} 16:49:24
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-52.mp4 {"service":"youtube-automation"} 16:49:24
+[[32minfo[39m]: 📋 Uploaded: S-52.mp4 {"service":"youtube-automation"} 16:49:26
+[[32minfo[39m]: 📋 Updated sentence 52 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:49:30
+[[32minfo[39m]: 📋 Successfully processed sentence 52 for VID-0013: S-52.mp4 {"service":"youtube-automation"} 16:49:30
+[[32minfo[39m]: 📋 ✅ 34/47 Success: Sentence 52 → S-52.mp4 {"service":"youtube-automation"} 16:49:30
+[[32minfo[39m]: 📋 🔄 Processing 35/47: Sentence 53 - "person growth confidence" {"service":"youtube-automation"} 16:49:31
+[[32minfo[39m]: 📋 Processing sentence 53 for VID-0013: "person growth confidence" (6 words) {"service":"youtube-automation"} 16:49:31
+[[32minfo[39m]: 📋 Asset type for sentence 53: photo {"service":"youtube-automation"} 16:49:31
+[[32minfo[39m]: 📋 Found 10 photos for query: "person growth confidence" {"service":"youtube-automation"} 16:49:32
+[[32minfo[39m]: 📋 Randomly selected asset 2/10: 8837155 {"service":"youtube-automation"} 16:49:32
+[[32minfo[39m]: 📋 Downloading asset: S-53.jpg from https://images.pexels.com/photos/8837155/pexels-photo-8837155.jpeg {"service":"youtube-automation"} 16:49:32
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-53.jpg {"service":"youtube-automation"} 16:49:34
+[[32minfo[39m]: 📋 Uploaded: S-53.jpg {"service":"youtube-automation"} 16:49:37
+[[32minfo[39m]: 📋 Updated sentence 53 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:49:39
+[[32minfo[39m]: 📋 Successfully processed sentence 53 for VID-0013: S-53.jpg {"service":"youtube-automation"} 16:49:39
+[[32minfo[39m]: 📋 ✅ 35/47 Success: Sentence 53 → S-53.jpg {"service":"youtube-automation"} 16:49:39
+[[32minfo[39m]: 📋 🔄 Processing 36/47: Sentence 54 - "people man subject" {"service":"youtube-automation"} 16:49:40
+[[32minfo[39m]: 📋 Processing sentence 54 for VID-0013: "people man subject" (6 words) {"service":"youtube-automation"} 16:49:40
+[[32minfo[39m]: 📋 Asset type for sentence 54: photo {"service":"youtube-automation"} 16:49:40
+[[32minfo[39m]: 📋 Found 10 photos for query: "people man subject" {"service":"youtube-automation"} 16:49:41
+[[32minfo[39m]: 📋 Randomly selected asset 5/10: 7562318 {"service":"youtube-automation"} 16:49:41
+[[32minfo[39m]: 📋 Downloading asset: S-54.jpg from https://images.pexels.com/photos/7562318/pexels-photo-7562318.jpeg {"service":"youtube-automation"} 16:49:41
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-54.jpg {"service":"youtube-automation"} 16:49:42
+[[32minfo[39m]: 📋 Uploaded: S-54.jpg {"service":"youtube-automation"} 16:49:45
+[[32minfo[39m]: 📋 Updated sentence 54 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:49:47
+[[32minfo[39m]: 📋 Successfully processed sentence 54 for VID-0013: S-54.jpg {"service":"youtube-automation"} 16:49:47
+[[32minfo[39m]: 📋 ✅ 36/47 Success: Sentence 54 → S-54.jpg {"service":"youtube-automation"} 16:49:47
+[[32minfo[39m]: 📋 🔄 Processing 37/47: Sentence 55 - "office laptop desk" {"service":"youtube-automation"} 16:49:48
+[[32minfo[39m]: 📋 Processing sentence 55 for VID-0013: "office laptop desk" (9 words) {"service":"youtube-automation"} 16:49:48
+[[32minfo[39m]: 📋 Asset type for sentence 55: video {"service":"youtube-automation"} 16:49:48
+[[32minfo[39m]: 📋 Found 10 videos for query: "office laptop desk" {"service":"youtube-automation"} 16:49:50
+[[32minfo[39m]: 📋 Filtered to 1 landscape videos for query: "office laptop desk" {"service":"youtube-automation"} 16:49:50
+[[32minfo[39m]: 📋 Randomly selected asset 1/1: 3129424 {"service":"youtube-automation"} 16:49:50
+[[32minfo[39m]: 📋 Downloading asset: S-55.mp4 from https://videos.pexels.com/video-files/3129424/3129424-hd_1920_1080_24fps.mp4 {"service":"youtube-automation"} 16:49:50
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-55.mp4 {"service":"youtube-automation"} 16:49:51
+[[32minfo[39m]: 📋 Uploaded: S-55.mp4 {"service":"youtube-automation"} 16:49:57
+[[32minfo[39m]: 📋 Updated sentence 55 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:50:01
+[[32minfo[39m]: 📋 Successfully processed sentence 55 for VID-0013: S-55.mp4 {"service":"youtube-automation"} 16:50:01
+[[32minfo[39m]: 📋 ✅ 37/47 Success: Sentence 55 → S-55.mp4 {"service":"youtube-automation"} 16:50:01
+[[32minfo[39m]: 📋 🔄 Processing 38/47: Sentence 56 - "person people such" {"service":"youtube-automation"} 16:50:02
+[[32minfo[39m]: 📋 Processing sentence 56 for VID-0013: "person people such" (9 words) {"service":"youtube-automation"} 16:50:02
+[[32minfo[39m]: 📋 Asset type for sentence 56: video {"service":"youtube-automation"} 16:50:02
+[[32minfo[39m]: 📋 Found 10 videos for query: "person people such" {"service":"youtube-automation"} 16:50:03
+[[32minfo[39m]: 📋 Filtered to 9 landscape videos for query: "person people such" {"service":"youtube-automation"} 16:50:03
+[[32minfo[39m]: 📋 Randomly selected asset 6/9: 34039524 {"service":"youtube-automation"} 16:50:03
+[[32minfo[39m]: 📋 Downloading asset: S-56.mp4 from https://videos.pexels.com/video-files/34039524/14436310_640_360_25fps.mp4 {"service":"youtube-automation"} 16:50:03
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-56.mp4 {"service":"youtube-automation"} 16:50:04
+[[32minfo[39m]: 📋 Uploaded: S-56.mp4 {"service":"youtube-automation"} 16:50:06
+[[32minfo[39m]: 📋 Updated sentence 56 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:50:12
+[[32minfo[39m]: 📋 Successfully processed sentence 56 for VID-0013: S-56.mp4 {"service":"youtube-automation"} 16:50:12
+[[32minfo[39m]: 📋 ✅ 38/47 Success: Sentence 56 → S-56.mp4 {"service":"youtube-automation"} 16:50:12
+[[32minfo[39m]: 📋 🔄 Processing 39/47: Sentence 57 - "presentation book understanding" {"service":"youtube-automation"} 16:50:13
+[[32minfo[39m]: 📋 Processing sentence 57 for VID-0013: "presentation book understanding" (6 words) {"service":"youtube-automation"} 16:50:13
+[[32minfo[39m]: 📋 Asset type for sentence 57: photo {"service":"youtube-automation"} 16:50:13
+[[32minfo[39m]: 📋 Found 10 photos for query: "presentation book understanding" {"service":"youtube-automation"} 16:50:13
+[[32minfo[39m]: 📋 Randomly selected asset 1/10: 5530583 {"service":"youtube-automation"} 16:50:13
+[[32minfo[39m]: 📋 Downloading asset: S-57.jpg from https://images.pexels.com/photos/5530583/pexels-photo-5530583.jpeg {"service":"youtube-automation"} 16:50:13
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-57.jpg {"service":"youtube-automation"} 16:50:15
+[[32minfo[39m]: 📋 Uploaded: S-57.jpg {"service":"youtube-automation"} 16:50:19
+[[32minfo[39m]: 📋 Updated sentence 57 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:50:22
+[[32minfo[39m]: 📋 Successfully processed sentence 57 for VID-0013: S-57.jpg {"service":"youtube-automation"} 16:50:22
+[[32minfo[39m]: 📋 ✅ 39/47 Success: Sentence 57 → S-57.jpg {"service":"youtube-automation"} 16:50:22
+[[32minfo[39m]: 📋 🔄 Processing 40/47: Sentence 58 - "focus goals opinions" {"service":"youtube-automation"} 16:50:23
+[[32minfo[39m]: 📋 Processing sentence 58 for VID-0013: "focus goals opinions" (11 words) {"service":"youtube-automation"} 16:50:23
+[[32minfo[39m]: 📋 Asset type for sentence 58: video {"service":"youtube-automation"} 16:50:23
+[[32minfo[39m]: 📋 Found 10 videos for query: "focus goals opinions" {"service":"youtube-automation"} 16:50:24
+[[32minfo[39m]: 📋 Filtered to 8 landscape videos for query: "focus goals opinions" {"service":"youtube-automation"} 16:50:24
+[[32minfo[39m]: 📋 Randomly selected asset 6/8: 5717426 {"service":"youtube-automation"} 16:50:24
+[[32minfo[39m]: 📋 Downloading asset: S-58.mp4 from https://videos.pexels.com/video-files/5717426/5717426-hd_1280_720_25fps.mp4 {"service":"youtube-automation"} 16:50:24
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-58.mp4 {"service":"youtube-automation"} 16:50:26
+[[32minfo[39m]: 📋 Uploaded: S-58.mp4 {"service":"youtube-automation"} 16:50:31
+[[32minfo[39m]: 📋 Updated sentence 58 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:50:38
+[[32minfo[39m]: 📋 Successfully processed sentence 58 for VID-0013: S-58.mp4 {"service":"youtube-automation"} 16:50:38
+[[32minfo[39m]: 📋 ✅ 40/47 Success: Sentence 58 → S-58.mp4 {"service":"youtube-automation"} 16:50:38
+[[32minfo[39m]: 📋 🔄 Processing 41/47: Sentence 59 - "person phone side" {"service":"youtube-automation"} 16:50:39
+[[32minfo[39m]: 📋 Processing sentence 59 for VID-0013: "person phone side" (9 words) {"service":"youtube-automation"} 16:50:39
+[[32minfo[39m]: 📋 Asset type for sentence 59: video {"service":"youtube-automation"} 16:50:39
+[[32minfo[39m]: 📋 Found 10 videos for query: "person phone side" {"service":"youtube-automation"} 16:50:40
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "person phone side" {"service":"youtube-automation"} 16:50:40
+[[32minfo[39m]: 📋 Randomly selected asset 4/5: 6332575 {"service":"youtube-automation"} 16:50:40
+[[32minfo[39m]: 📋 Downloading asset: S-59.mp4 from https://videos.pexels.com/video-files/6332575/6332575-hd_2048_1080_25fps.mp4 {"service":"youtube-automation"} 16:50:40
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-59.mp4 {"service":"youtube-automation"} 16:51:00
+[[32minfo[39m]: 📋 Uploaded: S-59.mp4 {"service":"youtube-automation"} 16:51:06
+[[32minfo[39m]: 📋 Updated sentence 59 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:51:11
+[[32minfo[39m]: 📋 Successfully processed sentence 59 for VID-0013: S-59.mp4 {"service":"youtube-automation"} 16:51:11
+[[32minfo[39m]: 📋 ✅ 41/47 Success: Sentence 59 → S-59.mp4 {"service":"youtube-automation"} 16:51:11
+[[32minfo[39m]: 📋 🔄 Processing 42/47: Sentence 60 - "relationship caf subjects" {"service":"youtube-automation"} 16:51:13
+[[32minfo[39m]: 📋 Processing sentence 60 for VID-0013: "relationship caf subjects" (6 words) {"service":"youtube-automation"} 16:51:13
+[[32minfo[39m]: 📋 Asset type for sentence 60: photo {"service":"youtube-automation"} 16:51:13
+[[32minfo[39m]: 📋 Found 10 photos for query: "relationship caf subjects" {"service":"youtube-automation"} 16:51:14
+[[32minfo[39m]: 📋 Randomly selected asset 6/10: 34009460 {"service":"youtube-automation"} 16:51:14
+[[32minfo[39m]: 📋 Downloading asset: S-60.jpg from https://images.pexels.com/photos/34009460/pexels-photo-34009460.jpeg {"service":"youtube-automation"} 16:51:14
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-60.jpg {"service":"youtube-automation"} 16:51:14
+[[32minfo[39m]: 📋 Uploaded: S-60.jpg {"service":"youtube-automation"} 16:51:18
+[[32minfo[39m]: 📋 Updated sentence 60 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:51:20
+[[32minfo[39m]: 📋 Successfully processed sentence 60 for VID-0013: S-60.jpg {"service":"youtube-automation"} 16:51:20
+[[32minfo[39m]: 📋 ✅ 42/47 Success: Sentence 60 → S-60.jpg {"service":"youtube-automation"} 16:51:20
+[[32minfo[39m]: 📋 🔄 Processing 43/47: Sentence 61 - "people subject premium" {"service":"youtube-automation"} 16:51:21
+[[32minfo[39m]: 📋 Processing sentence 61 for VID-0013: "people subject premium" (10 words) {"service":"youtube-automation"} 16:51:21
+[[32minfo[39m]: 📋 Asset type for sentence 61: video {"service":"youtube-automation"} 16:51:21
+[[32minfo[39m]: 📋 Found 10 videos for query: "people subject premium" {"service":"youtube-automation"} 16:51:22
+[[32minfo[39m]: 📋 Filtered to 4 landscape videos for query: "people subject premium" {"service":"youtube-automation"} 16:51:22
+[[32minfo[39m]: 📋 Randomly selected asset 4/4: 5199631 {"service":"youtube-automation"} 16:51:22
+[[32minfo[39m]: 📋 Downloading asset: S-61.mp4 from https://videos.pexels.com/video-files/5199631/5199631-hd_1920_1080_25fps.mp4 {"service":"youtube-automation"} 16:51:22
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-61.mp4 {"service":"youtube-automation"} 16:51:22
+[[32minfo[39m]: 📋 Uploaded: S-61.mp4 {"service":"youtube-automation"} 16:51:24
+[[32minfo[39m]: 📋 Updated sentence 61 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:51:26
+[[32minfo[39m]: 📋 Successfully processed sentence 61 for VID-0013: S-61.mp4 {"service":"youtube-automation"} 16:51:26
+[[32minfo[39m]: 📋 ✅ 43/47 Success: Sentence 61 → S-61.mp4 {"service":"youtube-automation"} 16:51:26
+[[32minfo[39m]: 📋 🔄 Processing 44/47: Sentence 62 - "people office subject" {"service":"youtube-automation"} 16:51:27
+[[32minfo[39m]: 📋 Processing sentence 62 for VID-0013: "people office subject" (9 words) {"service":"youtube-automation"} 16:51:27
+[[32minfo[39m]: 📋 Asset type for sentence 62: video {"service":"youtube-automation"} 16:51:27
+[[32minfo[39m]: 📋 Found 10 videos for query: "people office subject" {"service":"youtube-automation"} 16:51:28
+[[32minfo[39m]: 📋 Filtered to 6 landscape videos for query: "people office subject" {"service":"youtube-automation"} 16:51:28
+[[32minfo[39m]: 📋 Randomly selected asset 4/6: 6985451 {"service":"youtube-automation"} 16:51:28
+[[32minfo[39m]: 📋 Downloading asset: S-62.mp4 from https://videos.pexels.com/video-files/6985451/6985451-hd_1280_720_50fps.mp4 {"service":"youtube-automation"} 16:51:28
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-62.mp4 {"service":"youtube-automation"} 16:51:29
+[[32minfo[39m]: 📋 Uploaded: S-62.mp4 {"service":"youtube-automation"} 16:51:31
+[[32minfo[39m]: 📋 Updated sentence 62 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:51:36
+[[32minfo[39m]: 📋 Successfully processed sentence 62 for VID-0013: S-62.mp4 {"service":"youtube-automation"} 16:51:36
+[[32minfo[39m]: 📋 ✅ 44/47 Success: Sentence 62 → S-62.mp4 {"service":"youtube-automation"} 16:51:36
+[[32minfo[39m]: 📋 🔄 Processing 45/47: Sentence 63 - "office phone water" {"service":"youtube-automation"} 16:51:37
+[[32minfo[39m]: 📋 Processing sentence 63 for VID-0013: "office phone water" (10 words) {"service":"youtube-automation"} 16:51:37
+[[32minfo[39m]: 📋 Asset type for sentence 63: video {"service":"youtube-automation"} 16:51:37
+[[32minfo[39m]: 📋 Found 10 videos for query: "office phone water" {"service":"youtube-automation"} 16:51:38
+[[32minfo[39m]: 📋 Filtered to 3 landscape videos for query: "office phone water" {"service":"youtube-automation"} 16:51:38
+[[32minfo[39m]: 📋 Randomly selected asset 3/3: 5212608 {"service":"youtube-automation"} 16:51:38
+[[32minfo[39m]: 📋 Downloading asset: S-63.mp4 from https://videos.pexels.com/video-files/5212608/5212608-hd_1920_1080_25fps.mp4 {"service":"youtube-automation"} 16:51:38
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-63.mp4 {"service":"youtube-automation"} 16:51:39
+[[32minfo[39m]: 📋 Uploaded: S-63.mp4 {"service":"youtube-automation"} 16:51:42
+[[32minfo[39m]: 📋 Updated sentence 63 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:51:47
+[[32minfo[39m]: 📋 Successfully processed sentence 63 for VID-0013: S-63.mp4 {"service":"youtube-automation"} 16:51:47
+[[32minfo[39m]: 📋 ✅ 45/47 Success: Sentence 63 → S-63.mp4 {"service":"youtube-automation"} 16:51:47
+[[32minfo[39m]: 📋 🔄 Processing 46/47: Sentence 64 - "office inspiration figure" {"service":"youtube-automation"} 16:51:48
+[[32minfo[39m]: 📋 Processing sentence 64 for VID-0013: "office inspiration figure" (9 words) {"service":"youtube-automation"} 16:51:48
+[[32minfo[39m]: 📋 Asset type for sentence 64: video {"service":"youtube-automation"} 16:51:48
+[[32minfo[39m]: 📋 Found 10 videos for query: "office inspiration figure" {"service":"youtube-automation"} 16:51:49
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "office inspiration figure" {"service":"youtube-automation"} 16:51:49
+[[32minfo[39m]: 📋 Randomly selected asset 3/5: 3254006 {"service":"youtube-automation"} 16:51:49
+[[32minfo[39m]: 📋 Downloading asset: S-64.mp4 from https://videos.pexels.com/video-files/3254006/3254006-hd_1280_720_25fps.mp4 {"service":"youtube-automation"} 16:51:49
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-64.mp4 {"service":"youtube-automation"} 16:51:49
+[[32minfo[39m]: 📋 Uploaded: S-64.mp4 {"service":"youtube-automation"} 16:51:52
+[[32minfo[39m]: 📋 Updated sentence 64 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:52:01
+[[32minfo[39m]: 📋 Successfully processed sentence 64 for VID-0013: S-64.mp4 {"service":"youtube-automation"} 16:52:01
+[[32minfo[39m]: 📋 ✅ 46/47 Success: Sentence 64 → S-64.mp4 {"service":"youtube-automation"} 16:52:01
+[[32minfo[39m]: 📋 🔄 Processing 47/47: Sentence 65 - "lifestyle focus figure" {"service":"youtube-automation"} 16:52:02
+[[32minfo[39m]: 📋 Processing sentence 65 for VID-0013: "lifestyle focus figure" (9 words) {"service":"youtube-automation"} 16:52:02
+[[32minfo[39m]: 📋 Asset type for sentence 65: video {"service":"youtube-automation"} 16:52:02
+[[32minfo[39m]: 📋 Found 10 videos for query: "lifestyle focus figure" {"service":"youtube-automation"} 16:52:03
+[[32minfo[39m]: 📋 Filtered to 5 landscape videos for query: "lifestyle focus figure" {"service":"youtube-automation"} 16:52:03
+[[32minfo[39m]: 📋 Randomly selected asset 1/5: 5149354 {"service":"youtube-automation"} 16:52:03
+[[32minfo[39m]: 📋 Downloading asset: S-65.mp4 from https://videos.pexels.com/video-files/5149354/5149354-hd_1280_720_24fps.mp4 {"service":"youtube-automation"} 16:52:03
+[[32minfo[39m]: 📋 Asset downloaded successfully: /tmp/pexels-assets/S-65.mp4 {"service":"youtube-automation"} 16:52:04
+[[32minfo[39m]: 📋 Uploaded: S-65.mp4 {"service":"youtube-automation"} 16:52:06
+[[32minfo[39m]: 📋 Updated sentence 65 in VID-0013: status=Complete, imageUrl=provided {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋 Successfully processed sentence 65 for VID-0013: S-65.mp4 {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋 ✅ 47/47 Success: Sentence 65 → S-65.mp4 {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋 ✅ Completed Pexels asset processing for VID-0013 in 526s: {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋    📊 Processed: 47/47 sentences {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋    ✅ Successful: 47 assets downloaded {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋    ❌ Failed: 0 downloads {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋    📹 Video assets: 41 {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋    📸 Photo assets: 6 {"service":"youtube-automation"} 16:52:10
+[[32minfo[39m]: 📋    ⏭️ Skipped: 18 (already have assets) {"service":"youtube-automation"} 16:52:10
+
+────────────────────────────────────────
+📋 Processing Results
+────────────────────────────────────────
+✅ Processing completed in 526 seconds
+
+📊 SUMMARY:
+   Total Sentences: 65
+   Successfully Processed: 47
+   Failed: 0
+   Video Assets: 41
+   Photo Assets: 6
+
+✅ SUCCESS: 47 assets downloaded and uploaded to Google Drive
+
+────────────────────────────────────────
+📋 Detailed Results
+────────────────────────────────────────
+✅ S-19: S-19.jpg (PHOTO) - Pexels ID: 13537707
+✅ S-20: S-20.mp4 (VIDEO) - Pexels ID: 3545769
+✅ S-21: S-21.mp4 (VIDEO) - Pexels ID: 6281208
+✅ S-22: S-22.mp4 (VIDEO) - Pexels ID: 7147800
+✅ S-23: S-23.mp4 (VIDEO) - Pexels ID: 7789165
+✅ S-24: S-24.mp4 (VIDEO) - Pexels ID: 6773874
+✅ S-25: S-25.mp4 (VIDEO) - Pexels ID: 4433139
+✅ S-26: S-26.mp4 (VIDEO) - Pexels ID: 8631870
+✅ S-27: S-27.mp4 (VIDEO) - Pexels ID: 3129424
+✅ S-28: S-28.mp4 (VIDEO) - Pexels ID: 8126000
+✅ S-29: S-29.mp4 (VIDEO) - Pexels ID: 6631465
+✅ S-30: S-30.mp4 (VIDEO) - Pexels ID: 6561845
+✅ S-31: S-31.mp4 (VIDEO) - Pexels ID: 6774633
+✅ S-32: S-32.mp4 (VIDEO) - Pexels ID: 5717468
+✅ S-33: S-33.mp4 (VIDEO) - Pexels ID: 6918039
+✅ S-34: S-34.mp4 (VIDEO) - Pexels ID: 8088611
+✅ S-35: S-35.mp4 (VIDEO) - Pexels ID: 7647788
+✅ S-36: S-36.mp4 (VIDEO) - Pexels ID: 8088611
+✅ S-37: S-37.jpg (PHOTO) - Pexels ID: 3782212
+✅ S-38: S-38.mp4 (VIDEO) - Pexels ID: 7686627
+✅ S-39: S-39.mp4 (VIDEO) - Pexels ID: 3719162
+✅ S-40: S-40.mp4 (VIDEO) - Pexels ID: 2750158
+✅ S-41: S-41.mp4 (VIDEO) - Pexels ID: 6134589
+✅ S-42: S-42.mp4 (VIDEO) - Pexels ID: 3254066
+✅ S-43: S-43.mp4 (VIDEO) - Pexels ID: 7579950
+✅ S-44: S-44.mp4 (VIDEO) - Pexels ID: 31159285
+✅ S-45: S-45.mp4 (VIDEO) - Pexels ID: 4100353
+✅ S-46: S-46.mp4 (VIDEO) - Pexels ID: 4486541
+✅ S-47: S-47.mp4 (VIDEO) - Pexels ID: 3129424
+✅ S-48: S-48.mp4 (VIDEO) - Pexels ID: 7535113
+✅ S-49: S-49.mp4 (VIDEO) - Pexels ID: 6030319
+✅ S-50: S-50.mp4 (VIDEO) - Pexels ID: 7947507
+✅ S-51: S-51.mp4 (VIDEO) - Pexels ID: 3195532
+✅ S-52: S-52.mp4 (VIDEO) - Pexels ID: 27721830
+✅ S-53: S-53.jpg (PHOTO) - Pexels ID: 8837155
+✅ S-54: S-54.jpg (PHOTO) - Pexels ID: 7562318
+✅ S-55: S-55.mp4 (VIDEO) - Pexels ID: 3129424
+✅ S-56: S-56.mp4 (VIDEO) - Pexels ID: 34039524
+✅ S-57: S-57.jpg (PHOTO) - Pexels ID: 5530583
+✅ S-58: S-58.mp4 (VIDEO) - Pexels ID: 5717426
+✅ S-59: S-59.mp4 (VIDEO) - Pexels ID: 6332575
+✅ S-60: S-60.jpg (PHOTO) - Pexels ID: 34009460
+✅ S-61: S-61.mp4 (VIDEO) - Pexels ID: 5199631
+✅ S-62: S-62.mp4 (VIDEO) - Pexels ID: 6985451
+✅ S-63: S-63.mp4 (VIDEO) - Pexels ID: 5212608
+✅ S-64: S-64.mp4 (VIDEO) - Pexels ID: 3254006
+✅ S-65: S-65.mp4 (VIDEO) - Pexels ID: 5149354
+
+============================================================
+🎬 PROCESSING COMPLETE
+============================================================
+🎉 Asset processing finished for VID-0013

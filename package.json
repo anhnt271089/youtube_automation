@@ -27,7 +27,15 @@
     "queue-status": "node tools/check-generation-queue.js",
     "test-interactive": "node tools/test-interactive-content-system.js",
     "download-pexels-assets": "node tools/download-pexels-assets.js",
-    "test-pexels": "node tools/download-pexels-assets.js --health-check"
+    "test-pexels": "node tools/download-pexels-assets.js --health-check",
+    "start-asset-scheduler": "node tools/start-asset-scheduler.js start",
+    "stop-asset-scheduler": "node tools/start-asset-scheduler.js stop",
+    "asset-scheduler-status": "node tools/start-asset-scheduler.js status",
+    "asset-scheduler-trigger": "node tools/start-asset-scheduler.js trigger",
+    "asset-scheduler-health": "node tools/start-asset-scheduler.js health",
+    "asset-scheduler-stats": "node tools/start-asset-scheduler.js stats",
+    "asset-scheduler-monitor": "node tools/start-asset-scheduler.js monitor",
+    "test-asset-scheduler": "node tools/test-asset-scheduler-integration.js run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
