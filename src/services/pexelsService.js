@@ -261,6 +261,39 @@ class PexelsService {
         return { success: false, reason: 'No search phrase' };
       }
 
+      // FIX: Double-check current status to prevent race conditions
+      // Re-fetch the sentence status to ensure it hasn't been claimed by another process
+      const currentBreakdown = await this.sheetsService.getScriptBreakdown(videoId);
+      const currentSentence = currentBreakdown.find(s =>
+        parseInt(s.sentenceNumber) === parseInt(sentenceNumber)
+      );
+
+      if (!currentSentence) {
+        logger.warn(`Sentence ${sentenceNumber} not found in current breakdown for ${videoId}`);
+        return { success: false, reason: 'Sentence not found in breakdown' };
+      }
+
+      // If status is not "Pending" or empty, another process has claimed it
+      const validPendingStatuses = ['Pending', '', null];
+      if (!validPendingStatuses.includes(currentSentence.status)) {
+        logger.info(`Sentence ${sentenceNumber} already being processed (status: ${currentSentence.status}), skipping duplicate`);
+        return {
+          success: false,
+          reason: 'Already processing or complete',
+          skipped: true,
+          currentStatus: currentSentence.status
+        };
+      }
+
+      // FIX: Atomically claim the sentence by setting status to "Downloading"
+      // This prevents other concurrent processes from downloading the same asset
+      await this.sheetsService.updateSentenceWithImage(
+        videoId,
+        sentenceNumber,
+        '', // No URL yet
+        'Downloading' // Mark as in progress
+      );
+
       logger.info(`Processing sentence ${sentenceNumber} for ${videoId}: "${searchPhrase}" (${wordCount} words)`);
 
       // Determine asset type based on word count
@@ -420,13 +453,15 @@ class PexelsService {
       }
 
       // Filter to only sentences that need processing
+      // FIX: Exclude "Downloading" status to prevent concurrent downloads
       const sentencesToProcess = scriptBreakdown.filter(sentence => {
         return (
           sentence.searchPhrase &&
           sentence.searchPhrase.trim() !== '' &&
           sentence.status !== 'Complete' &&
           sentence.status !== 'Generated' &&
-          sentence.status !== 'Asset Downloaded'
+          sentence.status !== 'Asset Downloaded' &&
+          sentence.status !== 'Downloading' // Exclude in-progress downloads
         );
       });
 
@@ -567,6 +602,61 @@ class PexelsService {
         logger.warn(`${operationName} attempt ${attempt} failed, retrying in ${delay}ms:`, error.message);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
+    }
+  }
+
+  /**
+   * Reset stuck "Downloading" statuses for a video
+   * Useful for recovering from interrupted processing
+   * @param {string} videoId - Video ID to check
+   * @param {number} stuckTimeoutMinutes - Minutes before considering a download stuck (default 30)
+   * @returns {Promise<Object>} Reset results
+   */
+  async resetStuckDownloadingStatuses(videoId, stuckTimeoutMinutes = 30) {
+    try {
+      logger.info(`Checking for stuck "Downloading" statuses for ${videoId}`);
+
+      const breakdown = await this.sheetsService.getScriptBreakdown(videoId);
+      if (!breakdown || breakdown.length === 0) {
+        return { reset: 0, error: 'No script breakdown found' };
+      }
+
+      const downloadingEntries = breakdown.filter(entry =>
+        entry.status === 'Downloading'
+      );
+
+      if (downloadingEntries.length === 0) {
+        logger.info(`No stuck "Downloading" statuses found for ${videoId}`);
+        return { reset: 0, message: 'No entries in Downloading state' };
+      }
+
+      logger.info(`Found ${downloadingEntries.length} entries in "Downloading" state for ${videoId}, resetting to Pending`);
+
+      let resetCount = 0;
+      for (const entry of downloadingEntries) {
+        try {
+          await this.sheetsService.updateSentenceWithImage(
+            videoId,
+            entry.sentenceNumber,
+            '', // Clear any partial URL
+            'Pending' // Reset to Pending so it can be retried
+          );
+          resetCount++;
+        } catch (error) {
+          logger.error(`Failed to reset sentence ${entry.sentenceNumber}:`, error.message);
+        }
+      }
+
+      logger.info(`Reset ${resetCount}/${downloadingEntries.length} stuck "Downloading" statuses for ${videoId}`);
+      return {
+        reset: resetCount,
+        total: downloadingEntries.length,
+        message: `Reset ${resetCount} stuck statuses`
+      };
+
+    } catch (error) {
+      logger.error(`Failed to reset stuck statuses for ${videoId}:`, error.message);
+      return { reset: 0, error: error.message };
     }
   }
 

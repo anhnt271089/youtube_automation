@@ -336,6 +336,7 @@ class AssetDownloadScheduler extends EventEmitter {
   /**
    * Check if video assets have already been processed
    * This helps prevent duplicate processing of the same video
+   * FIX: Also check for "Downloading" status to detect in-progress processing
    */
   async checkIfAssetsAlreadyProcessed(videoId) {
     try {
@@ -344,6 +345,16 @@ class AssetDownloadScheduler extends EventEmitter {
 
       if (!breakdown || breakdown.length === 0) {
         return false;
+      }
+
+      // FIX: Check for "Downloading" status - indicates concurrent processing
+      const downloadingEntries = breakdown.filter(entry =>
+        entry.status === 'Downloading'
+      );
+
+      if (downloadingEntries.length > 0) {
+        logger.debug(`Video ${videoId} is currently being processed: ${downloadingEntries.length} entries in "Downloading" state`);
+        return true; // Treat as processed to avoid concurrent download
       }
 
       // Check if any sentences have image URLs (indicates processing was completed)
