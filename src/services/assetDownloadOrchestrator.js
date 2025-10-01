@@ -205,6 +205,15 @@ class AssetDownloadOrchestrator extends EventEmitter {
   async processAssetsWithRetry(videoId, videoData) {
     let lastError = null;
 
+    // Update Master Sheet status to "Downloading Assets" at the start
+    try {
+      await this.sheetsService.updateMasterSheetStatus(videoId, 'Downloading Assets');
+      logger.info(`✅ Master Sheet status updated to "Downloading Assets" for ${videoId}`);
+    } catch (statusError) {
+      logger.error(`Failed to update Master Sheet status to "Downloading Assets" for ${videoId}:`, statusError.message);
+      // Continue processing even if status update fails
+    }
+
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         logger.info(`🔄 Asset processing attempt ${attempt}/${this.maxRetries} for ${videoId}`);
@@ -232,8 +241,24 @@ class AssetDownloadOrchestrator extends EventEmitter {
           // Update video workflow status if all assets were successful
           if (result.failureCount === 0 && result.successCount === result.totalSentences) {
             await this.updateWorkflowStatus(videoId, 'assets-complete');
+
+            // Update Master Sheet status to "Completed"
+            try {
+              await this.sheetsService.updateMasterSheetStatus(videoId, 'Completed');
+              logger.info(`✅ Master Sheet status updated to "Completed" for ${videoId}`);
+            } catch (statusError) {
+              logger.error(`Failed to update Master Sheet status to "Completed" for ${videoId}:`, statusError.message);
+            }
           } else if (result.successCount > 0) {
             await this.updateWorkflowStatus(videoId, 'assets-partial');
+
+            // Update Master Sheet status to "Completed" (partial success still counts as completed)
+            try {
+              await this.sheetsService.updateMasterSheetStatus(videoId, 'Completed');
+              logger.info(`✅ Master Sheet status updated to "Completed" (partial) for ${videoId}`);
+            } catch (statusError) {
+              logger.error(`Failed to update Master Sheet status to "Completed" for ${videoId}:`, statusError.message);
+            }
           }
 
           return {
@@ -264,6 +289,14 @@ class AssetDownloadOrchestrator extends EventEmitter {
 
     // Update workflow status to indicate failure
     await this.updateWorkflowStatus(videoId, 'assets-failed', lastError?.message);
+
+    // Update Master Sheet status to "Asset Download Failed"
+    try {
+      await this.sheetsService.updateMasterSheetStatus(videoId, 'Asset Download Failed');
+      logger.info(`✅ Master Sheet status updated to "Asset Download Failed" for ${videoId}`);
+    } catch (statusError) {
+      logger.error(`Failed to update Master Sheet status to "Asset Download Failed" for ${videoId}:`, statusError.message);
+    }
 
     return {
       success: false,

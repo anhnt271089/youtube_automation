@@ -1882,6 +1882,40 @@ END OF BACKUP - Original script preserved before regeneration`;
   }
 
   /**
+   * Update Master Sheet status column (Column C) for a video
+   * Provides atomic status updates for workflow tracking
+   * @param {string} videoId - Video ID to update
+   * @param {string} status - New status value
+   * @returns {Promise<boolean>} Success status
+   */
+  async updateMasterSheetStatus(videoId, status) {
+    return this.retryOperation(async () => {
+      logger.info(`📝 Updating Master Sheet status for ${videoId}: ${status}`);
+
+      const videoRow = await this.findVideoRow(videoId);
+      if (!videoRow || !videoRow.data) {
+        throw new Error(`Video not found: ${videoId}`);
+      }
+
+      // Update status column (Column C, index 2)
+      const columnLetter = this.columnIndexToLetter(this.masterColumns.status);
+      const range = `Videos!${columnLetter}${videoRow.rowIndex}`;
+
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.masterSheetId,
+        range: range,
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: [[status]]
+        }
+      });
+
+      logger.info(`✅ Master Sheet status updated for ${videoId}: ${status}`);
+      return true;
+    }, 'updateMasterSheetStatus');
+  }
+
+  /**
    * Helper: Convert column index to letter (0=A, 1=B, etc.)
    */
   columnIndexToLetter(index) {
