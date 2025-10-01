@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { config, validateConfig } from '../config/config.js';
 import WorkflowService from './services/workflowService.js';
 import lockManager from './services/lockManagerService.js';
+import AssetDownloadScheduler from './services/assetDownloadScheduler.js';
 import logger from './utils/logger.js';
 import fs from 'fs';
 
@@ -10,6 +11,7 @@ class YouTubeAutomation {
     this.workflowService = new WorkflowService();
     this.jobs = new Map();
     this.isRunning = false;
+    this.assetDownloadScheduler = null; // Asset download scheduler instance
   }
 
   async initialize() {
@@ -231,13 +233,13 @@ class YouTubeAutomation {
       // Monitor manual status changes in Google Sheets every 5 minutes
       this.jobs.set('statusMonitor', cron.schedule('*/5 * * * *', async () => {
         if (!this.isRunning) return;
-        
+
         const mutexAcquired = lockManager.acquireCronMutex('statusMonitor');
         if (!mutexAcquired) {
           logger.warn('Skipping status monitoring - already running');
           return;
         }
-        
+
         try {
           logger.info('Monitoring status changes...');
           await this.workflowService.processStatusChanges();
@@ -252,10 +254,149 @@ class YouTubeAutomation {
       }));
 
       logger.info('Cron jobs configured successfully');
+
+      // Initialize Asset Download Scheduler if enabled
+      await this.initializeAssetDownloadScheduler();
     } catch (error) {
       logger.error('Error setting up cron jobs:', error);
       throw error;
     }
+  }
+
+  /**
+   * Initialize and start Asset Download Scheduler
+   * Runs automatic asset downloads for approved scripts
+   */
+  async initializeAssetDownloadScheduler() {
+    try {
+      // Check if asset download scheduler is enabled
+      if (!config.assetDownloadScheduler?.enabled) {
+        logger.info('🔕 Asset Download Scheduler is disabled in config');
+        return;
+      }
+
+      logger.info('🤖 Initializing Asset Download Scheduler...');
+
+      // Create scheduler instance
+      this.assetDownloadScheduler = new AssetDownloadScheduler();
+
+      // Set up event listeners for monitoring and logging
+      this.setupAssetSchedulerEventListeners();
+
+      // Start the scheduler
+      const started = this.assetDownloadScheduler.start();
+
+      if (started) {
+        logger.info('✅ Asset Download Scheduler started successfully', {
+          cronPattern: this.assetDownloadScheduler.cronPattern,
+          maxConcurrent: this.assetDownloadScheduler.maxConcurrentProcessing,
+          cooldownMinutes: this.assetDownloadScheduler.cooldownPeriodMinutes
+        });
+      } else {
+        logger.warn('⚠️ Asset Download Scheduler failed to start');
+      }
+
+    } catch (error) {
+      logger.error('❌ Failed to initialize Asset Download Scheduler:', error);
+      // Don't throw - allow system to continue even if scheduler fails
+    }
+  }
+
+  /**
+   * Set up event listeners for Asset Download Scheduler
+   * Provides logging and monitoring of scheduler activities
+   */
+  setupAssetSchedulerEventListeners() {
+    if (!this.assetDownloadScheduler) return;
+
+    // Scheduler lifecycle events
+    this.assetDownloadScheduler.on('schedulerStarted', (data) => {
+      logger.info('📅 Asset Download Scheduler started', {
+        cronPattern: data.cronPattern,
+        nextRun: data.nextRunTime
+      });
+    });
+
+    this.assetDownloadScheduler.on('schedulerStopped', (data) => {
+      logger.info('🛑 Asset Download Scheduler stopped', {
+        totalRuns: data.totalRuns,
+        lastRun: data.lastRunTime
+      });
+    });
+
+    // Execution events
+    this.assetDownloadScheduler.on('executionStarted', (data) => {
+      logger.debug(`🔍 Asset scheduler execution started [${data.executionId}]`);
+    });
+
+    this.assetDownloadScheduler.on('executionCompleted', (data) => {
+      logger.info(`✅ Asset scheduler execution completed [${data.executionId}]`, {
+        duration: `${data.duration}ms`,
+        videosProcessed: data.videosProcessed,
+        result: data.result
+      });
+    });
+
+    this.assetDownloadScheduler.on('executionError', (data) => {
+      logger.error(`❌ Asset scheduler execution error [${data.executionId}]`, {
+        error: data.error,
+        consecutiveErrors: data.consecutiveErrors
+      });
+    });
+
+    // Video processing events
+    this.assetDownloadScheduler.on('videoProcessed', (data) => {
+      logger.info(`📹 Video assets processed: ${data.videoId}`, {
+        title: data.title,
+        result: data.result
+      });
+    });
+
+    this.assetDownloadScheduler.on('videoProcessingFailed', (data) => {
+      logger.warn(`⚠️ Video asset processing failed: ${data.videoId}`, {
+        title: data.title,
+        error: data.error
+      });
+    });
+
+    this.assetDownloadScheduler.on('videoProcessingError', (data) => {
+      logger.error(`💥 Video asset processing error: ${data.videoId}`, {
+        title: data.title,
+        error: data.error
+      });
+    });
+  }
+
+  /**
+   * Get Asset Download Scheduler status
+   * @returns {Object} Scheduler status information
+   */
+  getAssetSchedulerStatus() {
+    if (!this.assetDownloadScheduler) {
+      return {
+        enabled: false,
+        message: 'Asset Download Scheduler not initialized'
+      };
+    }
+
+    return {
+      enabled: true,
+      status: this.assetDownloadScheduler.getStatus(),
+      isRunning: this.assetDownloadScheduler.isRunning
+    };
+  }
+
+  /**
+   * Manually trigger asset download scheduler
+   * @param {string} reason - Reason for manual trigger
+   * @returns {Promise<Object>} Trigger result
+   */
+  async triggerAssetScheduler(reason = 'Manual trigger from main system') {
+    if (!this.assetDownloadScheduler) {
+      throw new Error('Asset Download Scheduler not initialized');
+    }
+
+    return await this.assetDownloadScheduler.triggerManualExecution(reason);
   }
 
   async start() {
@@ -289,13 +430,19 @@ class YouTubeAutomation {
   async stop() {
     try {
       logger.info('Stopping YouTube Automation System...');
-      
+
       this.isRunning = false;
-      
+
       // Stop all cron jobs
       this.jobs.forEach((job) => {
         job.stop();
       });
+
+      // Stop Asset Download Scheduler
+      if (this.assetDownloadScheduler && this.assetDownloadScheduler.isRunning) {
+        logger.info('Stopping Asset Download Scheduler...');
+        this.assetDownloadScheduler.stop();
+      }
 
       logger.info('System stopped successfully');
       return true;
@@ -459,6 +606,7 @@ class YouTubeAutomation {
       isRunning: this.isRunning,
       activeJobs: Array.from(this.jobs.keys()),
       stats: this.workflowService.getProcessingStats(),
+      assetScheduler: this.getAssetSchedulerStatus(),
       uptime: process.uptime(),
       environment: config.app.nodeEnv
     };
