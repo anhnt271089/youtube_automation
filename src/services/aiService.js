@@ -1264,6 +1264,11 @@ Return only the style name (one word) that best matches this content.`;
     }
   }
 
+  /**
+   * DEPRECATED: 2025-01-10 - Image prompt generation no longer used
+   * Now using automated asset downloads from Pexels instead of AI-generated image prompts
+   * @deprecated Use automated asset downloads from Pexels
+   */
   async generateImagePrompts(scriptSentences, videoStyle = null, metadata = {}) {
     try {
       // Select consistent style for the entire video if not provided
@@ -2280,14 +2285,25 @@ Generate a detailed Leonardo AI prompt that creates this professional-style thum
       let thumbnail = null;
       let generatedImages = [];
 
+      // DEPRECATED: 2025-01-10 - Image prompt generation no longer used (using Pexels asset downloads instead)
       // Generate image prompts and editor keywords if script breakdown is enabled
       if (config.app.enableScriptBreakdown && scriptSentences.length > 0) {
-        logger.info('Script breakdown enabled - generating prompts and keywords');
-        
-        [imagePromptsData, editorKeywords] = await Promise.all([
-          this.generateImagePrompts(scriptSentences, null, enhancedVideoData),
-          this.generateEditorKeywords(scriptSentences)
-        ]);
+        logger.info('Script breakdown enabled - generating keywords only (image prompts deprecated)');
+
+        // DEPRECATED: Image prompts no longer generated - using automated asset downloads from Pexels
+        // [imagePromptsData, editorKeywords] = await Promise.all([
+        //   this.generateImagePrompts(scriptSentences, null, enhancedVideoData),
+        //   this.generateEditorKeywords(scriptSentences)
+        // ]);
+
+        // Generate only editor keywords (image prompts deprecated)
+        editorKeywords = await this.generateEditorKeywords(scriptSentences);
+
+        // Create empty image prompts array to maintain compatibility
+        imagePromptsData = {
+          prompts: scriptSentences.map(() => ''), // Empty prompts
+          videoStyle: null
+        };
       }
 
       // Only generate actual images if image generation is enabled

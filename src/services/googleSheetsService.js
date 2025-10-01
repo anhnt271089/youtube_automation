@@ -1035,24 +1035,28 @@ END OF BACKUP - Original script preserved before regeneration`;
         const fullScriptText = scriptSentences[i] ? scriptSentences[i].toString().trim() : '';
         row[this.scriptColumns.scriptText] = fullScriptText;
 
+        // DEPRECATED: 2025-01-10 - Image prompts no longer generated (using automated asset downloads from Pexels)
         // Extract image prompt text properly (handle both string and object formats)
-        let fullImagePrompt = '';
-        if (imagePrompts[i]) {
-          if (typeof imagePrompts[i] === 'string') {
-            fullImagePrompt = imagePrompts[i].trim();
-          } else if (imagePrompts[i].prompt) {
-            fullImagePrompt = imagePrompts[i].prompt.trim();
-          } else if (imagePrompts[i].toString) {
-            fullImagePrompt = imagePrompts[i].toString().trim();
-          }
-        }
-        row[this.scriptColumns.imagePrompt] = fullImagePrompt;
+        // let fullImagePrompt = '';
+        // if (imagePrompts[i]) {
+        //   if (typeof imagePrompts[i] === 'string') {
+        //     fullImagePrompt = imagePrompts[i].trim();
+        //   } else if (imagePrompts[i].prompt) {
+        //     fullImagePrompt = imagePrompts[i].prompt.trim();
+        //   } else if (imagePrompts[i].toString) {
+        //     fullImagePrompt = imagePrompts[i].toString().trim();
+        //   }
+        // }
+        // row[this.scriptColumns.imagePrompt] = fullImagePrompt;
+
+        // Set Image Prompt column to N/A (deprecated - now using automated asset downloads)
+        row[this.scriptColumns.imagePrompt] = 'N/A (using automated asset downloads)';
 
         // Generate enhanced search phrase for Pexels asset search
-        // Combine script text analysis with image prompt for better relevance
+        // UPDATED: 2025-01-10 - Only using script text (image prompts deprecated)
         let searchPhrase = '';
-        if (fullScriptText || fullImagePrompt) {
-          searchPhrase = this.generateEnhancedSearchPhrase(fullScriptText, fullImagePrompt);
+        if (fullScriptText) {
+          searchPhrase = this.generateEnhancedSearchPhrase(fullScriptText, ''); // Empty string for deprecated imagePrompt param
         }
         row[this.scriptColumns.searchPhrase] = searchPhrase;
 
