@@ -1,0 +1,106 @@
+{
+  "videoId": "VID-0019",
+  "version": "1.0",
+  "createdAt": "2025-10-01T08:03:25.852Z",
+  "originalMetadata": {
+    "videoId": "xZC7iaHXEms",
+    "title": "Take back control of your mind ( dopamine trap )",
+    "description": "This video breaks down how dopamine is hijacking your brain through social media, gaming, and instant pleasures—leaving you anxious, unfocused, and unmotivated. You'll learn how to escape the trap, rewire your brain, and tap into the real dopamine that fuels discipline, success, and creativity\n.\nsubscribe ( optional )\n.\n.\n1. How to escape the dopamine trap\n\n\n2. Why you can't focus anymore (dopamine detox explained)\n\n\nDopamine detox: reset your brain in 30 days\nSocial media addiction is destroying your brain\nWhat is dopamine detox and does it work?\nThe real reason you feel lazy all the time\nHow to quit instant gratification\nRewire your brain for focus and discipline\nWhy deep work is impossible today (and how to fix it)\nHow Elon Musk and monks control their dopamine.\n.\n.\n#DopamineDetox #MindControl #FocusOverPleasure #motivation #discipline #facts",
+    "channelTitle": "BeyondBeing",
+    "publishedAt": "2025-04-14T17:58:28Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/xZC7iaHXEms/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/xZC7iaHXEms/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/xZC7iaHXEms/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/xZC7iaHXEms/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      },
+      "maxres": {
+        "url": "https://i.ytimg.com/vi/xZC7iaHXEms/maxresdefault.jpg",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "duration": "1:28",
+    "viewCount": 6931,
+    "likeCount": 0,
+    "tags": [],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "This video breaks down how dopamine is hijacking your brain through social media, gaming, and instant pleasures—leaving you anxious, unfocused, and unmotivated",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "You'll learn how to escape the trap, rewire your brain, and tap into the real dopamine that fuels discipline, success, and creativity",
+        "start": 3000,
+        "duration": 3000
+      },
+      {
+        "text": "subscribe ( optional )",
+        "start": 6000,
+        "duration": 3000
+      },
+      {
+        "text": "How to escape the dopamine trap 2",
+        "start": 9000,
+        "duration": 3000
+      },
+      {
+        "text": "Why you can't focus anymore (dopamine detox explained) Dopamine detox: reset your brain in 30 days Social media addiction is destroying your brain What is dopamine detox and does it work",
+        "start": 12000,
+        "duration": 3000
+      },
+      {
+        "text": "The real reason you feel lazy all the time How to quit instant gratification Rewire your brain for focus and discipline Why deep work is impossible today (and how to fix it) How Elon Musk and monks control their dopamine",
+        "start": 15000,
+        "duration": 3000
+      },
+      {
+        "text": "#DopamineDetox #MindControl #FocusOverPleasure #motivation #discipline #facts",
+        "start": 18000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "This video breaks down how dopamine is hijacking your brain through social media, gaming, and instant pleasures—leaving you anxious, unfocused, and unmotivated You'll learn how to escape the trap, rewire your brain, and tap into the real dopamine that fuels discipline, success, and creativity subscribe ( optional ) How to escape the dopamine trap 2 Why you can't focus anymore (dopamine detox explained) Dopamine detox: reset your brain in 30 days Social media addiction is destroying your brain What is dopamine detox and does it work The real reason you feel lazy all the time How to quit instant gratification Rewire your brain for focus and discipline Why deep work is impossible today (and how to fix it) How Elon Musk and monks control their dopamine #DopamineDetox #MindControl #FocusOverPleasure #motivation #discipline #facts",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 836,
+      "segments": 7,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/xZC7iaHXEms/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=xZC7iaHXEms",
+    "fetchedAt": "2025-10-01T08:03:25.852Z",
+    "checksum": "3595cd5fc76a78bb5ad0c78ec88b5fe745484a08c0d177b72356fd1fe430626e"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-10-01T08:03:25.852Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}
