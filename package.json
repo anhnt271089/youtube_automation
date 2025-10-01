@@ -35,7 +35,14 @@
     "asset-scheduler-health": "node tools/start-asset-scheduler.js health",
     "asset-scheduler-stats": "node tools/start-asset-scheduler.js stats",
     "asset-scheduler-monitor": "node tools/start-asset-scheduler.js monitor",
-    "test-asset-scheduler": "node tools/test-asset-scheduler-integration.js run"
+    "test-asset-scheduler": "node tools/test-asset-scheduler-integration.js run",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:delete": "pm2 delete ecosystem.config.cjs",
+    "pm2:logs": "pm2 logs",
+    "pm2:monit": "pm2 monit",
+    "pm2:status": "pm2 status"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
