@@ -275,11 +275,19 @@ class AssetDownloadScheduler extends EventEmitter {
         const row = values[i];
         const videoId = row[this.sheetsService.masterColumns.videoId];
         const scriptApproved = row[this.sheetsService.masterColumns.scriptApproved];
+        const status = row[this.sheetsService.masterColumns.status];
         const detailWorkbookUrl = row[this.sheetsService.masterColumns.detailWorkbookUrl];
         const title = row[this.sheetsService.masterColumns.title] || 'Unknown Title';
 
         // Skip if no video ID or not approved
         if (!videoId || scriptApproved !== 'Approved') {
+          continue;
+        }
+
+        // FIX: Skip if already completed or currently downloading (prevents duplicate processing)
+        if (status === 'Completed' || status === 'Downloading Assets') {
+          logger.debug(`Skipping ${videoId}: Status is "${status}" (already processed or in progress)`);
+          this.statisticsData.videosSkipped++;
           continue;
         }
 
