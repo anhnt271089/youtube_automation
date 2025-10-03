@@ -1,0 +1,97 @@
+{
+  "videoId": "VID-0029",
+  "version": "1.0",
+  "createdAt": "2025-10-03T05:13:59.028Z",
+  "originalMetadata": {
+    "videoId": "UfSc7P6-x2s",
+    "title": "How to actually unfu** your Attention Span",
+    "description": "Your attention span isn’t broken(prolly), it’s just bored. In this video, you’ll learn how to fix your focus in 70(or 71) seconds without deleting TikTok or forcing a dopamine detox. Instead, discover the simple strategy that Ed Sheeran used to turn his stutter into stage confidence, and how you can use it to rebuild your attention span and unlock [deep] focus.\n\ntopics covered \nhow to unfu*k your attention span \ngive me 71 seconds, and I'll fix your attention span\nthe real reason you can't focus anymore \n\ndiscord\nhttps://discord.gg/nQTjYGCFkz\n\n#attention #focus #productivity #selfimprovement #dopamine",
+    "channelTitle": "Nextcore",
+    "publishedAt": "2025-09-04T11:30:34Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/UfSc7P6-x2s/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/UfSc7P6-x2s/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/UfSc7P6-x2s/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/UfSc7P6-x2s/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      }
+    },
+    "duration": "1:11",
+    "viewCount": 9846,
+    "likeCount": 725,
+    "tags": [
+      "attention span",
+      "focus tips",
+      "how to focus",
+      "productivity hacks",
+      "improve concentration",
+      "dopamine detox",
+      "self improvement",
+      "fix attention",
+      "stop procrastinating",
+      "build discipline"
+    ],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "Your attention span isn’t broken(prolly), it’s just bored",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "In this video, you’ll learn how to fix your focus in 70(or 71) seconds without deleting TikTok or forcing a dopamine detox",
+        "start": 3000,
+        "duration": 3000
+      },
+      {
+        "text": "Instead, discover the simple strategy that Ed Sheeran used to turn his stutter into stage confidence, and how you can use it to rebuild your attention span and unlock [deep] focus",
+        "start": 6000,
+        "duration": 3000
+      },
+      {
+        "text": "topics covered  how to unfu*k your attention span  give me 71 seconds, and I'll fix your attention span the real reason you can't focus anymore  discord #attention #focus #productivity #selfimprovement #dopamine",
+        "start": 9000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "Your attention span isn’t broken(prolly), it’s just bored In this video, you’ll learn how to fix your focus in 70(or 71) seconds without deleting TikTok or forcing a dopamine detox Instead, discover the simple strategy that Ed Sheeran used to turn his stutter into stage confidence, and how you can use it to rebuild your attention span and unlock [deep] focus topics covered  how to unfu*k your attention span  give me 71 seconds, and I'll fix your attention span the real reason you can't focus anymore  discord #attention #focus #productivity #selfimprovement #dopamine",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 572,
+      "segments": 4,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/UfSc7P6-x2s/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=UfSc7P6-x2s",
+    "fetchedAt": "2025-10-03T05:13:59.028Z",
+    "checksum": "d067481667a4e807c0382e27a60467043224f1e966ceed0d3a5b1d84637df063"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-10-03T05:13:59.028Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}

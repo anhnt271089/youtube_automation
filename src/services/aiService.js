@@ -1130,18 +1130,19 @@ Return EXACTLY ${config.app.maxScriptSentences} sentences or fewer as a JSON arr
       
       if (sentences.length > bufferLimit) {
         logger.warn(`AI generated ${sentences.length} sentences, exceeds buffer limit of ${bufferLimit} (base limit: ${maxSentences}). Will regenerate with stricter constraints.`);
-        
-        // Retry with stricter prompt
-        logger.info('Regenerating script breakdown with stricter sentence limit enforcement...');
-        
-        const stricterPrompt = `${prompt}\n\n🚨 STRICT ENFORCEMENT: You MUST generate EXACTLY ${maxSentences} sentences or fewer. This is attempt #2 - the first attempt generated too many sentences. Count carefully and stop at sentence ${maxSentences} maximum.`;
-        
-        const retryResponse = await this.anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 4000,
-          messages: [{ role: 'user', content: stricterPrompt }]
-        });
-        let retryResponseText = retryResponse.content[0].text.trim();
+
+        try {
+          // Retry with stricter prompt
+          logger.info('Regenerating script breakdown with stricter sentence limit enforcement...');
+
+          const stricterPrompt = `${prompt}\n\n🚨 STRICT ENFORCEMENT: You MUST generate EXACTLY ${maxSentences} sentences or fewer. This is attempt #2 - the first attempt generated too many sentences. Count carefully and stop at sentence ${maxSentences} maximum.`;
+
+          const retryResponse = await this.anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 4000,
+            messages: [{ role: 'user', content: stricterPrompt }]
+          });
+          let retryResponseText = retryResponse.content[0].text.trim();
         
         // Clean up response formatting
         if (retryResponseText.startsWith('```json') || retryResponseText.startsWith('```')) {
@@ -1182,9 +1183,14 @@ Return EXACTLY ${config.app.maxScriptSentences} sentences or fewer as a JSON arr
             throw new Error(`Script generation failed after 3 attempts. Last error: ${finalError.message}`);
           }
         }
-        
-        logger.info(`✅ Retry successful: ${retrySentences.length} sentences (within limit: ${maxSentences})`);
-        return retrySentences;
+
+          logger.info(`✅ Retry successful: ${retrySentences.length} sentences (within limit: ${maxSentences})`);
+          return retrySentences;
+        } catch (retryError) {
+          logger.warn(`Claude API retry failed (${retryError.message}). Truncating to ${maxSentences} sentences instead.`);
+          // Fallback: truncate the original sentences to max limit
+          return sentences.slice(0, maxSentences);
+        }
       }
       
       if (sentences.length > maxSentences) {

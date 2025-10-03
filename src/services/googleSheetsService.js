@@ -1104,6 +1104,7 @@ END OF BACKUP - Original script preserved before regeneration`;
 
   /**
    * Update sentence with generated image
+   * FIX: Proper row calculation using breakdown array index instead of sentenceNumber
    */
   async updateSentenceStatus(videoId, sentenceNumber, status, imageUrl = null) {
     return this.retryOperation(async () => {
@@ -1115,8 +1116,33 @@ END OF BACKUP - Original script preserved before regeneration`;
       const workbookUrl = videoRow.data[this.masterColumns.detailWorkbookUrl];
       const workbookId = workbookUrl.split('/d/')[1].split('/')[0];
 
+      // FIX BUG #1: Get script breakdown to find actual row position
+      const breakdown = await this.getScriptBreakdown(videoId);
+
+      if (!breakdown || breakdown.length === 0) {
+        throw new Error(`No script breakdown found for ${videoId}`);
+      }
+
+      // Find the sentence in the breakdown by sentenceNumber
+      const sentenceIndex = breakdown.findIndex(s =>
+        parseInt(s.sentenceNumber) === parseInt(sentenceNumber)
+      );
+
+      if (sentenceIndex === -1) {
+        throw new Error(`Sentence ${sentenceNumber} not found in breakdown for ${videoId}`);
+      }
+
+      // Calculate correct row: index + 2 (header row + 0-based index)
+      const rowIndex = sentenceIndex + 2;
+
+      // Validate row is within reasonable sheet bounds
+      if (rowIndex > 200) {
+        throw new Error(`Row ${rowIndex} exceeds sheet bounds for ${videoId}`);
+      }
+
+      logger.debug(`Updating sentence ${sentenceNumber} at row ${rowIndex} for ${videoId} (status: ${status})`);
+
       const updates = [];
-      const rowIndex = sentenceNumber + 1; // +1 because row 1 is header
 
       // Update status
       updates.push({

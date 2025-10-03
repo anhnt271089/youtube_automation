@@ -273,8 +273,9 @@ class PexelsService {
         return { success: false, reason: 'Sentence not found in breakdown' };
       }
 
-      // If status is not "Pending" or empty, another process has claimed it
-      const validPendingStatuses = ['Pending', '', null];
+      // If status is not "Pending" or empty or "Asset Download Failed", another process has claimed it
+      // FIX BUG #2: Include "Asset Download Failed" so these assets get retried
+      const validPendingStatuses = ['Pending', '', null, 'Asset Download Failed'];
       if (!validPendingStatuses.includes(currentSentence.status)) {
         logger.info(`Sentence ${sentenceNumber} already being processed (status: ${currentSentence.status}), skipping duplicate`);
         return {
@@ -283,6 +284,11 @@ class PexelsService {
           skipped: true,
           currentStatus: currentSentence.status
         };
+      }
+
+      // Add special logging for retries
+      if (currentSentence.status === 'Asset Download Failed') {
+        logger.info(`🔄 Retrying failed asset S-${sentenceNumber} for ${videoId}`);
       }
 
       // FIX: Atomically claim the sentence by setting status to "Downloading"

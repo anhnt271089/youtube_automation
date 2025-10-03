@@ -1,0 +1,103 @@
+{
+  "videoId": "VID-0031",
+  "version": "1.0",
+  "createdAt": "2025-10-03T05:21:45.621Z",
+  "originalMetadata": {
+    "videoId": "lWCvV5w9fYY",
+    "title": "Your Life Is Shorter Than You Think. ",
+    "description": "collecting subscribers in the form of donations. so feel free to sub')",
+    "channelTitle": "Nextcore",
+    "publishedAt": "2025-08-03T11:30:38Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/lWCvV5w9fYY/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/lWCvV5w9fYY/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/lWCvV5w9fYY/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/lWCvV5w9fYY/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      },
+      "maxres": {
+        "url": "https://i.ytimg.com/vi/lWCvV5w9fYY/maxresdefault.jpg",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "duration": "1:52",
+    "viewCount": 85986,
+    "likeCount": 7800,
+    "tags": [
+      "life is shorter than you think",
+      "life advice",
+      "self improvement",
+      "motivational video",
+      "life is short",
+      "life motivation",
+      "time management",
+      "personal growth",
+      "mindset shift",
+      "make every second count",
+      "inspirational video",
+      "discipline",
+      "focus",
+      "stop procrastinating",
+      "deep life thoughts",
+      "change your life",
+      "life truth",
+      "emotional motivation",
+      "productivity tips",
+      "motivational speech",
+      "live with purpose"
+    ],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "collecting subscribers in the form of donations",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "so feel free to sub')",
+        "start": 3000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "collecting subscribers in the form of donations so feel free to sub')",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 69,
+      "segments": 2,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/lWCvV5w9fYY/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=lWCvV5w9fYY",
+    "fetchedAt": "2025-10-03T05:21:45.621Z",
+    "checksum": "5350839014f0d46c2f017ae6e539b6436a5bde5c3412e19e0724f304a868b768"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-10-03T05:21:45.621Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}

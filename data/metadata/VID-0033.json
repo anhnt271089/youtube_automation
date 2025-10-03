@@ -1,0 +1,110 @@
+{
+  "videoId": "VID-0033",
+  "version": "1.0",
+  "createdAt": "2025-10-03T05:30:49.246Z",
+  "originalMetadata": {
+    "videoId": "wDeP0zpAT14",
+    "title": "How to stop giving a SH*T about everything",
+    "description": "You've spent too long caring about what doesn't matter. This video will show you how to finally stop giving a f*ck....about opinions, noise, and expectations that drain your energy.",
+    "channelTitle": "Nextcore",
+    "publishedAt": "2025-07-10T14:03:15Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/wDeP0zpAT14/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/wDeP0zpAT14/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/wDeP0zpAT14/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/wDeP0zpAT14/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      },
+      "maxres": {
+        "url": "https://i.ytimg.com/vi/wDeP0zpAT14/maxresdefault.jpg",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "duration": "3:27",
+    "viewCount": 15284,
+    "likeCount": 1026,
+    "tags": [
+      "how to stop giving a fuck",
+      "stop caring what others think",
+      "mindset shift",
+      "self improvement",
+      "mental toughness",
+      "emotional mastery",
+      "protect your energy",
+      "self help",
+      "personal growth",
+      "stop people pleasing",
+      "confidence mindset",
+      "focus on yourself",
+      "motivation for life",
+      "take control of your life",
+      "let go of negativity",
+      "stop overthinking",
+      "build resilience",
+      "emotional strength",
+      "how to stop caring",
+      "mental clarity",
+      "self worth",
+      "self respect",
+      "the subtle art of not giving a fuck"
+    ],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "You've spent too long caring about what doesn't matter",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "This video will show you how to finally stop giving a f*ck",
+        "start": 3000,
+        "duration": 3000
+      },
+      {
+        "text": "about opinions, noise, and expectations that drain your energy",
+        "start": 6000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "You've spent too long caring about what doesn't matter This video will show you how to finally stop giving a f*ck about opinions, noise, and expectations that drain your energy",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 176,
+      "segments": 3,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/wDeP0zpAT14/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=wDeP0zpAT14",
+    "fetchedAt": "2025-10-03T05:30:49.246Z",
+    "checksum": "5ea170f26aff6dfa8bb31d468f0017713e710bdfe8291daedada64ec3ddbe578"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-10-03T05:30:49.246Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}

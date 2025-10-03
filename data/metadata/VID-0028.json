@@ -1,0 +1,117 @@
+{
+  "videoId": "VID-0028",
+  "version": "1.0",
+  "createdAt": "2025-10-03T05:10:03.433Z",
+  "originalMetadata": {
+    "videoId": "GN26pE3T7Qc",
+    "title": "How Hobbies Make You More Successful",
+    "description": "Sign up to Epidemic Sound for FREE and get 2 months extra 50% off using code NEXTCORE50 here: \nhttps://share.epidemicsound.com/nextcoreSEP25\n\nYou don’t succeed despite your hobbies.\nYou succeed because of them.\nHobbies aren’t escapes. They’re training grounds. They’re cheat codes. And once you see how they shape success, you’ll never look at them the same again.\n\n: inspired by sei\n\njoin the NXC\nhttps://discord.gg/MYkuEeWHrd",
+    "channelTitle": "Nextcore",
+    "publishedAt": "2025-09-25T18:26:01Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/GN26pE3T7Qc/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/GN26pE3T7Qc/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/GN26pE3T7Qc/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/GN26pE3T7Qc/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      },
+      "maxres": {
+        "url": "https://i.ytimg.com/vi/GN26pE3T7Qc/maxresdefault.jpg",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "duration": "3:54",
+    "viewCount": 18675,
+    "likeCount": 1676,
+    "tags": [
+      "hobbies and success",
+      "hobbies for creativity",
+      "hobbies for personal growth",
+      "how hobbies improve life",
+      "hobbies and productivity",
+      "creative hobbies for success",
+      "benefits of hobbies",
+      "why hobbies matter",
+      "hobbies for mental health",
+      "hobbies that boost creativity",
+      "success habits",
+      "self improvement hobbies",
+      "productivity tips",
+      "creativity tips",
+      "personal growth journey"
+    ],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "Sign up to Epidemic Sound for FREE and get 2 months extra 50% off using code NEXTCORE50 here:  You don’t succeed despite your hobbies",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "You succeed because of them",
+        "start": 3000,
+        "duration": 3000
+      },
+      {
+        "text": "Hobbies aren’t escapes",
+        "start": 6000,
+        "duration": 3000
+      },
+      {
+        "text": "They’re training grounds",
+        "start": 9000,
+        "duration": 3000
+      },
+      {
+        "text": "And once you see how they shape success, you’ll never look at them the same again",
+        "start": 12000,
+        "duration": 3000
+      },
+      {
+        "text": ": inspired by sei join the NXC",
+        "start": 15000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "Sign up to Epidemic Sound for FREE and get 2 months extra 50% off using code NEXTCORE50 here:  You don’t succeed despite your hobbies You succeed because of them Hobbies aren’t escapes They’re training grounds And once you see how they shape success, you’ll never look at them the same again : inspired by sei join the NXC",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 322,
+      "segments": 6,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/GN26pE3T7Qc/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=GN26pE3T7Qc",
+    "fetchedAt": "2025-10-03T05:10:03.433Z",
+    "checksum": "afcd32648a3f957b688b82c78d27df093e9a08e9975fcdac8df4332a8bad642c"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-10-03T05:10:03.433Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}

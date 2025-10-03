@@ -1,0 +1,98 @@
+{
+  "videoId": "VID-0032",
+  "version": "1.0",
+  "createdAt": "2025-10-03T05:27:14.810Z",
+  "originalMetadata": {
+    "videoId": "E7qQb1zoLWM",
+    "title": "How to make cool sh*t that people actually love",
+    "description": "Sign up to Epidemic Sound for FREE and get 2 months extra 50% off using code NEXTCORE50 here: \nhttps://share.epidemicsound.com/vsvffo\n\nfrank ocean once said something about makin cool shi\n\n\ncollecting subscribers in the form of donations. so feel free to sub')\n\n(affiliate link btw)",
+    "channelTitle": "Nextcore",
+    "publishedAt": "2025-07-19T11:30:12Z",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/E7qQb1zoLWM/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/E7qQb1zoLWM/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/E7qQb1zoLWM/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/E7qQb1zoLWM/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      },
+      "maxres": {
+        "url": "https://i.ytimg.com/vi/E7qQb1zoLWM/maxresdefault.jpg",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "duration": "2:47",
+    "viewCount": 132146,
+    "likeCount": 16323,
+    "tags": [
+      "how to make cool stuff",
+      "how to create things people love",
+      "creativity tips",
+      "make viral content",
+      "make things people want",
+      "creative process",
+      "how to make unique content",
+      "cool ideas for creators",
+      "make better content",
+      "creative mindset",
+      "content that connects",
+      "stand out as a creator",
+      "how to be original",
+      "things people actually love",
+      "make things that matter",
+      "build what people need"
+    ],
+    "categoryId": "27",
+    "transcript": [
+      {
+        "text": "Sign up to Epidemic Sound for FREE and get 2 months extra 50% off using code NEXTCORE50 here:  frank ocean once said something about makin cool shi collecting subscribers in the form of donations",
+        "start": 0,
+        "duration": 3000
+      },
+      {
+        "text": "so feel free to sub') (affiliate link btw)",
+        "start": 3000,
+        "duration": 3000
+      }
+    ],
+    "transcriptText": "Sign up to Epidemic Sound for FREE and get 2 months extra 50% off using code NEXTCORE50 here:  frank ocean once said something about makin cool shi collecting subscribers in the form of donations so feel free to sub') (affiliate link btw)",
+    "transcriptStatus": {
+      "available": true,
+      "source": "whisper",
+      "length": 238,
+      "segments": 2,
+      "quality": "high"
+    },
+    "thumbnailUrl": "https://img.youtube.com/vi/E7qQb1zoLWM/maxresdefault.jpg",
+    "originalUrl": "https://www.youtube.com/watch?v=E7qQb1zoLWM",
+    "fetchedAt": "2025-10-03T05:27:14.810Z",
+    "checksum": "15aaf2eb7c52a36af878c3c1d73235c58c05700ed03196d521d3d75a08801b47"
+  },
+  "workflowMetadata": {
+    "processedAt": null,
+    "workflowVersion": "1.0",
+    "aiEnhancedTitle": null,
+    "scriptGenerated": false,
+    "costTracking": {},
+    "processingAttempts": 0
+  },
+  "systemIntegrity": {
+    "lastValidated": "2025-10-03T05:27:14.810Z",
+    "validationStatus": "verified",
+    "backupCreated": true
+  }
+}
