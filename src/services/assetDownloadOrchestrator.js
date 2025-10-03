@@ -229,46 +229,62 @@ class AssetDownloadOrchestrator extends EventEmitter {
         // Race between processing and timeout
         const result = await Promise.race([processingPromise, timeoutPromise]);
 
-        // Check if processing was successful
-        if (result && result.successCount > 0) {
-          logger.info(`✅ Asset processing successful for ${videoId}:`, {
-            attempt,
-            successCount: result.successCount,
-            failureCount: result.failureCount,
-            totalSentences: result.totalSentences
-          });
+        // FIX ISSUE #2: Robust status update with explicit success/failure handling
+        // Validate processing result structure
+        if (!result) {
+          throw new Error('Processing result is undefined or null');
+        }
 
-          // Update video workflow status if all assets were successful
-          if (result.failureCount === 0 && result.successCount === result.totalSentences) {
+        const successCount = result.successCount || 0;
+        const failureCount = result.failureCount || 0;
+        const totalSentences = result.totalSentences || 0;
+
+        logger.info(`📊 Asset processing result for ${videoId}:`, {
+          attempt,
+          successCount,
+          failureCount,
+          totalSentences,
+          hasAnySuccess: successCount > 0
+        });
+
+        // Check if ANY assets were successfully processed
+        if (successCount > 0) {
+          // Determine completion level
+          const isFullSuccess = failureCount === 0 && successCount === totalSentences;
+          const isPartialSuccess = successCount > 0 && failureCount > 0;
+
+          if (isFullSuccess) {
+            logger.info(`✅ Full success: All ${successCount} assets downloaded for ${videoId}`);
             await this.updateWorkflowStatus(videoId, 'assets-complete');
-
-            // Update Master Sheet status to "Completed"
-            try {
-              await this.sheetsService.updateMasterSheetStatus(videoId, 'Completed');
-              logger.info(`✅ Master Sheet status updated to "Completed" for ${videoId}`);
-            } catch (statusError) {
-              logger.error(`Failed to update Master Sheet status to "Completed" for ${videoId}:`, statusError.message);
-            }
-          } else if (result.successCount > 0) {
+          } else if (isPartialSuccess) {
+            logger.warn(`⚠️ Partial success: ${successCount}/${totalSentences} assets downloaded for ${videoId} (${failureCount} failed)`);
             await this.updateWorkflowStatus(videoId, 'assets-partial');
+          } else {
+            logger.info(`✅ Success: ${successCount} assets downloaded for ${videoId}`);
+            await this.updateWorkflowStatus(videoId, 'assets-complete');
+          }
 
-            // Update Master Sheet status to "Completed" (partial success still counts as completed)
-            try {
-              await this.sheetsService.updateMasterSheetStatus(videoId, 'Completed');
-              logger.info(`✅ Master Sheet status updated to "Completed" (partial) for ${videoId}`);
-            } catch (statusError) {
-              logger.error(`Failed to update Master Sheet status to "Completed" for ${videoId}:`, statusError.message);
-            }
+          // CRITICAL: Always update status to "Completed" for ANY successful asset downloads
+          try {
+            await this.sheetsService.updateMasterSheetStatus(videoId, 'Completed');
+            logger.info(`✅ Master Sheet status updated to "Completed" for ${videoId} (${successCount} assets downloaded)`);
+          } catch (statusError) {
+            logger.error(`❌ CRITICAL: Failed to update Master Sheet status to "Completed" for ${videoId}:`, statusError.message);
+            // Log but don't throw - the assets were still downloaded successfully
           }
 
           return {
             success: true,
             attempt,
             result,
-            videoData
+            videoData,
+            statusUpdate: 'Completed'
           };
         } else {
-          throw new Error(`No assets were successfully processed (success: ${result?.successCount || 0})`);
+          // No assets were successfully processed
+          const errorMsg = `No assets were successfully processed (total: ${totalSentences}, success: ${successCount}, failed: ${failureCount})`;
+          logger.error(`❌ ${errorMsg} for ${videoId}`);
+          throw new Error(errorMsg);
         }
 
       } catch (error) {

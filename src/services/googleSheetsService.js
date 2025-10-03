@@ -671,31 +671,47 @@ END OF BACKUP - Original script preserved before regeneration`;
       const folderName = `(${videoId}) ${sanitizedTitle}`;
       let folderId;
       let folderUrl;
-      
+
+      // FIX ISSUE #1: Validate parent folder ID before proceeding
+      const parentFolderId = config.google.videosRootFolderId;
+      if (!parentFolderId) {
+        throw new Error('GOOGLE_VIDEOS_ROOT_FOLDER_ID not configured - cannot create detail folder');
+      }
+
+      logger.info(`📁 Creating detail folder "${folderName}" in Videos Details folder (${parentFolderId})`);
+
       // Check if folder already exists
       const existingFolders = await this.drive.files.list({
-        q: `name='${this.escapeDriveQuery(folderName)}' and mimeType='application/vnd.google-apps.folder' and parents in '${config.google.videosRootFolderId}' and trashed=false`,
-        fields: 'files(id, name, webViewLink)'
+        q: `name='${this.escapeDriveQuery(folderName)}' and mimeType='application/vnd.google-apps.folder' and parents in '${parentFolderId}' and trashed=false`,
+        fields: 'files(id, name, webViewLink, parents)'
       });
 
       if (existingFolders.data.files.length > 0) {
         // Use existing folder
         folderId = existingFolders.data.files[0].id;
         folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
-        logger.info(`Using existing video folder: ${folderName} - ${folderUrl}`);
+        const folderParent = existingFolders.data.files[0].parents?.[0] || 'unknown';
+        logger.info(`✅ Using existing video folder: ${folderName} - ${folderUrl} (Parent: ${folderParent})`);
       } else {
-        // Create new folder
+        // Create new folder with explicit parent folder specification
         const folderResponse = await this.drive.files.create({
           resource: {
             name: folderName,
             mimeType: 'application/vnd.google-apps.folder',
-            parents: [config.google.videosRootFolderId]
-          }
+            parents: [parentFolderId] // CRITICAL: Always specify parent to avoid root placement
+          },
+          fields: 'id, name, webViewLink, parents'
         });
 
         folderId = folderResponse.data.id;
         folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
-        logger.info(`Created video folder: ${folderName} - ${folderUrl}`);
+        const folderParent = folderResponse.data.parents?.[0] || 'unknown';
+        logger.info(`✅ Created video folder: ${folderName} - ${folderUrl} (Parent: ${folderParent})`);
+
+        // Safety check: Verify folder was created in correct parent
+        if (folderParent !== parentFolderId) {
+          logger.error(`❌ FOLDER CREATION ERROR: Folder created in wrong parent! Expected: ${parentFolderId}, Got: ${folderParent}`);
+        }
       }
 
       // Check for existing workbook before creating new one  
