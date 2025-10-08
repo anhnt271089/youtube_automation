@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { fileURLToPath } from 'url';
 import { config, validateConfig } from '../config/config.js';
 import WorkflowService from './services/workflowService.js';
 import lockManager from './services/lockManagerService.js';
@@ -656,6 +657,7 @@ async function main() {
 export default YouTubeAutomation;
 
 // Start the system if this file is run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Fix for Windows: convert import.meta.url to file path for proper comparison
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
   main();
 }
