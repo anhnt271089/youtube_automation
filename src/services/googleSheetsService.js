@@ -908,7 +908,50 @@ END OF BACKUP - Original script preserved before regeneration`;
         videoInfoData.push(['Style 2:', 'Professional/Clean - Use minimal design, clear typography, and visual metaphors']);
       }
 
-      // Update Video Info sheet
+      // Update Video Info sheet - ensure sheet has enough rows first
+      const requiredRows = videoInfoData.length;
+
+      // Get current sheet properties to check row count
+      const sheetMetadata = await this.sheets.spreadsheets.get({
+        spreadsheetId: workbookId,
+        fields: 'sheets(properties(sheetId,title,gridProperties))'
+      });
+
+      const videoInfoSheet = sheetMetadata.data.sheets.find(
+        sheet => sheet.properties.title === this.detailSheets.videoInfo
+      );
+
+      if (!videoInfoSheet) {
+        throw new Error(`Video Info sheet not found in workbook ${workbookId}`);
+      }
+
+      const currentRows = videoInfoSheet.properties.gridProperties.rowCount;
+      const sheetId = videoInfoSheet.properties.sheetId;
+
+      // Expand sheet if needed (with buffer for future additions)
+      if (requiredRows > currentRows) {
+        const newRowCount = Math.max(requiredRows + 50, currentRows * 2); // Add buffer
+        logger.info(`Expanding Video Info sheet from ${currentRows} to ${newRowCount} rows for ${videoId}`);
+
+        await this.sheets.spreadsheets.batchUpdate({
+          spreadsheetId: workbookId,
+          resource: {
+            requests: [{
+              updateSheetProperties: {
+                properties: {
+                  sheetId: sheetId,
+                  gridProperties: {
+                    rowCount: newRowCount
+                  }
+                },
+                fields: 'gridProperties.rowCount'
+              }
+            }]
+          }
+        });
+      }
+
+      // Now safe to update with calculated range
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: workbookId,
         range: `${this.detailSheets.videoInfo}!A1:B${videoInfoData.length}`,
@@ -975,6 +1018,44 @@ END OF BACKUP - Original script preserved before regeneration`;
       }
 
       if (fullScriptData.length > 0) {
+        const totalRequiredRows = videoInfoData.length + 2 + fullScriptData.length;
+
+        // Check if we need to expand again for fullScriptData
+        const updatedSheetMetadata = await this.sheets.spreadsheets.get({
+          spreadsheetId: workbookId,
+          fields: 'sheets(properties(sheetId,title,gridProperties))'
+        });
+
+        const updatedVideoInfoSheet = updatedSheetMetadata.data.sheets.find(
+          sheet => sheet.properties.title === this.detailSheets.videoInfo
+        );
+
+        if (updatedVideoInfoSheet) {
+          const currentRowsAfterFirstUpdate = updatedVideoInfoSheet.properties.gridProperties.rowCount;
+
+          if (totalRequiredRows > currentRowsAfterFirstUpdate) {
+            const newRowCount = totalRequiredRows + 50; // Add buffer
+            logger.info(`Expanding Video Info sheet again from ${currentRowsAfterFirstUpdate} to ${newRowCount} rows for fullScriptData`);
+
+            await this.sheets.spreadsheets.batchUpdate({
+              spreadsheetId: workbookId,
+              resource: {
+                requests: [{
+                  updateSheetProperties: {
+                    properties: {
+                      sheetId: updatedVideoInfoSheet.properties.sheetId,
+                      gridProperties: {
+                        rowCount: newRowCount
+                      }
+                    },
+                    fields: 'gridProperties.rowCount'
+                  }
+                }]
+              }
+            });
+          }
+        }
+
         await this.sheets.spreadsheets.values.update({
           spreadsheetId: workbookId,
           range: `${this.detailSheets.videoInfo}!A${videoInfoData.length + 2}:B${videoInfoData.length + 2 + fullScriptData.length}`,
