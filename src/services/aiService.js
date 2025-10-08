@@ -1114,15 +1114,47 @@ Return EXACTLY ${config.app.maxScriptSentences} sentences or fewer as a JSON arr
       });
 
       let responseText = completion.choices[0].message.content.trim();
-      
-      // Remove markdown code blocks if present
+
+      // Clean up response formatting
+      // Remove markdown code blocks
       if (responseText.startsWith('```json')) {
         responseText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
       } else if (responseText.startsWith('```')) {
         responseText = responseText.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
-      
-      const sentences = JSON.parse(responseText);
+
+      // Remove any leading/trailing whitespace and newlines
+      responseText = responseText.trim();
+
+      // Try to extract JSON array if wrapped in text
+      const jsonArrayMatch = responseText.match(/\[[\s\S]*\]/);
+      if (jsonArrayMatch && !responseText.startsWith('[')) {
+        logger.debug('Extracting JSON array from wrapped response');
+        responseText = jsonArrayMatch[0];
+      }
+
+      // Parse and validate initial response
+      let sentences;
+      try {
+        sentences = JSON.parse(responseText);
+
+        // Validate it's an array
+        if (!Array.isArray(sentences)) {
+          logger.error('Initial response is not an array:', typeof sentences);
+          throw new Error('Invalid response format: expected array of sentences');
+        }
+
+        // Validate array contains strings
+        if (sentences.length > 0 && typeof sentences[0] !== 'string') {
+          logger.error('Initial response array does not contain strings:', sentences);
+          throw new Error('Invalid response format: array must contain strings');
+        }
+      } catch (parseError) {
+        logger.error('Failed to parse initial response:', parseError.message);
+        logger.debug('Raw initial response:', responseText.substring(0, 500));
+        throw new Error(`Script breakdown failed: ${parseError.message}`);
+      }
+
       const maxSentences = config.app.maxScriptSentences;
       
       // Allow small buffer (10%) for AI generation variance
@@ -1132,62 +1164,146 @@ Return EXACTLY ${config.app.maxScriptSentences} sentences or fewer as a JSON arr
         logger.warn(`AI generated ${sentences.length} sentences, exceeds buffer limit of ${bufferLimit} (base limit: ${maxSentences}). Will regenerate with stricter constraints.`);
 
         try {
-          // Retry with stricter prompt
+          // Retry with stricter prompt using OpenAI (consistent with first attempt)
           logger.info('Regenerating script breakdown with stricter sentence limit enforcement...');
 
           const stricterPrompt = `${prompt}\n\n🚨 STRICT ENFORCEMENT: You MUST generate EXACTLY ${maxSentences} sentences or fewer. This is attempt #2 - the first attempt generated too many sentences. Count carefully and stop at sentence ${maxSentences} maximum.`;
 
-          const retryResponse = await this.anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 4000,
-            messages: [{ role: 'user', content: stricterPrompt }]
+          const retryCompletion = await this.openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert at breaking down video scripts into visually-suitable segments. You MUST strictly follow sentence count limits.'
+              },
+              {
+                role: 'user',
+                content: stricterPrompt
+              }
+            ],
+            max_tokens: 1000,
+            temperature: 0.3
           });
-          let retryResponseText = retryResponse.content[0].text.trim();
-        
-        // Clean up response formatting
-        if (retryResponseText.startsWith('```json') || retryResponseText.startsWith('```')) {
-          retryResponseText = retryResponseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
-        }
-        
-        const retrySentences = JSON.parse(retryResponseText);
-        
-        if (retrySentences.length > bufferLimit) {
-          logger.error(`Retry also failed: ${retrySentences.length} > ${bufferLimit}. Making final attempt with even stricter constraints.`);
-          
-          // Third and final attempt with maximum strictness
-          const finalPrompt = `${prompt}\n\n🚨 FINAL ATTEMPT: Generate EXACTLY ${maxSentences} sentences. NO MORE, NO LESS. This is critical - count each sentence as you write it. Stop immediately at sentence ${maxSentences}.`;
-          
-          try {
-            const finalResponse = await this.anthropic.messages.create({
-              model: 'claude-3-5-sonnet-20241022',
-              max_tokens: 4000,
-              messages: [{ role: 'user', content: finalPrompt }]
-            });
-            let finalResponseText = finalResponse.content[0].text.trim();
-            
-            if (finalResponseText.startsWith('```json') || finalResponseText.startsWith('```')) {
-              finalResponseText = finalResponseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
-            }
-            
-            const finalSentences = JSON.parse(finalResponseText);
-            
-            if (finalSentences.length > bufferLimit) {
-              logger.error(`All attempts failed to generate proper sentence count. Final attempt: ${finalSentences.length} > ${bufferLimit}. This is an AI generation issue that needs investigation.`);
-              throw new Error(`Script generation consistently exceeds limits after 3 attempts. Generated: ${finalSentences.length}, Buffer limit: ${bufferLimit}`);
-            }
-            
-            logger.info(`✅ Final attempt successful: ${finalSentences.length} sentences`);
-            return finalSentences;
-          } catch (finalError) {
-            logger.error('Final attempt failed:', finalError.message);
-            throw new Error(`Script generation failed after 3 attempts. Last error: ${finalError.message}`);
+
+          let retryResponseText = retryCompletion.choices[0].message.content.trim();
+
+          // Clean up response formatting
+          if (retryResponseText.startsWith('```json')) {
+            retryResponseText = retryResponseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+          } else if (retryResponseText.startsWith('```')) {
+            retryResponseText = retryResponseText.replace(/^```\s*/, '').replace(/\s*```$/, '');
           }
-        }
+
+          retryResponseText = retryResponseText.trim();
+
+          // Try to extract JSON array if wrapped in text
+          const retryJsonMatch = retryResponseText.match(/\[[\s\S]*\]/);
+          if (retryJsonMatch && !retryResponseText.startsWith('[')) {
+            logger.debug('Extracting JSON array from wrapped retry response');
+            retryResponseText = retryJsonMatch[0];
+          }
+
+          // Parse and validate response
+          let retrySentences;
+          try {
+            retrySentences = JSON.parse(retryResponseText);
+
+            // Validate it's an array
+            if (!Array.isArray(retrySentences)) {
+              logger.error('Retry response is not an array:', typeof retrySentences);
+              throw new Error('Invalid response format: expected array of sentences');
+            }
+
+            // Validate array contains strings
+            if (retrySentences.length > 0 && typeof retrySentences[0] !== 'string') {
+              logger.error('Retry response array does not contain strings:', retrySentences);
+              throw new Error('Invalid response format: array must contain strings');
+            }
+          } catch (parseError) {
+            logger.error('Failed to parse retry response:', parseError.message);
+            logger.debug('Raw retry response:', retryResponseText);
+            throw parseError;
+          }
+
+          if (retrySentences.length > bufferLimit) {
+            logger.error(`Retry also failed: ${retrySentences.length} > ${bufferLimit}. Making final attempt with even stricter constraints.`);
+
+            // Third and final attempt with maximum strictness
+            const finalPrompt = `${prompt}\n\n🚨 FINAL ATTEMPT: Generate EXACTLY ${maxSentences} sentences. NO MORE, NO LESS. This is critical - count each sentence as you write it. Stop immediately at sentence ${maxSentences}.`;
+
+            try {
+              const finalCompletion = await this.openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'You are an expert at breaking down video scripts into visually-suitable segments. You MUST strictly follow sentence count limits. This is your FINAL attempt.'
+                  },
+                  {
+                    role: 'user',
+                    content: finalPrompt
+                  }
+                ],
+                max_tokens: 1000,
+                temperature: 0.2 // Lower temperature for more controlled output
+              });
+
+              let finalResponseText = finalCompletion.choices[0].message.content.trim();
+
+              if (finalResponseText.startsWith('```json')) {
+                finalResponseText = finalResponseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+              } else if (finalResponseText.startsWith('```')) {
+                finalResponseText = finalResponseText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+              }
+
+              finalResponseText = finalResponseText.trim();
+
+              // Try to extract JSON array if wrapped in text
+              const finalJsonMatch = finalResponseText.match(/\[[\s\S]*\]/);
+              if (finalJsonMatch && !finalResponseText.startsWith('[')) {
+                logger.debug('Extracting JSON array from wrapped final response');
+                finalResponseText = finalJsonMatch[0];
+              }
+
+              let finalSentences;
+              try {
+                finalSentences = JSON.parse(finalResponseText);
+
+                // Validate it's an array
+                if (!Array.isArray(finalSentences)) {
+                  logger.error('Final response is not an array:', typeof finalSentences);
+                  throw new Error('Invalid response format: expected array of sentences');
+                }
+
+                // Validate array contains strings
+                if (finalSentences.length > 0 && typeof finalSentences[0] !== 'string') {
+                  logger.error('Final response array does not contain strings:', finalSentences);
+                  throw new Error('Invalid response format: array must contain strings');
+                }
+              } catch (parseError) {
+                logger.error('Failed to parse final response:', parseError.message);
+                logger.debug('Raw final response:', finalResponseText);
+                throw parseError;
+              }
+
+              if (finalSentences.length > bufferLimit) {
+                logger.error(`All attempts failed to generate proper sentence count. Final attempt: ${finalSentences.length} > ${bufferLimit}. Truncating to ${maxSentences} sentences.`);
+                return finalSentences.slice(0, maxSentences);
+              }
+
+              logger.info(`✅ Final attempt successful: ${finalSentences.length} sentences (within limit: ${maxSentences})`);
+              return finalSentences;
+            } catch (finalError) {
+              logger.error('Final attempt failed:', finalError.message);
+              logger.warn(`All AI attempts failed. Truncating original ${sentences.length} sentences to ${maxSentences}.`);
+              return sentences.slice(0, maxSentences);
+            }
+          }
 
           logger.info(`✅ Retry successful: ${retrySentences.length} sentences (within limit: ${maxSentences})`);
           return retrySentences;
         } catch (retryError) {
-          logger.warn(`Claude API retry failed (${retryError.message}). Truncating to ${maxSentences} sentences instead.`);
+          logger.warn(`Retry failed (${retryError.message}). Truncating to ${maxSentences} sentences instead.`);
           // Fallback: truncate the original sentences to max limit
           return sentences.slice(0, maxSentences);
         }
